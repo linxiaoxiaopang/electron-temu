@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu } = require('electron')
+const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron')
 const path = require('path')
 
 let tray = null
@@ -10,8 +10,8 @@ const createWindow = () => {
     height: 600,
     webPreferences: {
       nodeIntegration: true,        // 允许渲染进程使用 Node.js API
-      contextIsolation: false,      // 关闭上下文隔离（Vue 2 通常需要此设置）
-      enableRemoteModule: true      // 如需使用 remote 模块（如对话框）
+      contextIsolation: false,    // 关闭上下文隔离（Vue 2 通常需要此设置）
+      preload: path.join(__dirname, 'preload.js')
     }
   })
   if (isDev) {
@@ -40,6 +40,13 @@ const createWindow = () => {
   })
 }
 
+// 监听渲染进程请求，返回 app 信息
+ipcMain.handle('getAppInfo', () => {
+  return {
+    path: app.getAppPath(),
+    version: app.getVersion()
+  }
+})
 
 app.whenReady().then(() => {
   createWindow()

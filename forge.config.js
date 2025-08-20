@@ -4,6 +4,9 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
+    extraResource: [
+      'mock' // 开发环境中的资源目录路径
+    ]
   },
   rebuildConfig: {},
   makers: [

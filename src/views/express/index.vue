@@ -29,6 +29,9 @@
         </div>
       </span>
     </div>
+    <div class="result">
+      {{result}}
+    </div>
   </div>
 </template>
 
@@ -38,6 +41,12 @@ import { createExpressApp } from './utils'
 import service from '@/service/request'
 
 export default {
+  data() {
+    return {
+      result: null
+    }
+  },
+
   computed: {
     ...mapState('user', ['headers'])
   },
@@ -58,6 +67,7 @@ export default {
           }
         }
       })
+      this.result = res
       console.log('res', res)
     }
   }
