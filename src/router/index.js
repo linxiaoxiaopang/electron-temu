@@ -5,13 +5,15 @@ Vue.use(Router)
 export const routes = [
   {
     path: '/',
-    redirect: '/home',
-    hidden: true
+    redirect: '/express'
   },
   {
     path: '/home',
-    component: () => import('@/views/home'),
-    hidden: true
+    component: () => import('@/views/home')
+  },
+  {
+    path: '/express',
+    component: () => import('@/views/express')
   }
 ]
 

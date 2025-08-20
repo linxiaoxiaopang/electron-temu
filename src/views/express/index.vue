@@ -1,0 +1,60 @@
+<template>
+  <div>
+   <button @click="onMock">
+     模拟请求1
+   </button>
+    <div class="headers">
+     <span v-if="!headers">
+       未获取到temu的请求头，请刷新temu页面
+     </span>
+      <span v-else>
+        <div>请求头信息</div>
+        <div>
+          <div style="margin-bottom: 15px;border: 1px solid #eee;padding: 5px;" v-for="(value, key) in headers" :key="key">
+            <div>
+              <span style="display: inline-block;margin-right: 20px;">{{ key }}:</span>
+              <span>{{ value }}</span>
+              </div>
+          </div>
+        </div>
+      </span>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapState } from 'vuex'
+import { createExpressApp } from './utils'
+import service from '@/service/request'
+
+export default {
+  computed: {
+    ...mapState('user', ['headers'])
+  },
+
+  mounted() {
+    createExpressApp()
+  },
+
+  methods: {
+    async onMock() {
+      const res = await service({
+        url: '/temu-agentseller/externalbusiness/productService/productPrototype/listForSelling',
+        method: 'post',
+        data: {
+          page: {
+            pageIndex: 1,
+            pageSize: 24
+          }
+        }
+      })
+      console.log('res', res)
+    }
+  }
+}
+
+</script>
+
+<style lang="scss" scoped>
+
+</style>

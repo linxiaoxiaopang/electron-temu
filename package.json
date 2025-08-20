@@ -8,15 +8,19 @@
     "package": "electron-forge package",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "electron:serve": "cross-env NODE_ENV=development vue-cli-service electron-forge start",
     "lint": "vue-cli-service lint",
     "make": "electron-forge make"
   },
   "dependencies": {
+    "axios": "^1.11.0",
+    "body-parser": "^2.2.0",
     "core-js": "^3.8.3",
+    "cors": "^2.8.5",
     "electron-squirrel-startup": "^1.0.1",
+    "express": "^5.1.0",
     "vue": "^2.6.14",
-    "vue-router": "^3.0.2"
+    "vue-router": "^3.0.2",
+    "vuex": "^3.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
@@ -52,7 +56,8 @@
       "parser": "@babel/eslint-parser"
     },
     "rules": {
-      "vue/multi-word-component-names": "off"
+      "vue/multi-word-component-names": "off",
+      "no-unused-vars": "off"
     }
   },
   "browserslist": [

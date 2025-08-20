@@ -1,6 +1,5 @@
 const { app, BrowserWindow, Tray, Menu } = require('electron')
 const path = require('path')
-const chokidar = require('chokidar')
 
 let tray = null
 let mainWindow = null
@@ -16,9 +15,9 @@ const createWindow = () => {
     }
   })
   if (isDev) {
-    mainWindow.loadURL('http://localhost:8084')
+    mainWindow.loadURL('http://localhost:8080')
     mainWindow.webContents.openDevTools()
-
+    const chokidar = require('chokidar')
     // 监听渲染进程文件变化，自动刷新
     const watcher = chokidar.watch(path.join(__dirname, '../src'), {
       ignoreInitial: true
