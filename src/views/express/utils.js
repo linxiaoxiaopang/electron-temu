@@ -2,7 +2,8 @@ const express = window.require('express')
 const bodyParser = window.require('body-parser')
 const cors = window.require('cors')
 import store from '@/store'
-import proxyMiddleware from './middleware/proxy-middleware'
+import proxyMiddleware from './middleware/proxyMiddleware'
+import validHeadersMiddleware from './middleware/validHeadersMiddleware'
 
 const PORT = 3000
 let app = null
@@ -25,17 +26,7 @@ export function createExpressApp() {
     })
   })
 
-  app.use(/^\/?(temu-agentseller|temu-seller)/, (req, res, next) => {
-    const headers = store.state.user.headers
-    if (!headers) {
-      res.json({
-        code: 0,
-        data: 'headers 未获取'
-      })
-      return
-    }
-    next()
-  })
+  app.use(/^\/?(temu-agentseller|temu-seller)/, validHeadersMiddleware)
 
   app.use('/temu-agentseller', proxyMiddleware({
     target: 'https://api.zdcustom.com',
