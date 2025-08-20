@@ -29,11 +29,11 @@ export function createExpressApp() {
   app.use(/^\/?(temu-agentseller|temu-seller)/, validHeadersMiddleware)
 
   app.use('/temu-agentseller', proxyMiddleware({
-    target: 'https://api.zdcustom.com',
+    target: 'https://api.zdcustom.com'
   }))
 
   app.use('/temu-seller', proxyMiddleware({
-    target: 'https://api.zdcustom.com',
+    target: 'https://api.zdcustom.com'
   }))
 
 // 处理 404 错误

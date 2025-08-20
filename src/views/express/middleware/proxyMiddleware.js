@@ -19,7 +19,7 @@ export default function (option) {
   return async function (req, res) {
     const headers = store.state.user.headers
     const { method, url, body, baseUrl } = req
-    const mockPath = RESPONSE_LIST[baseUrl][url]
+    let mockPath = RESPONSE_LIST[baseUrl][url]
     if (!mockPath) {
       res.json({
         code: 0,
@@ -28,6 +28,7 @@ export default function (option) {
       })
       return
     }
+    mockPath = mockPath.replace(/\+/g, '/')
     const data = window.require(mockPath)
 
     res.json({
