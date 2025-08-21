@@ -8,10 +8,6 @@ export const routes = [
     redirect: '/express'
   },
   {
-    path: '/home',
-    component: () => import('@/views/home')
-  },
-  {
     path: '/express',
     component: () => import('@/views/express')
   }

@@ -1,17 +1,43 @@
 <template>
   <div>
-    <button @click="onMock('/temu-seller/bg/quiet/api/mms/userInfo')">
-      /bg/quiet/api/mms/userInfo
-    </button>
-    <button @click="onMock('/temu-agentseller/api/kiana/gamblers/marketing/enroll/activity/list')">
-      /api/kiana/gamblers/marketing/enroll/activity/list
-    </button>
-    <button @click="onMock('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match')">
-      /api/kiana/gamblers/marketing/enroll/scroll/match
-    </button>
-    <button @click="onMock('/temu-seller/bg-anniston-mms/category/children/list')">
-      /bg-anniston-mms/category/children/list
-    </button>
+    <div class="item">
+      <button @click="onMock('/temu-agentseller/api/seller/auth/userInfo', {}, 'userInfo')">
+        /api/seller/auth/userInfo
+      </button>
+      <div class="result">
+        {{ mallId }}
+        {{ userInfo }}
+      </div>
+    </div>
+    <div class="item">
+      <button @click="
+      onMock('/temu-agentseller/api/kiana/gamblers/marketing/enroll/activity/list', {
+      needCanEnrollCnt: true,
+      needSessionItem: true,
+      mallId
+    }, 'activityInfo')">
+        /api/kiana/gamblers/marketing/enroll/activity/list
+      </button>
+
+      <div class="result">
+        {{ activityInfo }}
+      </div>
+    </div>
+
+    <div class="item">
+      <button @click="onMock('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', {
+      mallId,
+      activityType,
+      rowCount: 50
+    }, 'matchInfo')">
+        /api/kiana/gamblers/marketing/enroll/scroll/match
+      </button>
+
+      <div class="result">
+        {{ matchInfo }}
+      </div>
+    </div>
+
     <div class="headers">
      <span v-if="!headers">
        未获取到temu的请求头，请刷新temu页面
@@ -29,9 +55,6 @@
         </div>
       </span>
     </div>
-    <div class="result">
-      {{result}}
-    </div>
   </div>
 </template>
 
@@ -43,32 +66,37 @@ import service from '@/service/request'
 export default {
   data() {
     return {
-      result: null
+      userInfo: null,
+      activityInfo: null,
+      matchInfo: null
     }
   },
 
   computed: {
-    ...mapState('user', ['headers'])
+    ...mapState('user', ['headers']),
+
+    mallId({ userInfo }) {
+      return userInfo?.companyList?.[0]?.malInfoList?.[0]?.mallId || ''
+    },
+
+    activityType({ activityInfo }) {
+      return activityInfo?.activityList?.[0]?.activityType || ''
+    }
   },
 
   mounted() {
     createExpressApp()
   },
 
+
   methods: {
-    async onMock(url) {
+    async onMock(url, data, prop) {
       const res = await service({
         url,
-        method: 'post',
-        data: {
-          page: {
-            pageIndex: 1,
-            pageSize: 24
-          }
-        }
+        data,
+        method: 'post'
       })
-      this.result = res
-      console.log('res', res)
+      this[prop] = res?.data?.data
     }
   }
 }
@@ -76,8 +104,22 @@ export default {
 </script>
 
 <style scoped>
+
+.item {
+    padding: 10px;
+    border: 1px solid #001aff;
+    margin-bottom: 10px;
+    max-height: 150px;
+    overflow: auto;
+}
+
 button {
     display: block;
     margin-bottom: 10px;
+}
+
+.result {
+    border: 1px solid #eee;
+    padding: 10px;
 }
 </style>

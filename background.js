@@ -1,6 +1,8 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron')
 const path = require('path')
-
+if (require('electron-squirrel-startup')) {
+  app.quit() // 若为安装/更新相关启动，则自动退出
+}
 let tray = null
 let mainWindow = null
 const isDev = process.env.NODE_ENV === 'development'
@@ -73,15 +75,6 @@ function createTray() {
       click: () => {
         mainWindow.show()
       }
-    },
-    {
-      label: '刷新',
-      click: () => {
-        mainWindow.reload()
-      }
-    },
-    {
-      type: 'separator' // 分隔线
     },
     {
       label: '退出',
