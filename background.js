@@ -1,5 +1,7 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron')
 const path = require('path')
+const axios = require('axios')
+app.commandLine.appendSwitch('disable-content-security-policy')
 if (require('electron-squirrel-startup')) {
   app.quit() // 若为安装/更新相关启动，则自动退出
 }
@@ -11,6 +13,7 @@ const createWindow = () => {
     width: 800,
     height: 600,
     webPreferences: {
+      webSecurity: false,
       nodeIntegration: true,        // 允许渲染进程使用 Node.js API
       contextIsolation: false,    // 关闭上下文隔离（Vue 2 通常需要此设置）
       preload: path.join(__dirname, 'preload.js')
@@ -30,6 +33,7 @@ const createWindow = () => {
       mainWindow.reload()
     })
   } else {
+    mainWindow.webContents.openDevTools()
     mainWindow.loadFile(path.join(__dirname, 'dist/index.html'))
   }
   // 关闭窗口时默认最小化到托盘
@@ -47,6 +51,17 @@ ipcMain.handle('getAppInfo', () => {
   return {
     path: app.getAppPath(),
     version: app.getVersion()
+  }
+})
+
+ipcMain.handle('proxyRequest', async (event, config = {}) => {
+  try {
+    // 主进程中可自由设置 Cookie 头
+    const response = await axios(config)
+    console.log('response', response)
+    return response?.data
+  } catch (error) {
+    return { error: error.message }
   }
 })
 

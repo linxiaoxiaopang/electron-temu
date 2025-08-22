@@ -38,8 +38,11 @@ export function createExpressApp() {
 
 // 处理 500 错误
   app.use((err, req, res, next) => {
-    console.error(err)
-    res.status(500).send('<h1>500 Internal Server Error</h1>')
+    res.json({
+      code: 500,
+      data: err?.message || err,
+      message: err?.message || err
+    })
   })
 
 // 启动服务器

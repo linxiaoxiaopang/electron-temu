@@ -3,32 +3,15 @@
   "errorCode": 1000000,
   "errorMsg": null,
   "result": {
-    "userId": 23830059107270,
-    "maskMobile": "+86 188****2846",
-    "maskOwnerMobile": "0290",
-    "accountType": 2,
-    "accountStatus": 1,
-    "tokenType": 1,
-    "companyList": [
+    "accountId": 23306528622385,
+    "maskMobile": null,
+    "mallList": [
       {
-        "companyName": "-",
-        "malInfoList": [
-          {
-            "mallId": 634418220544536,
-            "mallName": "Customprint",
-            "logo": "https://img.cdnfe.com/supplier-public-tag/20a3d454a5/595c9d32-fe12-4dfa-b679-eecfc2a41e75_300x300.jpeg",
-            "mallStatus": 1,
-            "isSemiManagedMall": false
-          }
-        ]
+        "mallId": 634418219608212,
+        "mallName": "Annejudy",
+        "managedType": 1
       }
     ],
-    "nickName": "Cshoes",
-    "roleNameList": [
-      "财务运营",
-      "商品销售运营",
-      "发货管理运营",
-      "商品上新运营"
-    ]
+    "accountType": 2
   }
 }

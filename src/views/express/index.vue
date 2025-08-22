@@ -1,5 +1,13 @@
 <template>
   <div>
+    <ZdRadioGroup
+      style="margin-bottom: 20px;"
+      v-model="mode"
+    >
+      <ZdRadio :value="mode" label="mock">使用mock数据</ZdRadio>
+      <ZdRadio :value="mode" label="temu">使用真实数据</ZdRadio>
+    </ZdRadioGroup>
+
     <div class="item">
       <button @click="onMock('/temu-agentseller/api/seller/auth/userInfo', {}, 'userInfo')">
         /api/seller/auth/userInfo
@@ -62,8 +70,15 @@
 import { mapState } from 'vuex'
 import { createExpressApp } from './utils'
 import service from '@/service/request'
+import ZdRadioGroup from './module/zdRadioGroup'
+import ZdRadio from './module/zdRadio'
 
 export default {
+  components: {
+    ZdRadioGroup,
+    ZdRadio
+  },
+
   data() {
     return {
       userInfo: null,
@@ -73,10 +88,20 @@ export default {
   },
 
   computed: {
-    ...mapState('user', ['headers']),
+    ...mapState('user', ['headers', 'apiMode']),
+
+    mode: {
+      get() {
+        return this.apiMode
+      },
+      set(val) {
+        this.$store.commit('user/SET_API_MODE', val)
+      }
+    },
+
 
     mallId({ userInfo }) {
-      return userInfo?.companyList?.[0]?.malInfoList?.[0]?.mallId || ''
+      return userInfo?.mallList?.[0]?.mallId || ''
     },
 
     activityType({ activityInfo }) {
@@ -104,7 +129,6 @@ export default {
 </script>
 
 <style scoped>
-
 .item {
     padding: 10px;
     border: 1px solid #001aff;

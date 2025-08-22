@@ -9,8 +9,9 @@ export default function (option) {
   const { target } = option
   return async function (req, res) {
     const headers = store.state.user.headers
+    const apiMode = store.state.user.apiMode
     const { method, url, body, baseUrl } = req
-    const isMock = false
+    const isMock = apiMode === 'mock'
     if (isMock) return await getMockData()
     return getTemuData()
 
@@ -36,22 +37,28 @@ export default function (option) {
     }
 
     async function getTemuData() {
-      const usedHeaders = USED_HEADERS_KEYS.reduce((acc, key) => {
+      const formatHeaderKeys = Object.keys(headers).filter(key => {
+        const lowerCaseKey = key.toLowerCase()
+        return USED_HEADERS_KEYS.includes(lowerCaseKey)
+      })
+      const usedHeaders = formatHeaderKeys.reduce((acc, key) => {
         if (headers[key]) acc[key] = headers[key]
         return acc
       }, {})
       const wholeUrl = `${target}${url}`
       const { mallId, ...restBody } = body
-      const response = await service({
+
+      const response = await window.ipcRenderer.invoke('proxyRequest', {
         method,
         headers: {
           ...usedHeaders,
-          mallId
+          mallid: mallId
         },
         data: restBody,
         url: wholeUrl
       })
-      const data = response.data
+
+      const data = response
       res.json({
         code: 0,
         data: data.result,
