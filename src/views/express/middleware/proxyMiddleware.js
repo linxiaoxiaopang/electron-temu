@@ -1,16 +1,15 @@
 const path = window.require('path')
+const { merge } = require('lodash')
 
 import store from '@/store'
-import service from '@/service/request'
 
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
 
 export default function (option) {
   const { target } = option
   return async function (req, res) {
-    const headers = store.state.user.headers
     const apiMode = store.state.user.apiMode
-    const { method, url, body, baseUrl } = req
+    const {  url, baseUrl } = req
     const isMock = apiMode === 'mock'
     if (isMock) return await getMockData()
     return getTemuData()
@@ -37,31 +36,11 @@ export default function (option) {
     }
 
     async function getTemuData() {
-      const formatHeaderKeys = Object.keys(headers).filter(key => {
-        const lowerCaseKey = key.toLowerCase()
-        return USED_HEADERS_KEYS.includes(lowerCaseKey)
-      })
-      const usedHeaders = formatHeaderKeys.reduce((acc, key) => {
-        if (headers[key]) acc[key] = headers[key]
-        return acc
-      }, {})
       const wholeUrl = `${target}${url}`
-      const { mallId, ...restBody } = body
-
-      const response = await window.ipcRenderer.invoke('proxyRequest', {
-        method,
-        headers: {
-          ...usedHeaders,
-          mallid: mallId
-        },
-        data: restBody,
-        url: wholeUrl
-      })
-
-      const data = response
+      const data = await createProxyToGetTemuData(req, res)(wholeUrl)
       res.json({
         code: 0,
-        data: data.result,
+        data: data?.result,
         message: ''
       })
     }
@@ -85,4 +64,29 @@ async function getResponseList() {
   }
 }
 
-
+export function createProxyToGetTemuData(req) {
+  return async function (wholeUrl, mergeConfig = {}) {
+    const headers = store.state.user.headers
+    const { method, body } = req
+    const formatHeaderKeys = Object.keys(headers).filter(key => {
+      const lowerCaseKey = key.toLowerCase()
+      return USED_HEADERS_KEYS.includes(lowerCaseKey)
+    })
+    const usedHeaders = formatHeaderKeys.reduce((acc, key) => {
+      if (headers[key]) acc[key] = headers[key]
+      return acc
+    }, {})
+    const { mallId, ...restBody } = body
+    const defaultConfig = {
+      method,
+      headers: {
+        ...usedHeaders,
+        mallid: mallId
+      },
+      data: restBody,
+      url: wholeUrl
+    }
+    const response = await window.ipcRenderer.invoke('proxyRequest', merge(defaultConfig, mergeConfig))
+    return response
+  }
+}
