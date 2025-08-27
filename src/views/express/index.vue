@@ -22,7 +22,16 @@
       onMock('/temu-agentseller/api/kiana/gamblers/marketing/enroll/activity/list', {
       needCanEnrollCnt: true,
       needSessionItem: true,
-      mallId
+      mallId,
+      filter: {
+        json: {
+           activityType: 13
+        },
+        page: {
+          pageIndex: 1,
+          pageSize: 3
+        }
+      }
     }, 'activityInfo')">
         /api/kiana/gamblers/marketing/enroll/activity/list
       </button>

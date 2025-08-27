@@ -30,8 +30,8 @@ const METHOD_LIST = {
 }
 
 class CreateServer {
-  constructor(serve) {
-    this.serve = serve
+  constructor(model) {
+    this.model = model
   }
 
   static formatWhere(query) {
@@ -57,10 +57,21 @@ class CreateServer {
     return o1
   }
 
+  static formatPage(query) {
+    const { page } = query
+    if(!(page?.pageIndex && page?.pageSize)) return {}
+    const {pageIndex, pageSize } = page
+    const offset = (pageIndex - 1) * pageSize
+    return  {
+      offset,
+      limit: pageSize
+    }
+  }
+
   async add(os) {
     try {
       if (!isArray(os)) os = [os]
-      const res = await this.serve.bulkCreate(os)
+      const res = await this.model.bulkCreate(os)
       return [false, res]
     } catch (err) {
       return [true, err]
@@ -69,7 +80,7 @@ class CreateServer {
 
   async update(id, obj) {
     try {
-      const ins = await this.serve.findByPk(id)
+      const ins = await this.model.findByPk(id)
       ins.set(obj)
       const res = await ins.save()
       return [false, res]
@@ -80,10 +91,23 @@ class CreateServer {
 
   async find(where) {
     try {
-      const res = await this.serve.findAll({
+      const res = await this.model.findAll({
         ...CreateServer.formatWhere(where),
+        ...CreateServer.formatPage(where),
         // 打印生成的SQL，用于验证
         logging: sql => console.log('SQL:', sql)
+      })
+      return [false, res]
+    } catch (err) {
+      return [true, err]
+    }
+  }
+
+  async clear() {
+    try {
+      const res = await this.model.destroy({
+        where: {},
+        truncate: true
       })
       return [false, res]
     } catch (err) {

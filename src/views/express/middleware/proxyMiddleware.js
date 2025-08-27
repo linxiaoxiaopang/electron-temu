@@ -9,14 +9,14 @@ export default function (option) {
   const { target } = option
   return async function (req, res) {
     const apiMode = store.state.user.apiMode
-    const { url, baseUrl } = req
+    const { url, baseUrl, body } = req
     const isMock = apiMode === 'mock'
     if (isMock) return await getMockData()
     return getTemuData()
 
     async function getMockData() {
       const responseList = await getResponseList()
-      let { path:mockPath, handleResult } = responseList[baseUrl][url]
+      let { path: mockPath, handleResult } = responseList[baseUrl][url]
       if (!mockPath) {
         res.json({
           code: 0,
@@ -27,18 +27,29 @@ export default function (option) {
       }
       mockPath = mockPath.replace(/\+/g, '/')
       const data = window.require(mockPath)
-     // const res1 =  await window.ipcRenderer.invoke('db:temu:batchReportingActivities:add', handleResult(data).map(item => {
-     //    return { json: item }
-     //  }))
-      // const findRes = await window.ipcRenderer.invoke('db:temu:batchReportingActivities:find', {
-      //   where: {
-      //     ['op:and']: [{
-      //       'json:json.activityName': '大促进阶-限时活动'
-      //     }, {
-      //       'json:json.activityContent': '主流量灌溉，大曝光加持，低门槛高回报，助力流量暴涨，销量起飞！'
-      //     }]
-      //   }
-      // })
+      await window.ipcRenderer.invoke('db:temu:batchReportingActivities:clear')
+      await window.ipcRenderer.invoke('db:temu:batchReportingActivities:add', handleResult(data).map(item => {
+        return { json: item }
+      }))
+      const filter = body?.filter || {}
+      const json = filter?.json || {}
+      const jsonKeys = Object.keys(json)
+      const jsonQuery = jsonKeys.map(key => {
+        return {
+          [`json:json.${key}`]: filter[key]
+        }
+      })
+      const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:batchReportingActivities:find', {
+        where: {
+          ['op:and']: jsonQuery
+        },
+        page: filter?.page || {}
+      })
+      if (!dbErr) {
+        data.result.activityList = dbRes.map(item => {
+          return item.dataValues.json
+        })
+      }
       res.json({
         code: 0,
         data: data.result,
