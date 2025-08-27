@@ -1,0 +1,104 @@
+const { Op, Sequelize } = require('sequelize')
+const { isArray, cloneDeep, mergeWith, isFunction } = require('lodash')
+
+const jsonExtract = (column, path) => {
+  // 直接拼接 SQL 函数，避免 Sequelize 处理路径
+  return Sequelize.literal(`json_extract(\`${column}\`, '${path}')`)
+}
+
+const METHOD_LIST = {
+  op: Op,
+  json(opName, objValue, obj) {
+    // 分割JSON字段名和路径（如 "data.name" -> ["data", "name"]）
+    const [field, ...paths] = opName.split('.')
+    if (!field || paths.length === 0) {
+      throw new Error('opName格式错误，应为"字段.路径"（如 "data.name"）')
+    }
+
+    const jsonPath = `$.${paths.join('.')}` // 构建JSON路径（如 $.name）
+
+    // 生成Sequelize查询条件
+    const condition = Sequelize.where(
+      jsonExtract(field, jsonPath),
+      objValue
+    )
+    console.log('obj', obj)
+    // 将条件添加到目标对象（关键修复：直接用条件作为键）
+    obj[Op.and] = condition
+    return obj
+  }
+}
+
+class CreateServer {
+  constructor(serve) {
+    this.serve = serve
+  }
+
+  static formatWhere(query) {
+    const o1 = cloneDeep(query)
+    const o2 = cloneDeep(query)
+    const fns = []
+    mergeWith(o1, o2, (objValue, srcValue, key, obj) => {
+      if (key.indexOf(':') >= 0) {
+        const [methodName, opName] = key.split(':')
+        fns.push(() => {
+          const method = METHOD_LIST[methodName]
+          if (isFunction(method)) {
+            method(opName, objValue, obj)
+          } else {
+            obj[method[opName]] = objValue
+          }
+          delete obj[key]
+        })
+      }
+    })
+
+    fns.map(item => item())
+    return o1
+  }
+
+  async add(os) {
+    try {
+      if (!isArray(os)) os = [os]
+      const res = await this.serve.bulkCreate(os)
+      return [false, res]
+    } catch (err) {
+      return [true, err]
+    }
+  }
+
+  async update(id, obj) {
+    try {
+      const ins = await this.serve.findByPk(id)
+      ins.set(obj)
+      const res = await ins.save()
+      return [false, res]
+    } catch (err) {
+      return [true, err]
+    }
+  }
+
+  async find(where) {
+    try {
+      const res = await this.serve.findAll({
+        ...CreateServer.formatWhere(where),
+        // 打印生成的SQL，用于验证
+        logging: sql => console.log('SQL:', sql)
+      })
+      return [false, res]
+    } catch (err) {
+      return [true, err]
+    }
+  }
+
+  getAllMethods() {
+    const names = Object.getOwnPropertyNames(CreateServer.prototype).filter(item => item !== 'constructor').filter(name => typeof CreateServer.prototype[name] === 'function')
+    return names.reduce((acc, name) => {
+      acc[name] = this[name].bind(this)
+      return acc
+    }, {})
+  }
+}
+
+module.exports = { CreateServer }
+

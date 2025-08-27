@@ -1,3 +1,4 @@
+require('./model')
 const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron')
 const path = require('path')
 const axios = require('axios')

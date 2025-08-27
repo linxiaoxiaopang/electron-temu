@@ -9,14 +9,14 @@ export default function (option) {
   const { target } = option
   return async function (req, res) {
     const apiMode = store.state.user.apiMode
-    const {  url, baseUrl } = req
+    const { url, baseUrl } = req
     const isMock = apiMode === 'mock'
     if (isMock) return await getMockData()
     return getTemuData()
 
     async function getMockData() {
       const responseList = await getResponseList()
-      let mockPath = responseList[baseUrl][url]
+      let { path:mockPath, handleResult } = responseList[baseUrl][url]
       if (!mockPath) {
         res.json({
           code: 0,
@@ -27,7 +27,18 @@ export default function (option) {
       }
       mockPath = mockPath.replace(/\+/g, '/')
       const data = window.require(mockPath)
-
+     // const res1 =  await window.ipcRenderer.invoke('db:temu:batchReportingActivities:add', handleResult(data).map(item => {
+     //    return { json: item }
+     //  }))
+      // const findRes = await window.ipcRenderer.invoke('db:temu:batchReportingActivities:find', {
+      //   where: {
+      //     ['op:and']: [{
+      //       'json:json.activityName': '大促进阶-限时活动'
+      //     }, {
+      //       'json:json.activityContent': '主流量灌溉，大曝光加持，低门槛高回报，助力流量暴涨，销量起飞！'
+      //     }]
+      //   }
+      // })
       res.json({
         code: 0,
         data: data.result,
@@ -52,10 +63,21 @@ async function getResponseList() {
   const { path: appPath } = await window.ipcRenderer.invoke('getAppInfo')
   return {
     ['/temu-agentseller']: {
-      '/api/seller/auth/userInfo': getMockPath('userInfo.json'),
-      '/api/kiana/gamblers/marketing/enroll/activity/list': getMockPath('activityList.json'),
-      '/api/kiana/gamblers/marketing/enroll/scroll/match': getMockPath('activityGoodsInfo.json'),
-      '/bg-anniston-mms/category/children/list': getMockPath('categoryChildrenList.json')
+      '/api/seller/auth/userInfo': {
+        path: getMockPath('userInfo.json')
+      },
+      '/api/kiana/gamblers/marketing/enroll/activity/list': {
+        path: getMockPath('activityList.json'),
+        handleResult(res) {
+          return res?.result?.activityList || []
+        }
+      },
+      '/api/kiana/gamblers/marketing/enroll/scroll/match': {
+        path: getMockPath('activityGoodsInfo.json')
+      },
+      '/bg-anniston-mms/category/children/list': {
+        path: getMockPath('categoryChildrenList.json')
+      }
     }
   }
 
