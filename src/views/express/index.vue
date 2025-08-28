@@ -94,7 +94,6 @@
 
 <script>
 import { mapState } from 'vuex'
-import { createExpressApp } from './utils'
 import service from '@/service/request'
 import ZdRadioGroup from './module/zdRadioGroup'
 import ZdRadio from './module/zdRadio'
@@ -135,11 +134,6 @@ export default {
       return activityInfo?.activityList?.[0]?.activityType || ''
     }
   },
-
-  mounted() {
-    createExpressApp()
-  },
-
 
   methods: {
     async onMock(url, data, prop) {
