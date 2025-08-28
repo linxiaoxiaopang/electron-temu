@@ -4,10 +4,9 @@ const cors = window.require('cors')
 import store from '@/store'
 import proxyMiddleware, { createProxyToGetTemuData } from './middleware/proxyMiddleware'
 import validHeadersMiddleware from './middleware/validHeadersMiddleware'
-import { isMock } from './const'
+import { isMock, temuTarget } from './const'
 
 const PORT = 3000
-const TEMU_TARGET = 'https://agentseller.temu.com'
 
 const app = express()
 // 使用cors中间件，允许所有来源的请求
@@ -30,7 +29,7 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
   if (isMock) return next()
   const { body } = req
   const relativeUrl = req.originalUrl.replace(/^\/temu-agentseller/, '')
-  const wholeUrl = `${TEMU_TARGET}${relativeUrl}`
+  const wholeUrl = `${temuTarget}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
   let response = {
     hasMore: false,
@@ -55,7 +54,9 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
 })
 
 app.use('/temu-agentseller', proxyMiddleware({
-  target: TEMU_TARGET
+  target: () => {
+    return temuTarget
+  }
 }))
 
 // 处理 404 错误

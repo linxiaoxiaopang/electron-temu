@@ -1,12 +1,15 @@
 const path = window.require('path')
-const { merge, cloneDeep } = require('lodash')
-import { isMock, headers } from '../const'
+const { merge, cloneDeep, isFunction } = require('lodash')
+import { isMock, isProxy, headers } from '../const'
 
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
 
 export default function (option) {
-  const { target } = option
   return async function (req, res) {
+    let { target } = option
+    if(isFunction(target)) {
+      target = target()
+    }
     const { url, baseUrl, body } = req
     if (isMock) return await getMockData()
     return getTemuData()
@@ -30,7 +33,7 @@ export default function (option) {
       const filterKeys = Object.keys(filter)
       const filterQuery = filterKeys.map(key => {
         return {
-          [`json:json.${key}`]: filterQuery[key]
+          [`json:json.${key}`]: filter[key]
         }
       })
 
@@ -54,6 +57,7 @@ export default function (option) {
       res.json({
         code: 0,
         data: data?.result,
+        page: data?.page,
         message: ''
       })
     }
@@ -130,8 +134,7 @@ export function createProxyToGetTemuData(req) {
     const defaultConfig = {
       method,
       headers: {
-        ...usedHeaders,
-        mallid: mallId
+        ...usedHeaders
       },
       data: {
         ...restBody,
@@ -139,7 +142,20 @@ export function createProxyToGetTemuData(req) {
       },
       url: wholeUrl
     }
+    console.log('isProxy', isProxy)
+    if(isProxy) {
+      defaultConfig.data.mallId = mallId
+    } else {
+      defaultConfig.headers.mallid = mallId
+    }
     const response = await window.ipcRenderer.invoke('proxyRequest', merge(defaultConfig, mergeConfig))
+    if (isProxy) response.result = response.data
+    if (page) {
+      response.page = {
+        ...page,
+        total: (response.result || response.data)?.total
+      }
+    }
     return response
   }
 }

@@ -5,7 +5,8 @@
       v-model="mode"
     >
       <ZdRadio :value="mode" label="mock">使用mock数据</ZdRadio>
-      <ZdRadio :value="mode" label="temu">使用真实数据</ZdRadio>
+      <ZdRadio :value="mode" label="proxy">使用本地电脑代理真实数据</ZdRadio>
+      <ZdRadio :value="mode" label="temu">直接连接真实数据</ZdRadio>
     </ZdRadioGroup>
 
     <div class="item">
@@ -58,6 +59,7 @@
     <div class="item">
       <button @click="onMock('/temu-agentseller/api/kiana/mms/robin/searchForSemiSupplier', {
       mallId,
+      supplierTodoTypeList: [1],
       page: {
         pageIndex: 2,
         pageSize: 15
