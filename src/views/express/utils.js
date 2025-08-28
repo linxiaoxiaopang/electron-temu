@@ -1,5 +1,3 @@
-import { next } from 'lodash/seq'
-
 const express = window.require('express')
 const bodyParser = window.require('body-parser')
 const cors = window.require('cors')

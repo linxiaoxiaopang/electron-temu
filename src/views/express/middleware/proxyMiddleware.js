@@ -1,5 +1,5 @@
 const path = window.require('path')
-const { merge } = require('lodash')
+const { merge, cloneDeep } = require('lodash')
 
 import store from '@/store'
 
@@ -16,7 +16,7 @@ export default function (option) {
 
     async function getMockData() {
       const responseList = await getResponseList()
-      let { path: mockPath, handleResult } = responseList[baseUrl][url]
+      let { path: mockPath, updateDb } = responseList[baseUrl][url]
       if (!mockPath) {
         res.json({
           code: 0,
@@ -26,30 +26,24 @@ export default function (option) {
         return
       }
       mockPath = mockPath.replace(/\+/g, '/')
-      const data = window.require(mockPath)
-      await window.ipcRenderer.invoke('db:temu:batchReportingActivities:clear')
-      await window.ipcRenderer.invoke('db:temu:batchReportingActivities:add', handleResult(data).map(item => {
-        return { json: item }
-      }))
+      const rawData = window.require(mockPath)
+      const data = cloneDeep(rawData)
+      const { page } = body
       const filter = body?.filter || {}
-      const json = filter?.json || {}
-      const jsonKeys = Object.keys(json)
-      const jsonQuery = jsonKeys.map(key => {
+      const filterKeys = Object.keys(filter)
+      const filterQuery = filterKeys.map(key => {
         return {
-          [`json:json.${key}`]: json[key]
+          [`json:json.${key}`]: filterQuery[key]
         }
       })
-      const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:batchReportingActivities:find', {
-        where: {
-          ['op:and']: jsonQuery
-        },
-        page: filter?.page || {}
-      })
-      if (!dbErr) {
-        data.result.activityList = dbRes.map(item => {
-          return item.dataValues.json
+
+      if (updateDb) {
+        await updateDb(data, {
+          filter: filterQuery,
+          page
         })
       }
+
       res.json({
         code: 0,
         data: data.result,
@@ -78,16 +72,39 @@ async function getResponseList() {
         path: getMockPath('userInfo.json')
       },
       '/api/kiana/gamblers/marketing/enroll/activity/list': {
-        path: getMockPath('activityList.json'),
-        handleResult(res) {
-          return res?.result?.activityList || []
-        }
+        path: getMockPath('activityList.json')
       },
       '/api/kiana/gamblers/marketing/enroll/scroll/match': {
         path: getMockPath('activityGoodsInfo.json')
       },
       '/bg-anniston-mms/category/children/list': {
         path: getMockPath('categoryChildrenList.json')
+      },
+      '/api/kiana/mms/robin/searchForSemiSupplier': {
+        path: getMockPath('searchForChainSupplier.json'),
+
+        async updateDb(data, query) {
+          const result = data?.result?.dataList || []
+          await window.ipcRenderer.invoke('db:temu:searchForChainSupplier:clear')
+          await window.ipcRenderer.invoke('db:temu:searchForChainSupplier:add', result.map(item => {
+            return { json: item }
+          }))
+
+          const { page, filter } = query
+          const [err, res] = await window.ipcRenderer.invoke('db:temu:searchForChainSupplier:find', {
+            where: {
+              ['op:and']: filter
+            },
+            page: page || {}
+          })
+          if (err) {
+            data.result.message = res
+            data.result.dataList = res
+            return data
+          }
+          data.result.dataList = res.map(item => JSON.parse(item.json))
+          return data
+        }
       }
     }
   }

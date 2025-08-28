@@ -55,6 +55,23 @@
       </div>
     </div>
 
+    <div class="item">
+      <button @click="onMock('/temu-agentseller/api/kiana/mms/robin/searchForSemiSupplier', {
+      mallId,
+      page: {
+        pageIndex: 2,
+        pageSize: 15
+      }
+    }, 'searchForSemiSupplierInfo')">
+        /api/kiana/mms/robin/searchForSemiSupplier
+      </button>
+
+      <div class="result">
+        {{ searchForSemiSupplierInfo }}
+      </div>
+    </div>
+
+
     <div class="headers">
      <span v-if="!headers">
        未获取到temu的请求头，请刷新temu页面
@@ -92,7 +109,8 @@ export default {
     return {
       userInfo: null,
       activityInfo: null,
-      matchInfo: null
+      matchInfo: null,
+      searchForSemiSupplierInfo: null,
     }
   },
 

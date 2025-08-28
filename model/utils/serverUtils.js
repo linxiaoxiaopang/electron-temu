@@ -94,6 +94,7 @@ class CreateServer {
       const res = await this.model.findAll({
         ...CreateServer.formatWhere(where),
         ...CreateServer.formatPage(where),
+        raw: true,
         // 打印生成的SQL，用于验证
         logging: sql => console.log('SQL:', sql)
       })
