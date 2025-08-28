@@ -1,6 +1,7 @@
 const express = window.require('express')
 const bodyParser = window.require('body-parser')
 const cors = window.require('cors')
+const { groupBy } = require('lodash')
 import store from '@/store'
 import proxyMiddleware, { createProxyToGetTemuData } from './middleware/proxyMiddleware'
 import validHeadersMiddleware from './middleware/validHeadersMiddleware'
@@ -50,6 +51,39 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
     code: 0,
     data: response,
     message: err ? '数据请求失败' : ''
+  })
+})
+
+app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async (req, res, next) => {
+  if (isMock) return next()
+  const { body } = req
+  const relativeUrl = '/api/kiana/magnus/mms/price/bargain-no-bom/batch'
+  const wholeUrl = `${temuTarget}${relativeUrl}`
+  const getData = createProxyToGetTemuData(req)
+  const strategyList = body?.strategyList || []
+  const groupData = groupBy(strategyList, 'priceOrderId')
+  const itemRequests = []
+  Object.keys(groupData).map(key => {
+    const values = groupData[key]
+    const priceOrderId = key
+    itemRequests.push({
+      priceOrderId,
+      items: values.map(item => {
+        const { skuId: productSkuId, maxCost: price } = item
+        return {
+          productSkuId,
+          price
+        }
+      })
+    })
+  })
+  body.itemRequests = itemRequests
+  delete body.strategyList
+  const response = await getData(wholeUrl)
+  res.json({
+    code: 0,
+    data: response,
+    message: ''
   })
 })
 
