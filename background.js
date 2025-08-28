@@ -59,7 +59,6 @@ ipcMain.handle('proxyRequest', async (event, config = {}) => {
   try {
     // 主进程中可自由设置 Cookie 头
     const response = await axios(config)
-    console.log('response', response)
     return response?.data
   } catch (error) {
     return { error: error.message }

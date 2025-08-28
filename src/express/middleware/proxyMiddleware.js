@@ -142,7 +142,6 @@ export function createProxyToGetTemuData(req) {
       },
       url: wholeUrl
     }
-    console.log('isProxy', isProxy)
     if(isProxy) {
       defaultConfig.data.mallId = mallId
     } else {
