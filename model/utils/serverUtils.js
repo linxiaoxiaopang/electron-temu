@@ -104,6 +104,19 @@ class CreateServer {
     }
   }
 
+  async delete(where) {
+    try {
+      const res = await this.model.destroy({
+        ...CreateServer.formatWhere(where),
+        // 打印生成的SQL，用于验证
+        logging: sql => console.log('SQL:', sql)
+      })
+      return [false, res]
+    } catch (err) {
+      return [true, err]
+    }
+  }
+
   async clear() {
     try {
       const res = await this.model.destroy({

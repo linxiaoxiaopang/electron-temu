@@ -55,12 +55,58 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
 })
 
 app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async (req, res, next) => {
-  if (isMock) return next()
   const { body } = req
   const relativeUrl = '/api/kiana/magnus/mms/price/bargain-no-bom/batch'
   const wholeUrl = `${temuTarget}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
   const strategyList = body?.strategyList || []
+  const filter = {
+    ['op:or']: strategyList.map(item => {
+      return {
+        ['op:and']: [
+          {
+            ['json:json.skuId']: item.skuId
+          },
+          {
+            ['json:json.priceOrderId']: item.priceOrderId
+          }]
+      }
+    })
+  }
+  const [err, dbRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:find', {
+    where: filter
+  })
+  if (err) {
+    return {
+      code: 0,
+      data: null,
+      message: dbRes
+    }
+  }
+  const [err1, dbRes1] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:delete', {
+    where: {
+      ['op:or']: dbRes.map(item => {
+        return { id: item.id }
+      }) // 核心：使用Op.in匹配ID列表
+    }
+  })
+  if (err1) {
+    return {
+      code: 0,
+      data: null,
+      message: dbRes1
+    }
+  }
+  await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:add', strategyList.map(item => {
+    return { json: item }
+  }))
+  if (isMock) {
+    return {
+      code: 0,
+      data: null,
+      message: ''
+    }
+  }
   const groupData = groupBy(strategyList, 'priceOrderId')
   const itemRequests = []
   Object.keys(groupData).map(key => {
