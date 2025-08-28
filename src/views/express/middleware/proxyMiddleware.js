@@ -36,7 +36,7 @@ export default function (option) {
       const jsonKeys = Object.keys(json)
       const jsonQuery = jsonKeys.map(key => {
         return {
-          [`json:json.${key}`]: filter[key]
+          [`json:json.${key}`]: json[key]
         }
       })
       const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:batchReportingActivities:find', {
