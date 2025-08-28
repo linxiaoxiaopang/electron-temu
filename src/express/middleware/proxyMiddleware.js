@@ -1,16 +1,13 @@
 const path = window.require('path')
 const { merge, cloneDeep } = require('lodash')
-
-import store from '@/store'
+import { isMock, headers } from '../const'
 
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
 
 export default function (option) {
   const { target } = option
   return async function (req, res) {
-    const apiMode = store.state.user.apiMode
     const { url, baseUrl, body } = req
-    const isMock = apiMode === 'mock'
     if (isMock) return await getMockData()
     return getTemuData()
 
@@ -115,7 +112,6 @@ async function getResponseList() {
 
 export function createProxyToGetTemuData(req) {
   return async function (wholeUrl, mergeConfig = {}) {
-    const headers = store.state.user.headers
     const { method, body } = req
     const formatHeaderKeys = Object.keys(headers).filter(key => {
       const lowerCaseKey = key.toLowerCase()

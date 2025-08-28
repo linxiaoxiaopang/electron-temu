@@ -4,6 +4,7 @@ const cors = window.require('cors')
 import store from '@/store'
 import proxyMiddleware, { createProxyToGetTemuData } from './middleware/proxyMiddleware'
 import validHeadersMiddleware from './middleware/validHeadersMiddleware'
+import { isMock } from './const'
 
 const PORT = 3000
 const TEMU_TARGET = 'https://agentseller.temu.com'
@@ -26,8 +27,6 @@ app.post('/setHeaders', async (req, res) => {
 app.use(/^\/?(temu-agentseller|temu-seller)/, validHeadersMiddleware)
 
 app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', async (req, res, next) => {
-  const apiMode = store.state.user.apiMode
-  const isMock = apiMode === 'mock'
   if (isMock) return next()
   const { body } = req
   const relativeUrl = req.originalUrl.replace(/^\/temu-agentseller/, '')
