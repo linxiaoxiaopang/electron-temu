@@ -63,7 +63,6 @@ export default function (option) {
   }
 }
 
-
 async function getResponseList() {
   const { path: appPath } = await window.ipcRenderer.invoke('getAppInfo')
   return {
@@ -126,14 +125,22 @@ export function createProxyToGetTemuData(req) {
       if (headers[key]) acc[key] = headers[key]
       return acc
     }, {})
-    const { mallId, ...restBody } = body
+    const { mallId, page, ...restBody } = body
+    let finalPage = {}
+    if (page) {
+      finalPage.pageNum = page.pageIndex
+      finalPage.pageSize = page.pageSize
+    }
     const defaultConfig = {
       method,
       headers: {
         ...usedHeaders,
         mallid: mallId
       },
-      data: restBody,
+      data: {
+        ...restBody,
+        ...finalPage
+      },
       url: wholeUrl
     }
     const response = await window.ipcRenderer.invoke('proxyRequest', merge(defaultConfig, mergeConfig))
