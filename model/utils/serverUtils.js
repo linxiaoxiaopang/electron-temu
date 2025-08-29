@@ -59,10 +59,10 @@ class CreateServer {
 
   static formatPage(query) {
     const { page } = query
-    if(!(page?.pageIndex && page?.pageSize)) return {}
-    const {pageIndex, pageSize } = page
+    if (!(page?.pageIndex && page?.pageSize)) return {}
+    const { pageIndex, pageSize } = page
     const offset = (pageIndex - 1) * pageSize
-    return  {
+    return {
       offset,
       limit: pageSize
     }
@@ -85,6 +85,42 @@ class CreateServer {
       const res = await ins.save()
       return [false, res]
     } catch (err) {
+      return [true, err]
+    }
+  }
+
+  async batchUpdate(updates) {
+    // const transaction = await this.model.transaction()
+    try {
+      // 遍历每条更新数据
+      for (const item of updates) {
+        const { id, ...updateFields } = item // 分离ID和更新字段
+
+        // 执行单条更新
+        const [updatedCount] = await this.model.update(
+          updateFields, // 每条数据的更新内容不同
+          {
+            where: { id }, // 按ID定位
+            // transaction // 绑定事务
+          }
+        )
+        if (updatedCount === 0) {
+          console.warn(`ID为${id}的记录不存在，跳过更新`)
+        }
+      }
+
+      // 所有更新成功，提交事务
+      // await transaction.commit()
+      console.log(`批量更新完成，共处理${updates.length}条数据`)
+
+      // 验证更新结果
+      const res = await this.model.findAll({
+        where: { id: updates.map(item => item.id) },
+        raw: true
+      })
+      return [false, res]
+    } catch (err) {
+      // await transaction.rollback()
       return [true, err]
     }
   }

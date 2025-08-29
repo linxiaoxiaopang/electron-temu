@@ -1,6 +1,6 @@
 import { updateCreatePricingStrategy } from '@/express/controllers/verifyPrice'
 import { headers } from '@/express/const'
-import { map } from 'lodash'
+import { isNil, map } from 'lodash'
 
 export function updateCreatePricingStrategyTimer() {
   setTimeout(async () => {
@@ -13,12 +13,12 @@ export function updateCreatePricingStrategyTimer() {
     const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:find', {
       where: {
         ['op:or']: [{
-          ['json:json.mallId']: headers?.mallid
+          mallId: headers?.mallid
         }]
       }
     })
     if (dbErr || !dbRes) return
-    const strategyList = dbRes.map(item => JSON.parse(item.json))
+    const strategyList = dbRes
     const [updateErr, updateRes] = await updateCreatePricingStrategy({
       method: 'POST',
       body: {
@@ -34,9 +34,17 @@ export function updateCreatePricingStrategyTimer() {
       const item = batchOperateResult[key]
       const success = item.success
       if (success) {
-        const filterData = strategyList.filter(sItem => sItem.priceOrderId === item.priceOrderId)
-        const delData = filterData.filter(item => (item.maxPricingNumber - 1) == 0)
-        const updateData = filterData.filter(item => (item.maxPricingNumber - 1) > 0)
+        const filterData = strategyList.filter(sItem => sItem.priceOrderId == item.priceOrderId)
+        const delData = filterData.filter(item => {
+          const { maxPricingNumber } = item
+          if (isNil(maxPricingNumber)) return false
+          return maxPricingNumber - 1 == 0
+        })
+        const updateData = filterData.filter(item => {
+          const { maxPricingNumber } = item
+          if (isNil(maxPricingNumber)) return true
+          return maxPricingNumber - 1 != 0
+        })
         delList.push(...delData)
         updateList.push(...updateData)
       }
@@ -50,8 +58,15 @@ export function updateCreatePricingStrategyTimer() {
         }
       })
     }
-    if(updateList) {
-
+    if (updateList) {
+      const [updateErr, updateRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:batchUpdate', updateList.map(item => {
+        const { maxPricingNumber, id } = item
+        return {
+          id,
+          maxPricingNumber: isNil(maxPricingNumber) ? null : maxPricingNumber - 1,
+        }
+      }))
+      console.log('updateRes', updateRes)
     }
   }
 }

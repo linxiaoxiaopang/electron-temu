@@ -14,10 +14,10 @@ export async function updateCreatePricingStrategy(req) {
         return {
           ['op:and']: [
             {
-              ['json:json.skuId']: item.skuId
+              skuId: item.skuId
             },
             {
-              ['json:json.priceOrderId']: item.priceOrderId
+              priceOrderId: item.priceOrderId
             }
           ]
         }
@@ -33,9 +33,7 @@ export async function updateCreatePricingStrategy(req) {
     }
   })
   if (delErr) return [delErr, delRes]
-  const [addErr, addRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:add', strategyList.map(item => {
-    return { json: item }
-  }))
+  const [addErr, addRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:add', strategyList)
   if (addErr) return [addErr, addRes]
   const groupData = groupBy(strategyList, 'priceOrderId')
   const itemRequests = []
@@ -55,7 +53,18 @@ export async function updateCreatePricingStrategy(req) {
   })
   body.itemRequests = itemRequests
   delete body.strategyList
-  if (isMock) return [false, null]
+  if (isMock) {
+    const result = {
+      batchOperateResult: Object.keys(groupData).reduce((acc, cur) => {
+        acc[cur] = {
+          success: true,
+          priceOrderId: cur
+        }
+        return acc
+      }, {})
+    }
+    return [false, result]
+  }
   const response = await getData(wholeUrl)
   return [false, response]
 }
