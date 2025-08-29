@@ -1,7 +1,7 @@
 const express = window.require('express')
 const bodyParser = window.require('body-parser')
 const cors = window.require('cors')
-const { groupBy } = require('lodash')
+const { groupBy, map } = require('lodash')
 import store from '@/store'
 import proxyMiddleware, { createProxyToGetTemuData } from './middleware/proxyMiddleware'
 import validHeadersMiddleware from './middleware/validHeadersMiddleware'
@@ -85,9 +85,9 @@ app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async 
   }
   const [err1, dbRes1] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:delete', {
     where: {
-      ['op:or']: dbRes.map(item => {
-        return { id: item.id }
-      }) // 核心：使用Op.in匹配ID列表
+      id: {
+        ['op:in']: map(dbRes, 'id')
+      }
     }
   })
   if (err1) {
