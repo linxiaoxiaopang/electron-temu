@@ -4,13 +4,17 @@ import { isMock, isProxy, headers } from '../const'
 
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
 
+const defaultHandleReq = (req) => {
+  return req
+}
+
 export default function (option) {
   return async function (req, res) {
-    let { target } = option
-    if(isFunction(target)) {
+    let { target, handleReq = defaultHandleReq, isReturnData } = option
+    if (isFunction(target)) {
       target = target()
     }
-    const { url, baseUrl, body } = req
+    const { url, baseUrl, body } = handleReq(req)
     if (isMock) return await getMockData()
     return getTemuData()
 
@@ -43,7 +47,7 @@ export default function (option) {
           page
         })
       }
-
+      if (isReturnData) return data?.result
       res.json({
         code: 0,
         data: data.result,
@@ -142,7 +146,7 @@ export function createProxyToGetTemuData(req) {
       },
       url: wholeUrl
     }
-    if(isProxy) {
+    if (isProxy) {
       defaultConfig.data.mallId = mallId
     } else {
       defaultConfig.headers.mallid = mallId

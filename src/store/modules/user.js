@@ -11,12 +11,23 @@ const user = {
     SET_HEADERS: (state, headers) => {
       state.headers = headers
     },
+
     SET_USER_INFO: (state, userInfo) => {
       state.userInfo = userInfo
-      state.headers.maillid = userInfo?.mallList?.[0]?.mallId
+
     },
+
     SET_API_MODE: (state, apiMode) => {
       state.apiMode = apiMode
+    }
+  },
+
+  actions: {
+    SetUserInfo({ commit }, data) {
+      const { headers, userInfo } = data
+      headers.mallid = userInfo?.mallList?.[0]?.mallId
+      commit('SET_HEADERS', headers)
+      commit('SET_USER_INFO', userInfo)
     }
   }
 }

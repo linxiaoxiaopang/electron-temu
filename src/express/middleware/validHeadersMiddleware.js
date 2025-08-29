@@ -10,7 +10,7 @@ export default function (req, res, next) {
       message: 'headers 未获取'
     })
   }
-  if (!mallId || !headers?.maillid) return next()
+  if (!mallId) return next()
   if (mallId == headers?.maillid) return next()
   return res.json({
     code: 0,

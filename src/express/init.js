@@ -18,10 +18,12 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
 app.post('/setHeaders', async (req, res) => {
   const { headers } = req.body
-  store.commit('user/SET_HEADERS', headers)
-  let response = null
-  if (headers && !isMock) response = await getUserInfo()
-  store.commit('user/SET_USER_INFO', response?.data || null)
+  let result = null
+  if (headers) result = await getUserInfo()
+  store.dispatch('user/SetUserInfo', {
+    headers,
+    userInfo: result
+  })
   res.json({
     code: 0,
     data: 0

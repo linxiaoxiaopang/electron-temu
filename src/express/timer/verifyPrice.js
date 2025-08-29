@@ -19,6 +19,7 @@ export function updateCreatePricingStrategyTimer() {
     })
     if (dbErr || !dbRes) return
     const strategyList = dbRes
+    if(!strategyList.length) return
     const [updateErr, updateRes] = await updateCreatePricingStrategy({
       method: 'POST',
       body: {
@@ -58,7 +59,7 @@ export function updateCreatePricingStrategyTimer() {
         }
       })
     }
-    if (updateList) {
+    if (updateList.length) {
       const [updateErr, updateRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:batchUpdate', updateList.map(item => {
         const { maxPricingNumber, id } = item
         return {

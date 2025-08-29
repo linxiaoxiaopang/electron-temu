@@ -3,7 +3,7 @@ import App from './App.vue'
 import router from './router'
 import store from './store'
 import '@/express/init'
-import '@/express/timer/verifyPrice'
+// import '@/express/timer/verifyPrice'
 
 Vue.config.productionTip = false
 

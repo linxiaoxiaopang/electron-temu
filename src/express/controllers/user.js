@@ -1,12 +1,20 @@
 import { temuTarget } from '@/express/const'
-import { createProxyToGetTemuData } from '@/express/middleware/proxyMiddleware'
+import proxyMiddleware, { createProxyToGetTemuData } from '@/express/middleware/proxyMiddleware'
 
-export async function getUserInfo() {
-  const relativeUrl = '/api/seller/auth/userInfo'
-  const wholeUrl = `${temuTarget}${relativeUrl}`
-  const getData = createProxyToGetTemuData({
-    method: 'POST',
-    body: {}
+export async function getUserInfo(req, res) {
+  const proxyMiddlewareFn = proxyMiddleware({
+    target: () => {
+      return temuTarget
+    },
+    handleReq: (req) => {
+      return {
+        ...req,
+        url: '/api/seller/auth/userInfo',
+        baseUrl: '/temu-agentseller',
+        body: {}
+      }
+    },
+    isReturnData: true
   })
-  return await getData(wholeUrl)
+  return await proxyMiddlewareFn(req, res)
 }
