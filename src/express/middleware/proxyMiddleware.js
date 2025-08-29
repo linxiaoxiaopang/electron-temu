@@ -117,7 +117,7 @@ async function getResponseList() {
 export function createProxyToGetTemuData(req) {
   return async function (wholeUrl, mergeConfig = {}) {
     const { method, body } = req
-    const formatHeaderKeys = Object.keys(headers).filter(key => {
+    const formatHeaderKeys = Object.keys(headers || {}).filter(key => {
       const lowerCaseKey = key.toLowerCase()
       return USED_HEADERS_KEYS.includes(lowerCaseKey)
     })

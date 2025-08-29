@@ -1,11 +1,12 @@
 const express = window.require('express')
 const bodyParser = window.require('body-parser')
 const cors = window.require('cors')
-const { groupBy, map } = require('lodash')
 import store from '@/store'
 import proxyMiddleware, { createProxyToGetTemuData } from './middleware/proxyMiddleware'
 import validHeadersMiddleware from './middleware/validHeadersMiddleware'
 import { isMock, temuTarget } from './const'
+import { updateCreatePricingStrategy } from '@/express/controllers/verifyPrice'
+import { getUserInfo } from '@/express/controllers/user'
 
 const PORT = 3000
 
@@ -18,6 +19,9 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 app.post('/setHeaders', async (req, res) => {
   const { headers } = req.body
   store.commit('user/SET_HEADERS', headers)
+  let response = null
+  if (headers && !isMock) response = await getUserInfo()
+  store.commit('user/SET_USER_INFO', response?.data || null)
   res.json({
     code: 0,
     data: 0
@@ -55,81 +59,11 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
 })
 
 app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async (req, res, next) => {
-  const { body } = req
-  const relativeUrl = '/api/kiana/magnus/mms/price/bargain-no-bom/batch'
-  const wholeUrl = `${temuTarget}${relativeUrl}`
-  const getData = createProxyToGetTemuData(req)
-  const strategyList = body?.strategyList || []
-  const filter = {
-    ['op:or']: strategyList.map(item => {
-      return {
-        ['op:and']: [
-          {
-            ['json:json.skuId']: item.skuId
-          },
-          {
-            ['json:json.priceOrderId']: item.priceOrderId
-          }]
-      }
-    })
-  }
-  const [err, dbRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:find', {
-    where: filter
-  })
-  if (err) {
-    return {
-      code: 0,
-      data: null,
-      message: dbRes
-    }
-  }
-  const [err1, dbRes1] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:delete', {
-    where: {
-      id: {
-        ['op:in']: map(dbRes, 'id')
-      }
-    }
-  })
-  if (err1) {
-    return {
-      code: 0,
-      data: null,
-      message: dbRes1
-    }
-  }
-  await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:add', strategyList.map(item => {
-    return { json: item }
-  }))
-  if (isMock) {
-    return {
-      code: 0,
-      data: null,
-      message: ''
-    }
-  }
-  const groupData = groupBy(strategyList, 'priceOrderId')
-  const itemRequests = []
-  Object.keys(groupData).map(key => {
-    const values = groupData[key]
-    const priceOrderId = key
-    itemRequests.push({
-      priceOrderId,
-      items: values.map(item => {
-        const { skuId: productSkuId, maxCost: price } = item
-        return {
-          productSkuId,
-          price
-        }
-      })
-    })
-  })
-  body.itemRequests = itemRequests
-  delete body.strategyList
-  const response = await getData(wholeUrl)
+  const [err, response] = await updateCreatePricingStrategy(req)
   res.json({
     code: 0,
-    data: response,
-    message: ''
+    data: err ? null : response,
+    message: err ? response : ''
   })
 })
 

@@ -130,121 +130,145 @@ export default {
       strategyList: [
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 41148871409,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 99375607851,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 51386885553,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 62245754922,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 46746898427,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 27093873543,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 41208366102,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 58557729532,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 33543928932,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 40122160278,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 42834665447,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 51546430786,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 47598722994,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 11042185248,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 63241273325,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 58782012264,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 60360576300,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 67075794823,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 46682732208,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 78640801809,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 53473834996,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 96469701686,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 77736358285,
           maxCost: 10800
         },
         {
           priceOrderId: 2508271406178845,
+          mallId: 634418220722031,
           skuId: 47504645561,
           maxCost: 10800
         }

@@ -2,12 +2,19 @@ import store from '@/store'
 
 export default function (req, res, next) {
   const headers = store.state.user.headers
+  const { mallId } = req.body
   if (!headers) {
-    res.json({
+    return res.json({
       code: 0,
-      data: 'headers 未获取'
+      data: 'headers 未获取',
+      message: 'headers 未获取'
     })
-    return
   }
-  next()
+  if (!mallId || !headers?.maillid) return next()
+  if (mallId == headers?.maillid) return next()
+  return res.json({
+    code: 0,
+    data: 'temu店铺id不一致',
+    message: 'temu店铺id不一致'
+  })
 }
