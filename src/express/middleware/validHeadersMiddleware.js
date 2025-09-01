@@ -11,7 +11,7 @@ export default function (req, res, next) {
     })
   }
   if (!mallId) return next()
-  if (mallId == headers?.maillid) return next()
+  if (mallId == headers?.mallid) return next()
   return res.json({
     code: 0,
     data: 'temu店铺id不一致',

@@ -15,7 +15,8 @@ module.exports = {
     //   return false
     // },
     extraResource: [
-      'mock' // 开发环境中的资源目录路径
+      'mock', // 开发环境中的资源目录路径
+      'dbData'
     ],
     // 4. 图标设置（不同平台格式不同）
     icon: path.resolve(__dirname, 'public/favicon.ico'),
