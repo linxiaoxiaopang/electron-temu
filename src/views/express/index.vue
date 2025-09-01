@@ -74,6 +74,19 @@
     </div>
 
     <div class="item">
+      <button @click="onMock('/temu-agentseller/api/verifyPrice/getPricingStrategy', {
+      mallId,
+      skuIdList
+    }, 'pricingStrategy')">
+        api/verifyPrice/getPricingStrategy
+      </button>
+
+      <div class="result">
+        {{ pricingStrategy }}
+      </div>
+    </div>
+
+    <div class="item">
       <button @click="onMock('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', {
       mallId,
       strategyList
@@ -86,6 +99,8 @@
         {{ pricingInfo }}
       </div>
     </div>
+
+
 
 
     <div class="headers">
@@ -296,7 +311,8 @@ export default {
           skuId: 47504645561,
           maxCost: 10800
         }
-      ]
+      ],
+      pricingStrategy: null
     }
   },
 
@@ -319,6 +335,10 @@ export default {
 
     activityType({ activityInfo }) {
       return activityInfo?.activityList?.[0]?.activityType || ''
+    },
+
+    skuIdList({ strategyList }) {
+      return strategyList.map(item => item.skuId)
     }
   },
 

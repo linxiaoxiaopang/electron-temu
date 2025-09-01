@@ -69,6 +69,32 @@ app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async 
   })
 })
 
+app.post('/temu-agentseller/api/verifyPrice/getPricingStrategy', async (req, res) => {
+  const { body } = req
+  const skuIdList = body?.skuIdList || []
+  const [err, response] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:find', {
+    where: {
+      skuId: {
+        'op:in': skuIdList
+      }
+    }
+  })
+  return res.json({
+    code: 0,
+    data: err ? null : response,
+    message: err ? response : ''
+  })
+})
+
+app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async (req, res, next) => {
+  const [err, response] = await updateCreatePricingStrategy(req)
+  res.json({
+    code: 0,
+    data: err ? null : response,
+    message: err ? response : ''
+  })
+})
+
 app.use('/temu-agentseller', proxyMiddleware({
   target: () => {
     return temuTarget
