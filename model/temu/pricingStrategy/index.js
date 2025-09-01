@@ -2,7 +2,7 @@ const sequelize = require('../db')
 const { DataTypes } = require('sequelize')
 
 module.exports = sequelize.define(
-  'updateCreatePricingStrategy',
+  'pricingStrategy',
   {
     id: {
       type: DataTypes.INTEGER,
@@ -66,11 +66,18 @@ module.exports = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: true,
       comment: '最大定价数量'
-    }
+    },
+    // 已经提交次数
+    alreadyPricingNumber: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      comment: '已经提交次数'
+    },
   },
   {
     timestamps: false,
-    tableName: 'updateCreatePricingStrategy'
+    tableName: 'pricingStrategy'
   }
 )
 

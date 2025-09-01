@@ -72,7 +72,7 @@ app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async 
 app.post('/temu-agentseller/api/verifyPrice/getPricingStrategy', async (req, res) => {
   const { body } = req
   const skuIdList = body?.skuIdList || []
-  const [err, response] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:find', {
+  const [err, response] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
     where: {
       skuId: {
         'op:in': skuIdList

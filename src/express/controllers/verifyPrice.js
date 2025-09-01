@@ -8,7 +8,7 @@ export async function updateCreatePricingStrategy(req) {
   const wholeUrl = `${temuTarget}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
   const strategyList = body?.strategyList || []
-  const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:find', {
+  const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
     where: {
       ['op:or']: strategyList.map(item => {
         return {
@@ -25,7 +25,7 @@ export async function updateCreatePricingStrategy(req) {
     }
   })
   if (dbErr) return [dbErr, dbRes]
-  const [delErr, delRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:delete', {
+  const [delErr, delRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:delete', {
     where: {
       id: {
         ['op:in']: map(dbRes, 'id')
@@ -33,7 +33,7 @@ export async function updateCreatePricingStrategy(req) {
     }
   })
   if (delErr) return [delErr, delRes]
-  const [addErr, addRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:add', strategyList)
+  const [addErr, addRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:add', strategyList)
   if (addErr) return [addErr, addRes]
   const groupData = groupBy(strategyList, 'priceOrderId')
   const itemRequests = []

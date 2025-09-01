@@ -10,7 +10,7 @@ export function updateCreatePricingStrategyTimer() {
 
   async function updateDb() {
     if (!headers) return
-    const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:find', {
+    const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
       where: {
         ['op:or']: [{
           mallId: headers?.mallid
@@ -37,21 +37,21 @@ export function updateCreatePricingStrategyTimer() {
       if (success) {
         const filterData = strategyList.filter(sItem => sItem.priceOrderId == item.priceOrderId)
         const delData = filterData.filter(item => {
-          const { maxPricingNumber } = item
+          const { maxPricingNumber, alreadyPricingNumber } = item
           if (isNil(maxPricingNumber)) return false
-          return maxPricingNumber - 1 == 0
+          return maxPricingNumber == alreadyPricingNumber
         })
         const updateData = filterData.filter(item => {
-          const { maxPricingNumber } = item
+          const { maxPricingNumber, alreadyPricingNumber } = item
           if (isNil(maxPricingNumber)) return true
-          return maxPricingNumber - 1 != 0
+          return maxPricingNumber != alreadyPricingNumber
         })
         delList.push(...delData)
         updateList.push(...updateData)
       }
     })
     if (delList.length) {
-      await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:delete', {
+      await window.ipcRenderer.invoke('db:temu:pricingStrategy:delete', {
         where: {
           id: {
             ['op:in']: map(delList, 'id')
@@ -60,11 +60,11 @@ export function updateCreatePricingStrategyTimer() {
       })
     }
     if (updateList.length) {
-      const [updateErr, updateRes] = await window.ipcRenderer.invoke('db:temu:updateCreatePricingStrategy:batchUpdate', updateList.map(item => {
-        const { maxPricingNumber, id } = item
+      const [updateErr, updateRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:batchUpdate', updateList.map(item => {
+        const { alreadyPricingNumber, id } = item
         return {
           id,
-          maxPricingNumber: isNil(maxPricingNumber) ? null : maxPricingNumber - 1,
+          alreadyPricingNumber:  alreadyPricingNumber + 1
         }
       }))
       console.log('updateRes', updateRes)

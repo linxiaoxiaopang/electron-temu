@@ -1,9 +1,9 @@
 const batchReportingActivitiesModel = require('./batchReportingActivities/index')
 const searchForChainSupplierModel = require('./searchForChainSupplier/index')
-const updateCreatePricingStrategyModel = require('./updateCreatePricingStrategy/index')
+const pricingStrategyModel = require('./pricingStrategy/index')
 const bindBatchReportingActivitiesEvent = require('./batchReportingActivities/bindEvent')
 const bindSearchForChainSupplierEvent = require('./searchForChainSupplier/bindEvent')
-const bindUpdateCreatePricingStrategyEvent = require('./updateCreatePricingStrategy/bindEvent')
+const bindUpdateCreatePricingStrategyEvent = require('./pricingStrategy/bindEvent')
 
 function bindEvent() {
   bindBatchReportingActivitiesEvent()
@@ -15,7 +15,7 @@ async function sync() {
   try {
     await batchReportingActivitiesModel.sync({ alter: true })
     await searchForChainSupplierModel.sync({ alter: true })
-    await updateCreatePricingStrategyModel.sync({ alter: true })
+    await pricingStrategyModel.sync({ alter: true })
   } catch (err) {
     console.log('err', err)
   }
