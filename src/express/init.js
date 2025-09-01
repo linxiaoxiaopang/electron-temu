@@ -96,7 +96,13 @@ app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async 
 })
 
 app.post('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', async (req, res, next) => {
-
+  const { body } = req
+  const [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:update', 1, body)
+  return res.json({
+    code: 0,
+    data: err ? null : response,
+    message: err ? response : ''
+  })
 })
 
 app.use('/temu-agentseller', proxyMiddleware({

@@ -12,7 +12,7 @@ module.exports = sequelize.define(
       comment: '配置记录ID'
     },
     // 是否自动定价
-    isAutoPricing: {
+    autoplay: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true,
@@ -26,14 +26,14 @@ module.exports = sequelize.define(
       comment: '是否对已发布的商品进行定价'
     },
     // 循环时间（毫秒）
-    loopTime: {
+    interval: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 480000 * 1000 * 60,
+      defaultValue: 60 * 1000 * 60 * 24 * 6,
       validate: {
         min: 0 // 确保时间不为负数
       },
-      comment: '定价循环执行时间（毫秒），默认8分钟'
+      comment: '定价循环执行时间（毫秒），默认6天'
     },
     // 是否拒绝优先级
     rejectPriority: {

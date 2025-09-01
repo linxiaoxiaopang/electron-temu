@@ -101,6 +101,48 @@
     </div>
 
 
+    <div class="item">
+      <button @click="onMock('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', {
+      mallId,
+      interval: 10000,
+      autoplay: true
+    }, 'pricingConfigAndStartPricing')">
+        /api/verifyPrice/setPricingConfigAndStartPricing
+      </button>
+
+      <div class="result">
+        {{ pricingConfigAndStartPricing }}
+      </div>
+    </div>
+
+    <div class="item">
+      <button @click="onMock('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', {
+      mallId,
+      interval: 2147483647,
+      autoplay: true
+    }, 'pricingConfigAndStartPricing')">
+       重置 20 /api/verifyPrice/setPricingConfigAndStartPricing
+      </button>
+
+      <div class="result">
+        {{ pricingConfigAndStartPricing }}
+      </div>
+    </div>
+
+
+    <div class="item">
+      <button @click="onMock('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', {
+      mallId,
+      autoplay: false
+    }, 'pricingConfigAndStartPricing')">
+        重置 autoplay /api/verifyPrice/setPricingConfigAndStartPricing
+      </button>
+
+      <div class="result">
+        {{ pricingConfigAndStartPricing }}
+      </div>
+    </div>
+
 
 
     <div class="headers">
@@ -142,6 +184,7 @@ export default {
       matchInfo: null,
       searchForSemiSupplierInfo: null,
       pricingInfo: null,
+      pricingConfigAndStartPricing: null,
       strategyList: [
         {
           priceOrderId: 2508271406178845,

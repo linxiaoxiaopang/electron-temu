@@ -1,3 +1,4 @@
+const EventEmitter = require('eventemitter3')
 const { Op, Sequelize } = require('sequelize')
 const { isArray, cloneDeep, mergeWith, isFunction } = require('lodash')
 
@@ -22,7 +23,6 @@ const METHOD_LIST = {
       jsonExtract(field, jsonPath),
       objValue
     )
-    console.log('obj', obj)
     // 将条件添加到目标对象（关键修复：直接用条件作为键）
     obj[Op.and] = condition
     return obj
@@ -32,6 +32,10 @@ const METHOD_LIST = {
 class CreateServer {
   constructor(model) {
     this.model = model
+    this.emitter = new EventEmitter()
+    this.emitter.createEventName = function (prop, value) {
+      return `${prop}:${value}`
+    }
   }
 
   static formatWhere(query) {
@@ -82,7 +86,9 @@ class CreateServer {
     try {
       const ins = await this.model.findByPk(id)
       ins.set(obj)
-      const res = await ins.save()
+      let res = await ins.save()
+      res = res?.dataValues
+      this.emitter.emit('update', res)
       return [false, res]
     } catch (err) {
       return [true, err]
@@ -100,7 +106,7 @@ class CreateServer {
         const [updatedCount] = await this.model.update(
           updateFields, // 每条数据的更新内容不同
           {
-            where: { id }, // 按ID定位
+            where: { id } // 按ID定位
             // transaction // 绑定事务
           }
         )
