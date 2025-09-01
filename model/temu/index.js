@@ -1,31 +1,14 @@
-const batchReportingActivitiesModel = require('./batchReportingActivities/index')
-const searchForChainSupplierModel = require('./searchForChainSupplier/index')
-const pricingStrategyModel = require('./pricingStrategy/index')
-const bindBatchReportingActivitiesEvent = require('./batchReportingActivities/bindEvent')
-const bindSearchForChainSupplierEvent = require('./searchForChainSupplier/bindEvent')
-const bindUpdateCreatePricingStrategyEvent = require('./pricingStrategy/bindEvent')
-
-function bindEvent() {
-  bindBatchReportingActivitiesEvent()
-  bindSearchForChainSupplierEvent()
-  bindUpdateCreatePricingStrategyEvent()
-}
-
-async function sync() {
-  try {
-    await batchReportingActivitiesModel.sync({ alter: true })
-    await searchForChainSupplierModel.sync({ alter: true })
-    await pricingStrategyModel.sync({ alter: true })
-  } catch (err) {
-    console.log('err', err)
-  }
-}
+const batchReportingActivities = require('./batchReportingActivities/init')
+const pricingConfig = require('./pricingConfig/init')
+const pricingStrategy = require('./pricingStrategy/init')
+const searchForChainSupplier = require('./searchForChainSupplier/init')
 
 async function init() {
-  bindEvent()
-  await sync()
+  await batchReportingActivities.init()
+  await pricingConfig.init()
+  await pricingStrategy.init()
+  await searchForChainSupplier.init()
 }
-
 
 module.exports = {
   init

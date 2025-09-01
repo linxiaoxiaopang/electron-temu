@@ -95,6 +95,10 @@ app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async 
   })
 })
 
+app.post('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', async (req, res, next) => {
+
+})
+
 app.use('/temu-agentseller', proxyMiddleware({
   target: () => {
     return temuTarget
