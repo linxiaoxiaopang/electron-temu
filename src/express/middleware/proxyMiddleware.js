@@ -9,8 +9,9 @@ const defaultHandleReq = (req) => {
 }
 
 export default function (option) {
-  return async function (req, res) {
+  return async function (req, res, next) {
     let { target, handleReq = defaultHandleReq, isReturnData } = option
+    if(res?.noUseProxy) return next()
     if (isFunction(target)) {
       target = target()
     }

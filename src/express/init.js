@@ -2,11 +2,13 @@ const express = window.require('express')
 const bodyParser = window.require('body-parser')
 const cors = window.require('cors')
 import store from '@/store'
-import proxyMiddleware, { createProxyToGetTemuData } from './middleware/proxyMiddleware'
+import proxyMiddleware,  { createProxyToGetTemuData } from './middleware/proxyMiddleware'
+import responseMiddleware from './middleware/responseMiddleware'
+import errorMiddleware from './middleware/errorMiddleware'
 import validHeadersMiddleware from './middleware/validHeadersMiddleware'
 import { isMock, temuTarget } from './const'
-import { updateCreatePricingStrategy } from '@/express/controllers/verifyPrice'
 import { getUserInfo } from '@/express/controllers/user'
+import verifyPriceRouter from './api/verifyPrice'
 
 const PORT = 3000
 
@@ -30,7 +32,7 @@ app.post('/setHeaders', async (req, res) => {
   })
 })
 
-app.use(/^\/?(temu-agentseller|temu-seller)/, validHeadersMiddleware)
+app.use('/temu-agentseller', validHeadersMiddleware)
 
 app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', async (req, res, next) => {
   if (isMock) return next()
@@ -60,68 +62,8 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
   })
 })
 
-app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async (req, res, next) => {
-  const [err, response] = await updateCreatePricingStrategy(req)
-  res.json({
-    code: 0,
-    data: err ? null : response,
-    message: err ? response : ''
-  })
-})
 
-app.post('/temu-agentseller/api/verifyPrice/getPricingStrategy', async (req, res) => {
-  const { body } = req
-  const skuIdList = body?.skuIdList || []
-  const [err, response] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
-    where: {
-      skuId: {
-        'op:in': skuIdList
-      }
-    }
-  })
-  return res.json({
-    code: 0,
-    data: err ? null : response,
-    message: err ? response : ''
-  })
-})
-
-app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async (req, res, next) => {
-  const [err, response] = await updateCreatePricingStrategy(req)
-  res.json({
-    code: 0,
-    data: err ? null : response,
-    message: err ? response : ''
-  })
-})
-
-app.post('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', async (req, res, next) => {
-  const { body } = req
-  const [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:update', 1, {
-    ...body,
-    lastExecuteTime: Date.now()
-  })
-  return res.json({
-    code: 0,
-    data: err ? null : response,
-    message: err ? response : ''
-  })
-})
-
-app.post('/temu-agentseller/api/verifyPrice/getPricingConfigAndStartPricing', async (req, res) => {
-  let [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:find', {
-    where: {
-      id: 1
-    }
-  })
-  response = response?.[0]
-  if (response) response.currentServeTimestamp = Date.now()
-  return res.json({
-    code: 0,
-    data: err ? null : response,
-    message: err ? response : ''
-  })
-})
+app.use('/temu-agentseller/api/verifyPrice', verifyPriceRouter)
 
 app.use('/temu-agentseller', proxyMiddleware({
   target: () => {
@@ -129,23 +71,10 @@ app.use('/temu-agentseller', proxyMiddleware({
   }
 }))
 
-// 处理 404 错误
-app.use((err, req, res, next) => {
-  res.status(404).json({
-    code: 404,
-    data: err?.message || err,
-    message: err?.message || err
-  })
-})
+app.use(responseMiddleware)
+app.use(errorMiddleware)
 
-// 处理 500 错误
-app.use((err, req, res, next) => {
-  res.status(500).json({
-    code: 500,
-    data: err?.message || err,
-    message: err?.message || err
-  })
-})
+
 
 // 启动服务器
 app.listen(PORT, () => {

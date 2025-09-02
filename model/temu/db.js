@@ -7,7 +7,8 @@ const fIndex = dirName.indexOf('app.asar')
 if (fIndex >= 0) {
   dirName = dirName.substring(0, fIndex)
 }
-const storage = path.join(dirName, 'db.sqlite')
+
+const storage = path.join(dirName, 'dbData', 'db.sqlite')
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: storage,
