@@ -9,172 +9,86 @@
       <ZdRadio :value="mode" label="temu">直接连接真实数据</ZdRadio>
     </ZdRadioGroup>
 
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/seller/auth/userInfo', {}, 'userInfo')">
-        /api/seller/auth/userInfo
-      </button>
-      <div class="result">
-        {{ mallId }}
-        {{ userInfo }}
-      </div>
-    </div>
-    <div class="item">
-      <button @click="
-      onMock('/temu-agentseller/api/kiana/gamblers/marketing/enroll/activity/list', {
-      needCanEnrollCnt: true,
-      needSessionItem: true,
-      mallId,
-      filter: {
-        json: {
-           activityType: 13
-        },
-        page: {
-          pageIndex: 1,
-          pageSize: 3
-        }
-      }
-    }, 'activityInfo')">
-        /api/kiana/gamblers/marketing/enroll/activity/list
-      </button>
-
-      <div class="result">
-        {{ activityInfo }}
-      </div>
+    <div class="headers" style="margin-bottom: 10px">
+     <span v-if="!headers">
+       未获取到temu的请求头，请刷新temu页面
+     </span>
+      <span v-else>
+        <div>获取请求头成功</div>
+      </span>
     </div>
 
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', {
+    <ApiItem url="/temu-agentseller/api/seller/auth/userInfo" :params="{}" v-model="userInfo"/>
+
+    <ApiItem
+      url="/temu-agentseller/api/kiana/gamblers/marketing/enroll/activity/list"
+      :params="{
+        needCanEnrollCnt: true,
+        needSessionItem: true,
+        mallId,
+        filter: {
+            json: {
+               activityType: 13
+            },
+            page: {
+              pageIndex: 1,
+              pageSize: 3
+            }
+          }
+       }"
+      v-model="activityInfo"
+    />
+
+
+    <ApiItem url="/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match" :params="{
       mallId,
       activityType,
       rowCount: 50
-    }, 'matchInfo')">
-        /api/kiana/gamblers/marketing/enroll/scroll/match
-      </button>
+    }"/>
 
-      <div class="result">
-        {{ matchInfo }}
-      </div>
-    </div>
 
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/kiana/mms/robin/searchForSemiSupplier', {
+    <ApiItem url="/temu-agentseller/api/kiana/mms/robin/searchForSemiSupplier" :params="{
       mallId,
       supplierTodoTypeList: [1],
       page: {
         pageIndex: 2,
         pageSize: 15
       }
-    }, 'searchForSemiSupplierInfo')">
-        /api/kiana/mms/robin/searchForSemiSupplier
-      </button>
+    }"/>
 
-      <div class="result">
-        {{ searchForSemiSupplierInfo }}
-      </div>
-    </div>
-
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/verifyPrice/getPricingStrategy', {
+    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingStrategy" :params="{
       mallId,
       skuIdList
-    }, 'pricingStrategy')">
-        api/verifyPrice/getPricingStrategy
-      </button>
+    }"/>
 
-      <div class="result">
-        {{ pricingStrategy }}
-      </div>
-    </div>
 
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', {
+    <ApiItem url="/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy" :params="{
       mallId,
       strategyList
-
-    }, 'pricingInfo')">
-        /api/verifyPrice/updateCreatePricingStrategy
-      </button>
-
-      <div class="result">
-        {{ pricingInfo }}
-      </div>
-    </div>
+    }"/>
 
 
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', {
+    <ApiItem label="interval 10s " url="/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing" :params="{
       mallId,
       interval: 10000,
       autoplay: true
-    }, 'pricingConfigAndStartPricing')">
-        /api/verifyPrice/setPricingConfigAndStartPricing
-      </button>
+    }"/>
 
-      <div class="result">
-        {{ pricingConfigAndStartPricing }}
-      </div>
-    </div>
-
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', {
+    <ApiItem label="interval最大值" url="/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing" :params="{
       mallId,
       interval: 2147483647,
       autoplay: true
-    }, 'pricingConfigAndStartPricing')">
-       重置 20 /api/verifyPrice/setPricingConfigAndStartPricing
-      </button>
-
-      <div class="result">
-        {{ pricingConfigAndStartPricing }}
-      </div>
-    </div>
+    }"/>
 
 
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', {
+    <ApiItem label="autoplay = false " url="/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing" :params="{
       mallId,
       autoplay: false
-    }, 'pricingConfigAndStartPricing')">
-        重置 autoplay /api/verifyPrice/setPricingConfigAndStartPricing
-      </button>
+    }"/>
 
-      <div class="result">
-        {{ pricingConfigAndStartPricing }}
-      </div>
-    </div>
-
-
-    <div class="item">
-      <button @click="onMock('/temu-agentseller/api/verifyPrice/getPricingConfigAndStartPricing', {
-      mallId
-    }, 'pricingConfigAndStartPricing')">
-        /api/verifyPrice/getPricingConfigAndStartPricing
-      </button>
-
-      <div class="result">
-        {{ pricingConfigAndStartPricing }}
-      </div>
-    </div>
-
-
-
-    <div class="headers">
-     <span v-if="!headers">
-       未获取到temu的请求头，请刷新temu页面
-     </span>
-      <span v-else>
-        <div>请求头信息</div>
-        <div>
-          <div style="margin-bottom: 15px;border: 1px solid #eee;padding: 5px;" v-for="(value, key) in headers"
-               :key="key">
-            <div>
-              <span style="display: inline-block;margin-right: 20px;">{{ key }}:</span>
-              <span>{{ value }}</span>
-              </div>
-          </div>
-        </div>
-      </span>
-    </div>
+    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfigAndStartPricing" :params="{
+     mallId
+    }"/>
   </div>
 </template>
 
@@ -183,21 +97,19 @@ import { mapState } from 'vuex'
 import service from '@/service/request'
 import ZdRadioGroup from './module/zdRadioGroup'
 import ZdRadio from './module/zdRadio'
+import ApiItem from './module/apiItem'
 
 export default {
   components: {
     ZdRadioGroup,
-    ZdRadio
+    ZdRadio,
+    ApiItem
   },
 
   data() {
     return {
       userInfo: null,
       activityInfo: null,
-      matchInfo: null,
-      searchForSemiSupplierInfo: null,
-      pricingInfo: null,
-      pricingConfigAndStartPricing: null,
       strategyList: [
         {
           priceOrderId: 2508271406178845,
@@ -384,7 +296,6 @@ export default {
       }
     },
 
-
     mallId({ userInfo }) {
       return userInfo?.mallList?.[0]?.mallId || ''
     },
@@ -396,38 +307,10 @@ export default {
     skuIdList({ strategyList }) {
       return strategyList.map(item => item.skuId)
     }
-  },
-
-  methods: {
-    async onMock(url, data, prop) {
-      const res = await service({
-        url,
-        data,
-        method: 'post'
-      })
-      this[prop] = res?.data?.data
-    }
   }
 }
 
 </script>
 
 <style scoped>
-.item {
-    padding: 10px;
-    border: 1px solid #001aff;
-    margin-bottom: 10px;
-    max-height: 150px;
-    overflow: auto;
-}
-
-button {
-    display: block;
-    margin-bottom: 10px;
-}
-
-.result {
-    border: 1px solid #eee;
-    padding: 10px;
-}
 </style>
