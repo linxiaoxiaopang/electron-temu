@@ -62,6 +62,14 @@
     }"/>
 
 
+    <ApiItem url="/temu-agentseller/api/verifyPrice/pricingStrategyHistory" :params="{
+      mallId,
+      page: {
+        pageIndex: 1,
+        pageSize: 10
+      }
+    }"/>
+
     <ApiItem url="/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy" :params="{
       mallId,
       strategyList
