@@ -8,6 +8,7 @@ export async function updateCreatePricingStrategy(req) {
   const wholeUrl = `${temuTarget}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
   const strategyList = strategyListCalculateCost(body?.strategyList || [])
+  await window.ipcRenderer.invoke('db:temu:pricingStrategyHistory:add', strategyList)
   const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
     where: {
       ['op:or']: strategyList.map(item => {
