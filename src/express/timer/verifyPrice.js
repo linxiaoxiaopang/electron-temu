@@ -1,6 +1,7 @@
 import { updateCreatePricingStrategy } from '@/express/controllers/verifyPrice'
-import { headers } from '@/express/const'
+import { headers, temuTarget } from '@/express/const'
 import { isNil, map } from 'lodash'
+import proxyMiddleware from '@/express/middleware/proxyMiddleware'
 
 export class UpdateCreatePricingStrategyTimer {
   constructor(
@@ -13,6 +14,10 @@ export class UpdateCreatePricingStrategyTimer {
 
   get batchOperateResult() {
     return this.updateRes?.batchOperateResult || {}
+  }
+
+  get usedStrategyList() {
+    return this.strategyList.filter(item => !item.isDelete)
   }
 
   validHeaders() {
@@ -31,23 +36,58 @@ export class UpdateCreatePricingStrategyTimer {
     return res
   }
 
-  filterByRejectPriority() {
+  async maskDeletePassSearchForSemiSupplier() {
     const { strategyList } = this
-    if (!this.timerRecord.rejectPriority) return strategyList
-    return strategyList.filter(item => {
-      const { maxPricingNumber, alreadyPricingNumber } = item
-      return maxPricingNumber > alreadyPricingNumber
+    const productSkuIdList = map(strategyList, 'skuId')
+    const req = {
+      body: {
+        productSkuIdList,
+        supplierTodoTypeList: [1]
+      },
+      method: 'POST',
+      baseUrl: '/temu-agentseller',
+      url: '/api/kiana/mms/robin/searchForSemiSupplier'
+    }
+    const res = {}
+    const proxyMiddlewareFn = proxyMiddleware({
+      target: () => {
+        return temuTarget
+      },
+      isReturnData: true
+    })
+    const response = await proxyMiddlewareFn(req, res)
+    const dataList = response?.dataList || []
+    const flatSkuList = []
+    dataList.map(item => {
+      const skcList = item.skcList || []
+      skcList.map(sItem => {
+        flatSkuList.push(...map(sItem.skuList || [], 'skuId'))
+      })
+    })
+    strategyList.map(item => {
+      const isDelete = !flatSkuList.includes(item.skuId)
+      item.isDelete = isDelete
+    })
+  }
+
+  maskDeletePassRejectPriority() {
+    const { strategyList } = this
+    if (!this.timerRecord.rejectPriority) return
+    strategyList.map(item => {
+      const { maxPricingNumber, alreadyPricingNumber, isDelete } = item
+      if (isDelete) return
+      item.isDelete = maxPricingNumber <= alreadyPricingNumber
     })
   }
 
   async updateData() {
-    const { strategyList, timerRecord } = this
+    const { usedStrategyList } = this
+    if(!usedStrategyList.length) return
     const [err, res] = await updateCreatePricingStrategy({
       method: 'POST',
       body: {
         mallId: headers?.mallid,
-        strategyList: this.filterByRejectPriority(strategyList),
-        timerRecord
+        strategyList: usedStrategyList
       }
     })
     if (err) throw  res
@@ -82,14 +122,14 @@ export class UpdateCreatePricingStrategyTimer {
   }
 
   distinguishBatchOperateResult() {
-    const { batchOperateResult, strategyList } = this
+    const { batchOperateResult, usedStrategyList, strategyList } = this
     const updateList = []
-    const delList = []
+    const delList = strategyList.filter(item => item.isDelete)
     Object.keys(batchOperateResult).map(key => {
       const item = batchOperateResult[key]
       const success = item.success
       if (success) {
-        const filterData = strategyList.filter(sItem => sItem.priceOrderId == item.priceOrderId)
+        const filterData = usedStrategyList.filter(sItem => sItem.priceOrderId == item.priceOrderId)
         const delData = filterData.filter(item => {
           const { maxPricingNumber, alreadyPricingNumber } = item
           if (isNil(maxPricingNumber)) return false
@@ -114,11 +154,15 @@ export class UpdateCreatePricingStrategyTimer {
     try {
       this.validHeaders()
       this.strategyList = await this.getData()
+      await this.maskDeletePassSearchForSemiSupplier()
+      this.maskDeletePassRejectPriority()
       this.updateRes = await this.updateData()
       const { deleteData, updateData } = this.distinguishBatchOperateResult()
       await Promise.all([this.deleteDataByResponse(deleteData), this.updateDataByResponse(updateData)])
     } catch (err) {
       console.log('err', err)
+    } finally {
+      await window.ipcRenderer.invoke('pricingConfig:timer:update:done')
     }
   }
 }

@@ -29,9 +29,9 @@ module.exports = sequelize.define(
     interval: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      defaultValue: 60 * 1000 * 60 * 24 * 6,
+      defaultValue: 60 * 1000 * 10,
       validate: {
-        min: 0 // 确保时间不为负数
+        min: 60 * 1000 * 10 // 时间不低于10分钟
       },
       comment: '定价循环执行时间（毫秒），默认6天'
     },

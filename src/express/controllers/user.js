@@ -1,5 +1,5 @@
 import { temuTarget } from '@/express/const'
-import proxyMiddleware, { createProxyToGetTemuData } from '@/express/middleware/proxyMiddleware'
+import proxyMiddleware from '@/express/middleware/proxyMiddleware'
 
 export async function getUserInfo(req, res) {
   const proxyMiddlewareFn = proxyMiddleware({

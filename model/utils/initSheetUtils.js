@@ -1,4 +1,4 @@
-const { BrowserWindow } = require('electron')
+const { BrowserWindow, ipcMain } = require('electron')
 const { factory } = require('../factory')
 const { CreateServer } = require('./serverUtils')
 const MAX_SAFE_DELAY = 2147483647
@@ -60,9 +60,8 @@ class InitTimerSheet extends InitSheet {
       clearInterval(this.timer)
       return
     }
-    this.sendMessage()
     this.timer = setTimeout(() => {
-      this.setInterval()
+      this.sendMessage()
     }, min(this.interval, MAX_SAFE_DELAY))
   }
 
@@ -71,6 +70,9 @@ class InitTimerSheet extends InitSheet {
       this.prevAutoplay = this.autoplay
       this.record = res
       if (this.prevAutoplay == this.autoplay) return
+      this.setInterval()
+    })
+    ipcMain.handle(`${this.model.name}:timer:update:done`, async () => {
       this.setInterval()
     })
   }
