@@ -1,13 +1,13 @@
 import { isMock, temuTarget } from '@/express/const'
 import { createProxyToGetTemuData } from '@/express/middleware/proxyMiddleware'
-import { groupBy, map } from 'lodash'
+import { groupBy, map, cloneDeep } from 'lodash'
 
 export async function updateCreatePricingStrategy(req) {
   const { body } = req
   const relativeUrl = '/api/kiana/magnus/mms/price/bargain-no-bom/batch'
   const wholeUrl = `${temuTarget}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
-  const strategyList = body?.strategyList || []
+  const strategyList = strategyListCalculateCost(body?.strategyList || [])
   const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
     where: {
       ['op:or']: strategyList.map(item => {
@@ -43,7 +43,7 @@ export async function updateCreatePricingStrategy(req) {
     itemRequests.push({
       priceOrderId,
       items: values.map(item => {
-        const { skuId: productSkuId, maxCost: price } = item
+        const { skuId: productSkuId, calculateCost: price } = item
         return {
           productSkuId,
           price
@@ -67,4 +67,25 @@ export async function updateCreatePricingStrategy(req) {
   }
   const response = await getData(wholeUrl)
   return [false, response]
+}
+
+function strategyListCalculateCost(strategyList) {
+  strategyList = cloneDeep(strategyList)
+  return strategyList.map(item => {
+    item.calculateCost = calcItemCalculateCost(item)
+    return item
+  })
+
+  function calcItemCalculateCost(item) {
+    const { max, ceil } = Math
+    let { isClose, minCost, maxCost, priceFixed, pricePercentage, alreadyPricingNumber } = item
+    let calculateCost = maxCost
+    if (isClose) return maxCost
+    if (priceFixed) {
+      calculateCost = ceil(maxCost - priceFixed * alreadyPricingNumber)
+    } else {
+      calculateCost = ceil(maxCost - pricePercentage / 100 * maxCost)
+    }
+    return max(calculateCost, minCost)
+  }
 }

@@ -7,7 +7,7 @@
   "main": "./background.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development electron-forge start",
-    "package": "electron-forge package --platform=win32",
+    "package": "cross-env NODE_ENV=production electron-forge package --platform=win32",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "lint": "vue-cli-service lint",
