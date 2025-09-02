@@ -1,5 +1,6 @@
 const HTTP_STATUS_CODES = require('@/express/constant/httpStatusCode')
 const BUSINESS_STATUS_CODE = require('@/express/constant/businessStatusCode')
+const { isString } = require('lodash')
 
 export default function (err, req, res, next) {
   const resJson = {
@@ -10,7 +11,9 @@ export default function (err, req, res, next) {
   if (err?.code) {
     resJson.code = err.code
   }
-  if (err?.message) {
+  if (isString(err)) {
+    resJson.message = err
+  } else if (err?.message) {
     resJson.message = (err?.message).toString()
   }
   res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).json(resJson)

@@ -5,14 +5,13 @@ const router = express.Router()
 router.post('/getPricingStrategy', async (req, res, next) => {
   const { body } = req
   const skuIdList = body?.skuIdList || []
-  const params = {
+  res.customResult = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
     where: {
       skuId: {
         'op:in': skuIdList
       }
     }
-  }
-  res.customResult = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', params)
+  })
   res.noUseProxy = true
   next()
 })

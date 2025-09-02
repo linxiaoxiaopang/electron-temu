@@ -49,23 +49,16 @@ export default function (option) {
         })
       }
       if (isReturnData) return data?.result
-      res.json({
-        code: 0,
-        data: data.result,
-        message: ''
-      })
+      res.customResult = [false, data?.result]
+      next()
     }
 
     async function getTemuData() {
       const wholeUrl = `${target}${url}`
       const data = await createProxyToGetTemuData(req, res)(wholeUrl)
       if (isReturnData) return data?.result
-      res.json({
-        code: 0,
-        data: data?.result,
-        page: data?.page,
-        message: ''
-      })
+      res.customResult = [false, data?.result]
+      next()
     }
   }
 }

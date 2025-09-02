@@ -18,7 +18,7 @@ app.use(cors())
 app.use(bodyParser.json({ limit: '50mb' })) // 设置为 50mb
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
-app.post('/setHeaders', async (req, res) => {
+app.post('/setHeaders', async (req, res, next) => {
   const { headers } = req.body
   let result = null
   if (headers) result = await getUserInfo()
@@ -26,10 +26,9 @@ app.post('/setHeaders', async (req, res) => {
     headers,
     userInfo: result
   })
-  res.json({
-    code: 0,
-    data: 0
-  })
+  res.noUseProxy = true
+  res.customResult  = [!result, result]
+  next()
 })
 
 app.use('/temu-agentseller', validHeadersMiddleware)
@@ -55,11 +54,9 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
     matchList.push(...(result?.matchList || []))
     restBody.searchScrollContext = result?.searchScrollContext
   } while (response?.hasMore)
-  res.json({
-    code: 0,
-    data: response,
-    message: err ? '数据请求失败' : ''
-  })
+  res.noUseProxy = true
+  res.customResult  = [err, response]
+  next()
 })
 
 
@@ -73,8 +70,6 @@ app.use('/temu-agentseller', proxyMiddleware({
 
 app.use(responseMiddleware)
 app.use(errorMiddleware)
-
-
 
 // 启动服务器
 app.listen(PORT, () => {
