@@ -31,7 +31,8 @@ module.exports = sequelize.define(
       allowNull: false,
       defaultValue: 60 * 1000 * 10,
       validate: {
-        min: 60 * 1000 * 10 // 时间不低于10分钟
+        // min: 60 * 1000 * 10 // 时间不低于10分钟
+        min: 0
       },
       comment: '定价循环执行时间（毫秒），默认6天'
     },
@@ -48,6 +49,25 @@ module.exports = sequelize.define(
       allowNull: false,
       defaultValue: false,
       comment: '是否拒绝优先级定价'
+    },
+    // 整体处于执行中状态
+    processing: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: '整体处于执行中状态'
+    },
+    // 总任务量（如分页请求的总页数）
+    totalTasks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: '总任务量（如总条数、总页数）'
+    },
+    // 已完成任务量
+    completedTasks: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: '已完成任务量'
     }
   },
   {

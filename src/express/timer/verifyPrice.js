@@ -1,6 +1,6 @@
 import { updateCreatePricingStrategy } from '@/express/controllers/verifyPrice'
 import { headers, temuTarget } from '@/express/const'
-import { isNil, map } from 'lodash'
+import { chunk, groupBy, isNil, map, merge } from 'lodash'
 import proxyMiddleware from '@/express/middleware/proxyMiddleware'
 
 export class UpdateCreatePricingStrategyTimer {
@@ -72,7 +72,7 @@ export class UpdateCreatePricingStrategyTimer {
 
   maskDeletePassRejectPriority() {
     const { strategyList } = this
-    if (!this.timerRecord.rejectPriority) return
+    if (!this.timerRecord?.rejectPriority) return
     strategyList.map(item => {
       const { maxPricingNumber, alreadyPricingNumber, isDelete } = item
       if (isDelete) return
@@ -80,18 +80,41 @@ export class UpdateCreatePricingStrategyTimer {
     })
   }
 
-  async updateData() {
-    const { usedStrategyList } = this
-    if(!usedStrategyList.length) return
-    const [err, res] = await updateCreatePricingStrategy({
-      method: 'POST',
-      body: {
-        mallId: headers?.mallid,
-        strategyList: usedStrategyList
-      }
-    })
+  async updatePricingConfig(obj) {
+    const [err, res] = await window.ipcRenderer.invoke('db:temu:pricingConfig:update', 1, obj)
     if (err) throw  res
     return res
+  }
+
+  async updateData() {
+    const { usedStrategyList } = this
+    if (!usedStrategyList.length) return
+    await this.updatePricingConfig({
+      processing: true,
+      completedTasks: 0,
+      totalTasks: usedStrategyList.length
+    })
+    const chunkData = chunk(Object.values(groupBy(usedStrategyList, 'priceOrderId')), 1)
+    let response = {}
+    for (let chunk of chunkData) {
+      const chunkStrategyList = []
+      chunk.map(item => {
+        chunkStrategyList.push(...item)
+      })
+      const [err, res] = await updateCreatePricingStrategy({
+        method: 'POST',
+        body: {
+          mallId: headers?.mallid,
+          strategyList: usedStrategyList
+        }
+      })
+      if (err) throw  res
+      merge(response, res)
+      await this.updatePricingConfig({
+        completedTasks: chunkStrategyList.length
+      })
+    }
+    return response
   }
 
   async deleteDataByResponse(deleteData) {
@@ -162,6 +185,11 @@ export class UpdateCreatePricingStrategyTimer {
     } catch (err) {
       console.log('err', err)
     } finally {
+      await this.updatePricingConfig({
+        totalTasks: null,
+        completedTasks: null,
+        processing: false
+      })
       await window.ipcRenderer.invoke('pricingConfig:timer:update:done')
     }
   }
