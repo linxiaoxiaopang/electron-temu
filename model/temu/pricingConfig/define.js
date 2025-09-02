@@ -35,6 +35,13 @@ module.exports = sequelize.define(
       },
       comment: '定价循环执行时间（毫秒），默认6天'
     },
+    // 新增：时间戳字段（核心）
+    lastExecuteTimestamp: {
+      type: DataTypes.BIGINT, // 毫秒级时间戳（整数）
+      allowNull: true,
+      defaultValue: null,
+      comment: '上次成功执行定价的时间（毫秒级时间戳，1970-01-01 UTC起算）'
+    },
     // 是否拒绝优先级
     rejectPriority: {
       type: DataTypes.BOOLEAN,

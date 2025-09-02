@@ -60,7 +60,10 @@ class InitTimerSheet extends InitSheet {
       clearInterval(this.timer)
       return
     }
-    this.timer = setTimeout(() => {
+    this.timer = setTimeout(async () => {
+      await this.server.update(1, {
+        lastExecuteTimestamp: Date.now()
+      })
       this.sendMessage()
     }, min(this.interval, MAX_SAFE_DELAY))
   }

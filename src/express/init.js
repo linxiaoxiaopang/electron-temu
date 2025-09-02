@@ -97,7 +97,25 @@ app.post('/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy', async 
 
 app.post('/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing', async (req, res, next) => {
   const { body } = req
-  const [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:update', 1, body)
+  const [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:update', 1, {
+    ...body,
+    lastExecuteTime: Date.now()
+  })
+  return res.json({
+    code: 0,
+    data: err ? null : response,
+    message: err ? response : ''
+  })
+})
+
+app.post('/temu-agentseller/api/verifyPrice/getPricingConfigAndStartPricing', async (req, res) => {
+  let [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:find', {
+    where: {
+      id: 1
+    }
+  })
+  response = response?.[0]
+  if (response) response.currentServeTimestamp = Date.now()
   return res.json({
     code: 0,
     data: err ? null : response,

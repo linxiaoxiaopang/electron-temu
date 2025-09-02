@@ -144,6 +144,19 @@
     </div>
 
 
+    <div class="item">
+      <button @click="onMock('/temu-agentseller/api/verifyPrice/getPricingConfigAndStartPricing', {
+      mallId
+    }, 'pricingConfigAndStartPricing')">
+        /api/verifyPrice/getPricingConfigAndStartPricing
+      </button>
+
+      <div class="result">
+        {{ pricingConfigAndStartPricing }}
+      </div>
+    </div>
+
+
 
     <div class="headers">
      <span v-if="!headers">
