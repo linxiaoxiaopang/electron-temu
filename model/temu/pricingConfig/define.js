@@ -6,7 +6,8 @@ module.exports = sequelize.define(
     ...commonDefine
   },
   {
-    timestamps: false,
+    createdAt: 'createTime',
+    updatedAt: 'updateTime',
     tableName: 'pricingConfig'
   }
 )

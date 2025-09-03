@@ -10,7 +10,8 @@ module.exports = sequelize.define(
     }
   },
   {
-    timestamps: false,
+    createdAt: 'createTime',
+    updatedAt: 'updateTime',
     tableName: 'batchReportingActivities'
   }
 )
