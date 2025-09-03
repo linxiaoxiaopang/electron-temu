@@ -50,10 +50,13 @@ router.post('/getPricingConfigAndStartPricing', async (req, res, next) => {
 
 router.post('/setPricingConfigAndStartPricing', async (req, res, next) => {
   const { body } = req
-  res.customResult = await window.ipcRenderer.invoke('db:temu:pricingConfig:update', 1, {
+  let [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:update', 1, {
     ...body,
     lastExecuteTime: Date.now()
   })
+  response = response?.[0]
+  if (response) response.currentServeTimestamp = Date.now()
+  res.customResult = [err, response]
   res.noUseProxy = true
   next()
 })
