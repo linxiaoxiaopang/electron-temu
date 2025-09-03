@@ -1,7 +1,7 @@
 <template>
   <div class="api-item-component">
     <div class="btn" @click="onClick">
-      点击{{ label }}{{ url }}
+      点击{{ label }}{{ apiName }}
     </div>
     <div class="result">
       {{ data }}
@@ -30,6 +30,14 @@ export default {
   data() {
     return {
       data: null
+    }
+  },
+
+  computed: {
+    apiName({url}) {
+      if(!url) return url
+      const splitData = url.split('/')
+      return splitData.slice(splitData.length - 2, splitData.length).join('/')
     }
   },
 

@@ -1,9 +1,9 @@
 const sequelize = require('../db')
-const { commonPricingStrategyDefine } = require('../const/pricingStrategy')
+const { commonDefine } = require('../const/pricingStrategy')
 module.exports = sequelize.define(
   'pricingStrategyHistory',
   {
-    ...commonPricingStrategyDefine
+    ...commonDefine
   },
   {
     timestamps: false,

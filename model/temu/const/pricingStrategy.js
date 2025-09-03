@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize')
 
-const commonPricingStrategyDefine = {
+const commonDefine = {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -74,5 +74,5 @@ const commonPricingStrategyDefine = {
 }
 
 module.exports = {
-  commonPricingStrategyDefine
+  commonDefine
 }

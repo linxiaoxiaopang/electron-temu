@@ -61,9 +61,8 @@ class CreateServer {
     return o1
   }
 
-  static formatPage(query) {
-    const { page } = query
-    if (!(page?.pageIndex && page?.pageSize)) return {}
+  static formatPage(page) {
+    if (!(page?.pageIndex && page?.pageSize)) return null
     const { pageIndex, pageSize } = page
     const offset = (pageIndex - 1) * pageSize
     return {
@@ -133,14 +132,26 @@ class CreateServer {
 
   async find(where) {
     try {
+      const { page } = where
+      const pageQuery = CreateServer.formatPage(page)
+      const whereQuery = CreateServer.formatWhere(where)
       const res = await this.model.findAll({
-        ...CreateServer.formatWhere(where),
-        ...CreateServer.formatPage(where),
+        ...whereQuery,
+        ...(pageQuery || {}),
         raw: true,
         // 打印生成的SQL，用于验证
         logging: sql => console.log('SQL:', sql)
       })
-      return [false, res]
+      const res1 = {}
+      if (pageQuery) {
+        const total = await this.model.count(whereQuery)
+        res1.page = {
+          pageIndex: page.pageIndex,
+          pageSize: page.pageSize,
+          total: total
+        }
+      }
+      return [false, res, res1]
     } catch (err) {
       return [true, err]
     }

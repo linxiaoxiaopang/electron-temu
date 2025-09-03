@@ -62,7 +62,7 @@
     }"/>
 
 
-    <ApiItem url="/temu-agentseller/api/verifyPrice/pricingStrategyHistory" :params="{
+    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingStrategyHistory" :params="{
       mallId,
       page: {
         pageIndex: 1,
@@ -76,26 +76,38 @@
     }"/>
 
 
-    <ApiItem label="interval 10s " url="/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing" :params="{
+    <ApiItem label="interval 10s " url="/temu-agentseller/api/verifyPrice/setPricingConfig" :params="{
       mallId,
       interval: 10000,
       autoplay: true
     }"/>
 
-    <ApiItem label="interval最大值" url="/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing" :params="{
+    <ApiItem label="interval最大值" url="/temu-agentseller/api/verifyPrice/setPricingConfig" :params="{
       mallId,
       interval: 2147483647,
       autoplay: true
     }"/>
 
 
-    <ApiItem label="autoplay = false " url="/temu-agentseller/api/verifyPrice/setPricingConfigAndStartPricing" :params="{
+    <ApiItem label="autoplay = false " url="/temu-agentseller/api/verifyPrice/setPricingConfig" :params="{
       mallId,
       autoplay: false
     }"/>
 
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfigAndStartPricing" :params="{
+    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfig" :params="{
      mallId
+    }"/>
+
+    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfigHistory" :params="{
+     mallId
+    }"/>
+
+    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfigHistory" :params="{
+     mallId,
+     page: {
+       pageIndex: 1,
+       pageSize: 10
+     }
     }"/>
   </div>
 </template>

@@ -1,13 +1,13 @@
 const sequelize = require('../db')
-const { commonDefine } = require('../const/pricingStrategy')
+const { commonDefine } = require('../const/pricingConfig')
 module.exports = sequelize.define(
-  'pricingStrategy',
+  'pricingConfigHistory',
   {
     ...commonDefine
   },
   {
     timestamps: false,
-    tableName: 'pricingStrategy'
+    tableName: 'pricingConfigHistory'
   }
 )
 
