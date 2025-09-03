@@ -1,5 +1,6 @@
 const EventEmitter = require('eventemitter3')
 const { Op, Sequelize } = require('sequelize')
+const { formatTimeZoneAndTime } = require('../utils/timeUtils')
 const { isArray, cloneDeep, mergeWith, isFunction } = require('lodash')
 
 const jsonExtract = (column, path) => {
@@ -130,6 +131,22 @@ class CreateServer {
     }
   }
 
+  formatTime(res) {
+    if (!res) return
+    if (isArray(res)) {
+      res.map(item => {
+        this.formatTime(item)
+      })
+      return
+    }
+    if (res.createTime) {
+      res.createTime = formatTimeZoneAndTime(res.createTime)
+    }
+    if (res.updateTime) {
+      res.updateTime = formatTimeZoneAndTime(res.updateTime)
+    }
+  }
+
   async find(where) {
     try {
       const { page } = where
@@ -142,6 +159,7 @@ class CreateServer {
         // 打印生成的SQL，用于验证
         logging: sql => console.log('SQL:', sql)
       })
+      this.formatTime(res)
       const res1 = {}
       if (pageQuery) {
         const total = await this.model.count(whereQuery)

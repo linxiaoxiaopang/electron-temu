@@ -19,7 +19,7 @@ router.post('/getPricingStrategy', async (req, res, next) => {
 router.post('/getPricingStrategyHistory', async (req, res, next) => {
   const { body } = req
   const { mallId, page, ...where } = body
-  res.customResult = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
+  res.customResult = await window.ipcRenderer.invoke('db:temu:pricingStrategyHistory:find', {
     where,
     page
   })
