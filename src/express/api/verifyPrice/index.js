@@ -50,7 +50,7 @@ router.post('/setPricingConfig', async (req, res, next) => {
   const { body } = req
   let [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:update', 1, {
     ...body,
-    lastExecuteTime: Date.now()
+    lastExecuteTimestamp: Date.now()
   })
   if (!err) {
     const { id, ...rest } = response
