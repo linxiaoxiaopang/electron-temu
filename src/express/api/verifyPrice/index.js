@@ -27,13 +27,11 @@ router.post('/pricingStrategyHistory', async (req, res, next) => {
   next()
 })
 
-
 router.post('/updateCreatePricingStrategy', async (req, res, next) => {
   res.customResult = await updateCreatePricingStrategy(req)
   res.noUseProxy = true
   next()
 })
-
 
 router.post('/getPricingConfigAndStartPricing', async (req, res, next) => {
   let [err, response] = await window.ipcRenderer.invoke('db:temu:pricingConfig:find', {
