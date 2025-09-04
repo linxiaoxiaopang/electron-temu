@@ -2,7 +2,7 @@ import { temuTarget } from '@/express/const'
 import proxyMiddleware from '@/express/middleware/proxyMiddleware'
 
 export async function getUserInfo(req, res) {
-  const proxyMiddlewareFn = proxyMiddleware({
+  const getData = proxyMiddleware({
     target: () => {
       return temuTarget
     },
@@ -16,5 +16,5 @@ export async function getUserInfo(req, res) {
     },
     isReturnData: true
   })
-  return await proxyMiddlewareFn(req, res)
+  return await getData(req, res)
 }

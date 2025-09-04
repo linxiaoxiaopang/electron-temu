@@ -21,7 +21,7 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 app.post('/setHeaders', async (req, res, next) => {
   const { headers } = req.body
   let result = null
-  if (headers) result = await getUserInfo()
+  if (headers) result = await getUserInfo(req, res)
   store.dispatch('user/SetUserInfo', {
     headers,
     userInfo: result

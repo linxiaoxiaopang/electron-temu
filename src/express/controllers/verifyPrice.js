@@ -94,8 +94,10 @@ function strategyListCalculateCost(strategyList) {
 
 async function updateLatestPricingStrategy(strategyList) {
   const [err, res] = await window.ipcRenderer.invoke('db:temu:latestPricingStrategy:find', {
-    skuId: {
-      ['op:in']: map(strategyList, 'skuId')
+    where: {
+      skuId: {
+        ['op:in']: map(strategyList, 'skuId')
+      }
     }
   })
   if (err) return

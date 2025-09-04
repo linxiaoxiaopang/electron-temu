@@ -9,27 +9,22 @@ const defaultHandleReq = (req) => {
 }
 
 export default function (option) {
-  return async function (req, res, next) {
+  return async function (req, res, next = () => {}) {
     let { target, handleReq = defaultHandleReq, isReturnData } = option
-    if(res?.noUseProxy) return next()
+    if (res?.noUseProxy) return next()
     if (isFunction(target)) {
       target = target()
     }
     const { url, baseUrl, body } = handleReq(req)
-    if (isMock) return await getMockData()
-    return getTemuData()
+    const response = isMock ? await getMockData() : await getTemuData()
+    if(isReturnData) return response[1]
+    res.customResult = response
+    next()
 
     async function getMockData() {
       const responseList = await getResponseList()
       let { path: mockPath, updateDb } = responseList[baseUrl][url]
-      if (!mockPath) {
-        res.json({
-          code: 0,
-          data: null,
-          message: '数据不存在'
-        })
-        return
-      }
+      if (!mockPath) return [true, '数据不存在']
       mockPath = mockPath.replace(/\+/g, '/')
       const rawData = window.require(mockPath)
       const data = cloneDeep(rawData)
@@ -48,17 +43,13 @@ export default function (option) {
           page
         })
       }
-      if (isReturnData) return data?.result
-      res.customResult = [false, data?.result]
-      next()
+      return [false, data?.result]
     }
 
     async function getTemuData() {
       const wholeUrl = `${target}${url}`
       const data = await createProxyToGetTemuData(req, res)(wholeUrl)
-      if (isReturnData) return data?.result || data?.data
-      res.customResult = [false, data?.result || data?.data]
-      next()
+      return [false, data?.result || data?.data]
     }
   }
 }
