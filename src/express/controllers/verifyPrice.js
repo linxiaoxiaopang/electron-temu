@@ -64,7 +64,7 @@ export async function updateCreatePricingStrategy(req) {
         return acc
       }, {})
     }
-    return [false, result]
+    return [false, { code: 0, data: result }]
   }
   const response = await getData(wholeUrl)
   return [false, response]

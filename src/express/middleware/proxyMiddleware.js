@@ -56,8 +56,8 @@ export default function (option) {
     async function getTemuData() {
       const wholeUrl = `${target}${url}`
       const data = await createProxyToGetTemuData(req, res)(wholeUrl)
-      if (isReturnData) return data?.result
-      res.customResult = [false, data?.result]
+      if (isReturnData) return data?.result || data?.data
+      res.customResult = [false, data?.result || data?.data]
       next()
     }
   }

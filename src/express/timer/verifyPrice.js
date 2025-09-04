@@ -17,7 +17,7 @@ export class UpdateCreatePricingStrategyTimer {
   }
 
   get usedStrategyList() {
-    return this.strategyList.filter(item => !item.isDelete)
+    return this.strategyList.filter(item => !item.isDelete && !item.isIgnore)
   }
 
   validHeaders() {
@@ -36,13 +36,17 @@ export class UpdateCreatePricingStrategyTimer {
     return res
   }
 
-  async maskDeletePassSearchForSemiSupplier() {
+  async maskPassSearchForSemiSupplier() {
     const { strategyList } = this
     const productSkuIdList = map(strategyList, 'skuId')
+    const pageSize = Object.keys(groupBy(strategyList, 'priceOrderId')).length
     const req = {
       body: {
+        pageSize,
+        mallId: headers?.mallid,
         productSkuIdList,
-        supplierTodoTypeList: [1]
+        supplierTodoTypeList: [1],
+        pageNum: 1
       },
       method: 'POST',
       baseUrl: '/temu-agentseller',
@@ -59,14 +63,30 @@ export class UpdateCreatePricingStrategyTimer {
     const dataList = response?.dataList || []
     const flatSkuList = []
     dataList.map(item => {
+      const hasToConfirmPriceReviewOrder = item.hasToConfirmPriceReviewOrder
       const skcList = item.skcList || []
       skcList.map(sItem => {
-        flatSkuList.push(...map(sItem.skuList || [], 'skuId'))
+        let skuList = sItem.skuList || []
+        skuList = skuList.map(gItem => {
+          return {
+            ...gItem,
+            hasToConfirmPriceReviewOrder
+          }
+        })
+        flatSkuList.push(...skuList)
       })
     })
     strategyList.map(item => {
-      const isDelete = !flatSkuList.includes(item.skuId)
-      item.isDelete = isDelete
+      const fItem = flatSkuList.find(sItem => sItem.skuId == item.skuId)
+      if (!fItem) {
+        item.isDelete = true
+        return
+      }
+      //判断是否已经在核价中，在核价中就跳过
+      const { hasToConfirmPriceReviewOrder } = fItem
+      if (!hasToConfirmPriceReviewOrder) {
+        item.isIgnore = true
+      }
     })
   }
 
@@ -108,8 +128,8 @@ export class UpdateCreatePricingStrategyTimer {
           strategyList: usedStrategyList
         }
       })
-      if (err) throw  res
-      merge(response, res)
+      if (err) throw  res?.message
+      merge(response, res?.data)
       await this.updatePricingConfig({
         completedTasks: chunkStrategyList.length
       })
@@ -150,22 +170,28 @@ export class UpdateCreatePricingStrategyTimer {
     const delList = strategyList.filter(item => item.isDelete)
     Object.keys(batchOperateResult).map(key => {
       const item = batchOperateResult[key]
+      if (!item) return
       const success = item.success
-      if (success) {
-        const filterData = usedStrategyList.filter(sItem => sItem.priceOrderId == item.priceOrderId)
-        const delData = filterData.filter(item => {
-          const { maxPricingNumber, alreadyPricingNumber } = item
-          if (isNil(maxPricingNumber)) return false
-          return maxPricingNumber <= alreadyPricingNumber
-        })
-        const updateData = filterData.filter(item => {
-          const { maxPricingNumber, alreadyPricingNumber } = item
-          if (isNil(maxPricingNumber)) return true
-          return maxPricingNumber > alreadyPricingNumber
-        })
-        delList.push(...delData)
-        updateList.push(...updateData)
-      }
+      const filterData = usedStrategyList.filter(sItem => sItem.priceOrderId == item.priceOrderId)
+      let delData = []
+      let updateData = []
+      // if (!success) {
+      //   delData = filterData
+      //   delList.push(...delData)
+      //   return
+      // }
+      delData = filterData.filter(item => {
+        const { maxPricingNumber, alreadyPricingNumber } = item
+        if (isNil(maxPricingNumber)) return false
+        return maxPricingNumber <= alreadyPricingNumber
+      })
+      updateData = filterData.filter(item => {
+        const { maxPricingNumber, alreadyPricingNumber } = item
+        if (isNil(maxPricingNumber)) return true
+        return maxPricingNumber > alreadyPricingNumber
+      })
+      delList.push(...delData)
+      updateList.push(...updateData)
     })
     return {
       deleteData: delList,
@@ -177,7 +203,8 @@ export class UpdateCreatePricingStrategyTimer {
     try {
       this.validHeaders()
       this.strategyList = await this.getData()
-      await this.maskDeletePassSearchForSemiSupplier()
+      if(!this.strategyList.length) return
+      await this.maskPassSearchForSemiSupplier()
       this.maskDeletePassRejectPriority()
       this.updateRes = await this.updateData()
       const { deleteData, updateData } = this.distinguishBatchOperateResult()
