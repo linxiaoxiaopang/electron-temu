@@ -125,7 +125,7 @@ export class UpdateCreatePricingStrategyTimer {
         method: 'POST',
         body: {
           mallId: headers?.mallid,
-          strategyList: usedStrategyList
+          strategyList: chunk
         }
       })
       if (err) throw  res?.message
