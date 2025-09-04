@@ -65,10 +65,10 @@ export async function updateCreatePricingStrategy(req) {
         return acc
       }, {})
     }
-    return [false, { code: 0, data: result }]
+    return [false, result]
   }
   const response = await getData(wholeUrl)
-  return [false, response]
+  return [false, response?.data]
 }
 
 function strategyListCalculateCost(strategyList) {

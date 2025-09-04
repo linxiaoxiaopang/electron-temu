@@ -127,8 +127,8 @@ export class UpdateCreatePricingStrategyTimer {
           strategyList: chunkStrategyList
         }
       })
-      if (err) throw  res?.message
-      merge(response, res?.data)
+      if (err) throw  res
+      merge(response, res)
       await this.updatePricingConfig({
         completedTasks: chunkStrategyList.length
       })
@@ -205,7 +205,7 @@ export class UpdateCreatePricingStrategyTimer {
         processing: true
       })
       this.strategyList = await this.getData()
-      if(!this.strategyList.length) return
+      if (!this.strategyList.length) return
       await this.maskPassSearchForSemiSupplier()
       this.maskDeletePassRejectPriority()
       this.updateRes = await this.updateData()
