@@ -110,7 +110,6 @@ export class UpdateCreatePricingStrategyTimer {
     const { usedStrategyList } = this
     if (!usedStrategyList.length) return
     await this.updatePricingConfig({
-      processing: true,
       completedTasks: 0,
       totalTasks: usedStrategyList.length
     })
@@ -125,7 +124,7 @@ export class UpdateCreatePricingStrategyTimer {
         method: 'POST',
         body: {
           mallId: headers?.mallid,
-          strategyList: chunk
+          strategyList: chunkStrategyList
         }
       })
       if (err) throw  res?.message
@@ -202,6 +201,9 @@ export class UpdateCreatePricingStrategyTimer {
   async action() {
     try {
       this.validHeaders()
+      await this.updatePricingConfig({
+        processing: true
+      })
       this.strategyList = await this.getData()
       if(!this.strategyList.length) return
       await this.maskPassSearchForSemiSupplier()

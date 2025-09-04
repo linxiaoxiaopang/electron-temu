@@ -2,10 +2,10 @@ const express = window.require('express')
 const { updateCreatePricingStrategy } = require('@/express/controllers/verifyPrice')
 const router = express.Router()
 
-router.post('/getPricingStrategy', async (req, res, next) => {
+router.post('/getLatestPricingStrategy', async (req, res, next) => {
   const { body } = req
   const skuIdList = body?.skuIdList || []
-  res.customResult = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
+  res.customResult = await window.ipcRenderer.invoke('db:temu:latestPricingStrategy:find', {
     where: {
       skuId: {
         'op:in': skuIdList
