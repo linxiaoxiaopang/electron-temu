@@ -45,7 +45,7 @@ export class UpdateCreatePricingStrategyTimer {
         pageSize,
         mallId: headers?.mallid,
         productSkuIdList,
-        supplierTodoTypeList: [1],
+        supplierTodoTypeList: [],
         pageNum: 1
       },
       method: 'POST',
@@ -79,6 +79,10 @@ export class UpdateCreatePricingStrategyTimer {
     strategyList.map(item => {
       const fItem = flatSkuList.find(sItem => sItem.skuId == item.skuId)
       if (!fItem) {
+        item.isDelete = true
+        return
+      }
+      if(fItem.priceReviewStatus != 0 && fItem.priceReviewStatus != 1) {
         item.isDelete = true
         return
       }

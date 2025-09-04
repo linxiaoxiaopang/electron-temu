@@ -54,16 +54,16 @@ class InitTimerSheet extends InitSheet {
     })
   }
 
-  setInterval() {
+  async setInterval() {
     const { min } = Math
     if (!this.autoplay || !this.interval) {
       clearInterval(this.timer)
       return
     }
+    await this.server.update(1, {
+      lastExecuteTimestamp: Date.now()
+    })
     this.timer = setTimeout(async () => {
-      await this.server.update(1, {
-        lastExecuteTimestamp: Date.now()
-      })
       this.sendMessage()
     }, min(this.interval, MAX_SAFE_DELAY))
   }

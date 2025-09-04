@@ -91,7 +91,8 @@
 
     <ApiItem label="autoplay = false " url="/temu-agentseller/api/verifyPrice/setPricingConfig" :params="{
       mallId,
-      autoplay: false
+      autoplay: false,
+      processing: 0
     }"/>
 
     <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfig" :params="{
