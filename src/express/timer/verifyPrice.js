@@ -117,7 +117,7 @@ export class UpdateCreatePricingStrategyTimer {
       completedTasks: 0,
       totalTasks: usedStrategyList.length
     })
-    const chunkData = chunk(Object.values(groupBy(usedStrategyList, 'priceOrderId')), 1)
+    const chunkData = chunk(Object.values(groupBy(usedStrategyList, 'priceOrderId')), 50)
     let response = {}
     for (let chunk of chunkData) {
       const chunkStrategyList = []
