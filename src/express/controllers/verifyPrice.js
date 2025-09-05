@@ -9,7 +9,6 @@ export async function updateCreatePricingStrategy(req) {
   const getData = createProxyToGetTemuData(req)
   const strategyList = strategyListCalculateCost(body?.strategyList || [])
   await window.ipcRenderer.invoke('db:temu:pricingStrategyHistory:add', strategyList)
-  await updateLatestPricingStrategy(strategyList)
   const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
     where: {
       ['op:or']: strategyList.map(item => {
@@ -35,6 +34,7 @@ export async function updateCreatePricingStrategy(req) {
     }
   })
   if (delErr) return [delErr, delRes]
+  await updateLatestPricingStrategy(strategyList)
   const [addErr, addRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:add', strategyList)
   if (addErr) return [addErr, addRes]
   const groupData = groupBy(strategyList, 'priceOrderId')
@@ -105,6 +105,7 @@ async function updateLatestPricingStrategy(strategyList) {
   strategyList.map(item => {
     const fItem = res.find(sItem => sItem.skuId == item.skuId)
     if(fItem) return
+    item.registerCount = fItem.registerCount + 1
     temArr.push(item)
   })
   await window.ipcRenderer.invoke('db:temu:latestPricingStrategy:add', temArr)
