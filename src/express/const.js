@@ -31,3 +31,11 @@ Object.defineProperties(exports, {
     }
   }
 })
+
+exports.getIsMock = function () {
+  return store.state.user.apiMode === 'mock'
+}
+
+exports.getTemuTarget=function () {
+  return exports.isProxy ? 'http://192.168.10.81:3000/temu-agentseller' : 'https://agentseller.temu.com'
+}

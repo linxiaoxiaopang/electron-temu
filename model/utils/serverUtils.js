@@ -1,7 +1,8 @@
 const EventEmitter = require('eventemitter3')
 const { Op, Sequelize } = require('sequelize')
+const sequelize = require('../temu/db')
 const { formatTimeZoneAndTime } = require('../utils/timeUtils')
-const { isArray, cloneDeep, mergeWith, isFunction } = require('lodash')
+const { isArray, cloneDeep, mergeWith, isFunction, merge } = require('lodash')
 
 const jsonExtract = (column, path) => {
   // 直接拼接 SQL 函数，避免 Sequelize 处理路径
@@ -70,6 +71,22 @@ class CreateServer {
       offset,
       limit: pageSize
     }
+  }
+
+  /**
+   * 将原始SELECT查询SQL转换为COUNT统计查询
+   * @param {string} originalSql - 原始SQL语句（如SELECT DISTINCT t.* FROM ...）
+   * @returns {string} 转换后的COUNT查询SQL
+   */
+  static convertToCountSql(originalSql) {
+    // 正则表达式：匹配 SELECT DISTINCT t.* 部分，并替换为 COUNT(DISTINCT t.id)
+    // 适配各种格式（如换行、空格差异）
+    const regex = /SELECT\s+DISTINCT\s+t\.\*\s+/i
+
+    // 替换为 COUNT(DISTINCT t.id) AS total，并保留FROM及之后的部分
+    const countSql = originalSql.replace(regex, 'SELECT COUNT(DISTINCT t.id) AS total ')
+
+    return countSql
   }
 
   async add(os) {
@@ -195,6 +212,39 @@ class CreateServer {
         truncate: true
       })
       return [false, res]
+    } catch (err) {
+      return [true, err]
+    }
+  }
+
+  async query(where) {
+    let { sql, page, replacements = {} } = where
+    const pageQuery = CreateServer.formatPage(page)
+    const finalReplacements = {}
+    try {
+      const rawSql = sql
+      const res1 = {}
+      if (pageQuery) {
+        sql = `${sql} LIMIT :offset, :limit`
+        const [totalRes] = await sequelize.query(CreateServer.convertToCountSql(rawSql), {
+          replacements,
+          // 打印生成的SQL，用于验证
+          logging: sql => console.log('SQL:', sql)
+        })
+        merge(finalReplacements, pageQuery)
+        res1.page = {
+          pageIndex: page.pageIndex,
+          pageSize: page.pageSize,
+          total: totalRes?.[0]?.total || 0
+        }
+      }
+      merge(finalReplacements, replacements)
+      const [res] = await sequelize.query(sql, {
+        replacements: finalReplacements,
+        logging: sql => console.log('SQL:', sql)
+      })
+
+      return [false, res, res1]
     } catch (err) {
       return [true, err]
     }

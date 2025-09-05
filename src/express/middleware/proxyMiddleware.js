@@ -1,5 +1,5 @@
 const path = window.require('path')
-const { merge, cloneDeep, isFunction } = require('lodash')
+const { merge, map, isFunction, uniq } = require('lodash')
 import { isMock, isProxy, headers } from '../const'
 
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
@@ -9,40 +9,28 @@ const defaultHandleReq = (req) => {
 }
 
 export default function (option) {
-  return async function (req, res, next = () => {}) {
+  return async function (req, res, next = () => {
+  }) {
     let { target, handleReq = defaultHandleReq, isReturnData } = option
     if (res?.noUseProxy) return next()
     if (isFunction(target)) {
       target = target()
     }
-    const { url, baseUrl, body } = handleReq(req)
+    const { url, baseUrl } = handleReq(req)
+    const allConfig = await getConfig()
+    const config = allConfig[baseUrl][url] || {}
+    const { onBeforeSend } = config
+    if (onBeforeSend) await onBeforeSend({ req, res })
     const response = isMock ? await getMockData() : await getTemuData()
-    if(isReturnData) return response[1]
+    if (isReturnData) return response[1]
     res.customResult = response
     next()
 
     async function getMockData() {
-      const responseList = await getResponseList()
-      let { path: mockPath, updateDb } = responseList[baseUrl][url]
+      let { path: mockPath } = config
       if (!mockPath) return [true, '数据不存在']
       mockPath = mockPath.replace(/\+/g, '/')
-      const rawData = window.require(mockPath)
-      const data = cloneDeep(rawData)
-      const { page } = body
-      const filter = body?.filter || {}
-      const filterKeys = Object.keys(filter)
-      const filterQuery = filterKeys.map(key => {
-        return {
-          [`json:json.${key}`]: filter[key]
-        }
-      })
-
-      if (updateDb) {
-        await updateDb(data, {
-          filter: filterQuery,
-          page
-        })
-      }
+      const data = window.require(mockPath)
       return [false, data?.result]
     }
 
@@ -54,7 +42,7 @@ export default function (option) {
   }
 }
 
-async function getResponseList() {
+async function getConfig() {
   const { path: appPath } = await window.ipcRenderer.invoke('getAppInfo')
   return {
     ['/temu-agentseller']: {
@@ -71,30 +59,7 @@ async function getResponseList() {
         path: getMockPath('categoryChildrenList.json')
       },
       '/api/kiana/mms/robin/searchForSemiSupplier': {
-        path: getMockPath('searchForChainSupplier.json'),
-
-        async updateDb(data, query) {
-          const result = data?.result?.dataList || []
-          await window.ipcRenderer.invoke('db:temu:searchForChainSupplier:clear')
-          await window.ipcRenderer.invoke('db:temu:searchForChainSupplier:add', result.map(item => {
-            return { json: item }
-          }))
-
-          const { page, filter } = query
-          const [err, res] = await window.ipcRenderer.invoke('db:temu:searchForChainSupplier:find', {
-            where: {
-              ['op:and']: filter
-            },
-            page: page || {}
-          })
-          if (err) {
-            data.result.message = res
-            data.result.dataList = res
-            return data
-          }
-          data.result.dataList = res.map(item => JSON.parse(item.json))
-          return data
-        }
+        path: getMockPath('searchForChainSupplier.json')
       }
     }
   }

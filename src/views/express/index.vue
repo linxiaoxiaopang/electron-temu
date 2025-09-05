@@ -110,6 +110,20 @@
        pageSize: 10
      }
     }"/>
+
+    <ApiItem url="/temu-agentseller/api/verifyPrice/syncSearchForChainSupplier" :params="{
+     mallId
+    }"/>
+
+    <ApiItem url="/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplier" :params="{
+     mallId,
+      page: {
+       pageIndex: 1,
+       pageSize: 10
+     }
+    }"/>
+
+
   </div>
 </template>
 

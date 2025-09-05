@@ -31,11 +31,11 @@ const commonDefine = {
     allowNull: true,
     comment: '最大成本'
   },
-  // 邮件ID
+  // 店铺ID
   mallId: {
     type: DataTypes.BIGINT,
     allowNull: true,
-    comment: '关联的邮件ID'
+    comment: '店铺ID'
   },
   // 是否关闭（0表示未关闭）
   isClose: {
