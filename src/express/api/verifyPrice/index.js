@@ -1,4 +1,5 @@
 const express = window.require('express')
+const axios = window.require('axios')
 const { updateCreatePricingStrategy } = require('@/express/controllers/verifyPrice')
 const { getTemuTarget, getIsMock } = require('@/express/const')
 const { createProxyToGetTemuData } = require('@/express/middleware/proxyMiddleware')
@@ -159,10 +160,33 @@ WHERE json_extract(item.value, '$.extCode') like :pattern and t.mallId = :mallId
     }
   })
   if (!res.customResult[0]) {
-    res.customResult[1] = res.customResult[1].map(item => {
-      return JSON.parse(item.json)
-    })
+    res.customResult[1] = {
+      dataList: res.customResult[1].map(item => {
+        return JSON.parse(item.json)
+      }),
+      total: res.customResult[2]?.page?.total
+    }
   }
+  res.noUseProxy = true
+  next()
+})
+
+router.post('/updateCreatePricingStrategyPassSetting', async (req, res, next) => {
+  const { body, protocol, host } = req
+  const {
+    allSettings,
+    strategyList,
+    ...query
+  } = body
+  const relativeUrl = '/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplier'
+  const wholeUrl = `${protocol}://${host}${relativeUrl}`
+  const response = await axios({
+    method: 'post',
+    url: wholeUrl,
+    data: query
+  })
+  const dataList = response?.data?.data?.dataList || []
+  res.customResult = [false, dataList]
   res.noUseProxy = true
   next()
 })

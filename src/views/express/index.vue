@@ -124,6 +124,10 @@
     }"/>
 
 
+    <ApiItem url="/temu-agentseller/api/verifyPrice/updateCreatePricingStrategyPassSetting" :params="{
+     mallId,
+    }"/>
+
   </div>
 </template>
 
