@@ -1,20 +1,29 @@
 const express = window.require('express')
 const axios = window.require('axios')
+const { map } = require('lodash')
 const { updateCreatePricingStrategy } = require('@/express/controllers/verifyPrice')
 const { getTemuTarget, getIsMock } = require('@/express/const')
 const { createProxyToGetTemuData } = require('@/express/middleware/proxyMiddleware')
 const { getUUID } = require('@/utils/randomUtils')
+const { LoopRequest } = require('@/express/utils/loopUtils')
 const router = express.Router()
 
 router.post('/getLatestPricingStrategy', async (req, res, next) => {
   const { body } = req
+  const { startUpdateTime, endUpdateTime } = body
   const skuIdList = body?.skuIdList || []
-  res.customResult = await window.ipcRenderer.invoke('db:temu:latestPricingStrategy:find', {
-    where: {
-      skuId: {
-        'op:in': skuIdList
-      }
+  const where = {
+    skuId: {
+      'op:in': skuIdList
     }
+  }
+  if (startUpdateTime && endUpdateTime) {
+    where.updateTime = {
+      'op:between': [startUpdateTime, endUpdateTime]
+    }
+  }
+  res.customResult = await window.ipcRenderer.invoke('db:temu:latestPricingStrategy:find', {
+    where
   })
   res.noUseProxy = true
   next()
@@ -35,6 +44,84 @@ router.post('/updateCreatePricingStrategy', async (req, res, next) => {
   res.customResult = await updateCreatePricingStrategy(req)
   res.noUseProxy = true
   next()
+})
+
+router.post('/validatePricingStrategy', async (req, res, next) => {
+  const { body, protocol, host } = req
+  const { mallId, extCodeLike, startUpdateTime, endUpdateTime } = body
+
+  const instance = new LoopRequest({
+    req,
+    res,
+    cacheKey: 'validatePricingStrategy'
+  })
+
+  const query = {
+    mallId,
+    extCodeLike,
+    page: {
+      pageIndex: 1,
+      pageSize: 50
+    }
+  }
+
+  instance.requestCallback = async () => {
+    const relativeUrl1 = '/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplier'
+    const relativeUrl2 = '/temu-agentseller/api/verifyPrice/getLatestPricingStrategy'
+    const wWholeUrl1 = `${protocol}://${host}${relativeUrl1}`
+    const wWholeUrl2 = `${protocol}://${host}${relativeUrl2}`
+    const response1 = await axios({
+      method: 'post',
+      url: wWholeUrl1,
+      data: query
+    })
+    if (response1?.data?.code !== 0) return [false, response1.data?.message]
+    const flatSkuList = []
+    const totalTasks = response1?.data?.data?.total
+    const dataList = response1?.data?.data?.dataList
+    const tasks = dataList.length
+    dataList.map(item => {
+      const skcList = (item.skcList || [])
+      skcList.map(sItem => {
+        const skuList = (sItem.skuList || []).map(sItem => {
+          return {
+            ...sItem,
+            extCode: item.extCode
+          }
+        })
+        flatSkuList.push(...skuList)
+      })
+    })
+    const response2 = await axios({
+      method: 'post',
+      url: wWholeUrl2,
+      data: {
+        startUpdateTime,
+        endUpdateTime,
+        skuIdList: map(flatSkuList, 'skuId')
+      }
+    })
+    if (response2.data?.code !== 0) return [false, response2.data?.message]
+    const response2Data = response2?.data?.data || []
+    const errorData = flatSkuList.filter(item => response2Data.find(sItem => sItem.skuId == item.skuId))
+    if (query.page.pageIndex == 1) {
+      res.noUseProxy = true
+      res.customResult = [false, {
+        errorData,
+        requestUuid: instance.uuid,
+        totalTasks,
+        completedTasks: tasks
+      }]
+      next()
+    }
+    query.page.pageIndex++
+    return [false, {
+      totalTasks,
+      tasks,
+      errorData
+    }]
+  }
+  await instance.action()
 })
 
 router.post('/getPricingConfig', async (req, res, next) => {

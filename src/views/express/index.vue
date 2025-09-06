@@ -128,6 +128,10 @@
      mallId,
     }"/>
 
+    <ApiItem url="/temu-agentseller/api/verifyPrice/validatePricingStrategy" :params="{
+     mallId,
+    }"/>
+
   </div>
 </template>
 
