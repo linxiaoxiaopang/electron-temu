@@ -64,7 +64,7 @@ router.post('/validatePricingStrategy', async (req, res, next) => {
       pageSize: 50
     }
   }
-
+  const errorData = []
   instance.requestCallback = async () => {
     const relativeUrl1 = '/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplier'
     const relativeUrl2 = '/temu-agentseller/api/verifyPrice/getLatestPricingStrategy'
@@ -105,7 +105,8 @@ router.post('/validatePricingStrategy', async (req, res, next) => {
     if (response2.data?.code !== 0) return [false, response2.data?.message]
     const response2Data = response2?.data?.data || []
     const rawErrorData = flatSkuList.filter(item => !response2Data.find(sItem => sItem.skuId == item.skuId))
-    const errorData = map(uniqBy(rawErrorData, 'extCode'), 'extCode')
+    const uniqErrorData = map(uniqBy(rawErrorData, 'extCode'), 'extCode')
+    errorData.push(...uniqErrorData)
     if (query.page.pageIndex == 1) {
       res.noUseProxy = true
       res.customResult = [false, {
@@ -123,7 +124,8 @@ router.post('/validatePricingStrategy', async (req, res, next) => {
       errorData
     }]
   }
-  await instance.action()
+  res.customResult = await instance.action()
+  next()
 })
 
 router.post('/getPricingConfig', async (req, res, next) => {
@@ -173,12 +175,11 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
     res,
     cacheKey: 'syncSearchForChainSupplier'
   })
-  const response1 = await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:clear')
-  if (response1[0]) {
-    res.customResult = response1
-    next()
-    return
+
+  instance.beforeLoopCallback = async () => {
+    return await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:clear')
   }
+
   const relativeUrl = '/api/kiana/mms/robin/searchForSemiSupplier'
   const wholeUrl = `${getTemuTarget()}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
@@ -215,7 +216,9 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
       tasks
     }]
   }
-  await instance.action()
+  res.noUseProxy = true
+  res.customResult = await instance.action()
+  next()
 })
 
 router.post('/getSyncSearchForChainSupplier', async (req, res, next) => {

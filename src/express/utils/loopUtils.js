@@ -11,15 +11,17 @@ class LoopRequest {
       req,
       res,
       cacheKey,
-      beforeLoopCallback = noop,
+      beforeLoopCallback = async () => [false, null],
       requestCallback = noop
     }
   ) {
     this.req = req
     this.res = res
+    this.uuid = getUUID()
     this.summary = {
       totalTasks: 0,
-      completedTasks: 0
+      completedTasks: 0,
+      requestUuid: this.uuid
     }
     this.cacheKey = cacheKey
     if (!actionPromiseList[cacheKey]) {
@@ -28,7 +30,6 @@ class LoopRequest {
     this.currentPromiseList = actionPromiseList[this.cacheKey]
     this.beforeLoopCallback = beforeLoopCallback
     this.requestCallback = requestCallback
-    this.uuid = getUUID()
   }
 
   get body() {
@@ -74,8 +75,10 @@ class LoopRequest {
     })
     try {
       if (getIsMock()) return [false, this.mockResponse]
-      await this.beforeLoopCallback()
+      const beforeLoopRes = await this.beforeLoopCallback(this)
+      if (beforeLoopRes[0]) return beforeLoopRes
       await this.loop()
+      return [false, allSummary[this.uuid]]
     } catch (e) {
       console.log('e', e)
       return [true, e]
