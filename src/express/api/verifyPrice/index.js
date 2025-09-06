@@ -1,18 +1,18 @@
 const express = window.require('express')
 const axios = window.require('axios')
-const { map } = require('lodash')
+const { map, uniqBy } = require('lodash')
 const { updateCreatePricingStrategy } = require('@/express/controllers/verifyPrice')
-const { getTemuTarget, getIsMock } = require('@/express/const')
+const { getTemuTarget } = require('@/express/const')
 const { createProxyToGetTemuData } = require('@/express/middleware/proxyMiddleware')
-const { getUUID } = require('@/utils/randomUtils')
 const { LoopRequest } = require('@/express/utils/loopUtils')
 const router = express.Router()
 
 router.post('/getLatestPricingStrategy', async (req, res, next) => {
   const { body } = req
-  const { startUpdateTime, endUpdateTime } = body
+  const { startUpdateTime, endUpdateTime, mallId } = body
   const skuIdList = body?.skuIdList || []
   const where = {
+    mallId,
     skuId: {
       'op:in': skuIdList
     }
@@ -81,12 +81,12 @@ router.post('/validatePricingStrategy', async (req, res, next) => {
     const dataList = response1?.data?.data?.dataList
     const tasks = dataList.length
     dataList.map(item => {
-      const skcList = (item.skcList || [])
+      const skcList = item.skcList || []
       skcList.map(sItem => {
-        const skuList = (sItem.skuList || []).map(sItem => {
+        const skuList = (sItem.skuList || []).map(gItem => {
           return {
-            ...sItem,
-            extCode: item.extCode
+            ...gItem,
+            extCode: sItem.extCode
           }
         })
         flatSkuList.push(...skuList)
@@ -96,6 +96,7 @@ router.post('/validatePricingStrategy', async (req, res, next) => {
       method: 'post',
       url: wWholeUrl2,
       data: {
+        mallId,
         startUpdateTime,
         endUpdateTime,
         skuIdList: map(flatSkuList, 'skuId')
@@ -103,7 +104,8 @@ router.post('/validatePricingStrategy', async (req, res, next) => {
     })
     if (response2.data?.code !== 0) return [false, response2.data?.message]
     const response2Data = response2?.data?.data || []
-    const errorData = flatSkuList.filter(item => response2Data.find(sItem => sItem.skuId == item.skuId))
+    const rawErrorData = flatSkuList.filter(item => !response2Data.find(sItem => sItem.skuId == item.skuId))
+    const errorData = map(uniqBy(rawErrorData, 'extCode'), 'extCode')
     if (query.page.pageIndex == 1) {
       res.noUseProxy = true
       res.customResult = [false, {
@@ -164,30 +166,19 @@ router.post('/getPricingConfigHistory', async (req, res, next) => {
   next()
 })
 
-const allSyncSearchForChainSupplierResponse = {}
-
 router.post('/syncSearchForChainSupplier', async (req, res, next) => {
-  const { body } = req
-  const { mallId, requestUuid } = body
-  if (requestUuid) {
-    const response = allSyncSearchForChainSupplierResponse[requestUuid]
-    res.customResult = [false, {
-      totalTasks: response.total || 0,
-      completedTasks: response.current || 0
-    }]
+  const { mallId } = req.body
+  const instance = new LoopRequest({
+    req,
+    res,
+    cacheKey: 'syncSearchForChainSupplier'
+  })
+  const response1 = await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:clear')
+  if (response1[0]) {
+    res.customResult = response1
     next()
     return
   }
-
-  if (getIsMock()) {
-    res.customResult = [false, {
-      totalTasks: 0,
-      completedTasks: 0
-    }]
-    next()
-    return
-  }
-
   const relativeUrl = '/api/kiana/mms/robin/searchForSemiSupplier'
   const wholeUrl = `${getTemuTarget()}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
@@ -196,37 +187,35 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
     pageNum: 1,
     supplierTodoTypeList: [1]
   }
-  const response = {
-    total: 0,
-    current: 0
-  }
-  const uuid = getUUID()
-  await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:clear')
-  do {
+  instance.requestCallback = async () => {
     const data = await getData(wholeUrl, { data: query })
     const dataList = data?.data?.dataList || []
-    response.total = data?.data?.total || 0
-    response.current += dataList.length
+    const totalTasks = data?.data?.total || 0
+    const tasks = dataList.length
     const syncData = dataList.map(item => {
       return {
         mallId,
         json: item
       }
     })
-    await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:add', syncData)
+    const response2 = await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:add', syncData)
+    if (response2[0]) return response2
     if (query.pageNum == 1) {
       res.noUseProxy = true
-      allSyncSearchForChainSupplierResponse[uuid] = response
       res.customResult = [false, {
-        requestUuid: uuid,
-        totalTasks: response.total,
-        completedTasks: response.current
+        totalTasks,
+        requestUuid: instance.uuid,
+        completedTasks: tasks
       }]
       next()
     }
     query.pageNum++
-  } while (response.total > response.current)
-  delete allSyncSearchForChainSupplierResponse[uuid]
+    return [false, {
+      totalTasks,
+      tasks
+    }]
+  }
+  await instance.action()
 })
 
 router.post('/getSyncSearchForChainSupplier', async (req, res, next) => {

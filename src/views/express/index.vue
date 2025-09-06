@@ -130,6 +130,7 @@
 
     <ApiItem url="/temu-agentseller/api/verifyPrice/validatePricingStrategy" :params="{
      mallId,
+     extCodeLike: 'MSJK2-T001251_00004'
     }"/>
 
   </div>
