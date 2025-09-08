@@ -104,8 +104,11 @@ async function updateLatestPricingStrategy(strategyList) {
   const temArr = [...res]
   strategyList.map(item => {
     const fItem = res.find(sItem => sItem.skuId == item.skuId)
-    if(fItem) return
-    item.registerCount = fItem.registerCount + 1
+    if(fItem) {
+      item.registerCount = fItem.registerCount + 1
+      return
+    }
+    item.registerCount = 1
     temArr.push(item)
   })
   await window.ipcRenderer.invoke('db:temu:latestPricingStrategy:add', temArr)
