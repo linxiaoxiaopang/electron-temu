@@ -34,7 +34,6 @@ export async function updateCreatePricingStrategy(req) {
     }
   })
   if (delErr) return [delErr, delRes]
-  await updateLatestPricingStrategy(strategyList)
   const [addErr, addRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:add', strategyList)
   if (addErr) return [addErr, addRes]
   const groupData = groupBy(strategyList, 'priceOrderId')
@@ -68,6 +67,16 @@ export async function updateCreatePricingStrategy(req) {
     return [false, result]
   }
   const response = await getData(wholeUrl)
+  const needUpdateBatchOperateResult = []
+  const batchOperateResult = response?.data?.batchOperateResult
+  const keys = Object.keys(batchOperateResult || {})
+  keys.map(key => {
+    const item = batchOperateResult[key]
+    if (!item.success) return
+    const needUpdateItems = strategyList.filter(sItem => sItem.priceOrderId === item.priceOrderId)
+    needUpdateBatchOperateResult.push(...needUpdateItems)
+  })
+  await updateLatestPricingStrategy(needUpdateBatchOperateResult)
   return [false, response?.data]
 }
 
@@ -104,7 +113,7 @@ async function updateLatestPricingStrategy(strategyList) {
   const temArr = [...res]
   strategyList.map(item => {
     const fItem = res.find(sItem => sItem.skuId == item.skuId)
-    if(fItem) {
+    if (fItem) {
       item.registerCount = fItem.registerCount + 1
       return
     }
