@@ -14,7 +14,7 @@ export default function (req, res, next) {
   if (err) {
     const code = isNumber(err) ? err : BUSINESS_STATUS_CODE.NORMAL_ERROR
     resJson.code = code
-    resJson.message = res0 || ''
+    resJson.message = res0?.message || res0 || ''
   } else {
     resJson.data = res0
     if (res1) {
