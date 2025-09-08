@@ -138,7 +138,6 @@
 
 <script>
 import { mapState } from 'vuex'
-import service from '@/service/request'
 import ZdRadioGroup from './module/zdRadioGroup'
 import ZdRadio from './module/zdRadio'
 import ApiItem from './module/apiItem'

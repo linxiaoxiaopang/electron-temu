@@ -124,6 +124,7 @@ router.post('/validatePricingStrategy', async (req, res, next) => {
       errorData
     }]
   }
+  res.noUseProxy = true
   res.customResult = await instance.action()
   next()
 })

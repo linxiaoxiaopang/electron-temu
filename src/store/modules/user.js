@@ -3,7 +3,7 @@ const user = {
 
   state: {
     headers: null,
-    apiMode: 'mock',
+    apiMode: 'temu',
     userInfo: null
   },
 
