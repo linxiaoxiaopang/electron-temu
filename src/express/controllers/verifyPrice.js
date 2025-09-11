@@ -2,13 +2,15 @@ import { isMock, temuTarget } from '@/express/const'
 import { createProxyToGetTemuData } from '@/express/middleware/proxyMiddleware'
 import { groupBy, map, cloneDeep } from 'lodash'
 
+const { ipcRendererInvokeAdd } = require('@/express/utils/dbDataUtils')
+
 export async function updateCreatePricingStrategy(req) {
   const { body } = req
   const relativeUrl = '/api/kiana/magnus/mms/price/bargain-no-bom/batch'
   const wholeUrl = `${temuTarget}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
   const strategyList = strategyListCalculateCost(body?.strategyList || [])
-  await window.ipcRenderer.invoke('db:temu:pricingStrategyHistory:add', strategyList)
+  await ipcRendererInvokeAdd('db:temu:pricingStrategyHistory:add', strategyList)
   const [dbErr, dbRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:find', {
     where: {
       skuId: {
@@ -25,7 +27,7 @@ export async function updateCreatePricingStrategy(req) {
     }
   })
   if (delErr) return [delErr, delRes]
-  const [addErr, addRes] = await window.ipcRenderer.invoke('db:temu:pricingStrategy:add', strategyList)
+  const [addErr, addRes] = await ipcRendererInvokeAdd('db:temu:pricingStrategy:add', strategyList)
   if (addErr) return [addErr, addRes]
   const groupData = groupBy(strategyList, 'priceOrderId')
   const itemRequests = []

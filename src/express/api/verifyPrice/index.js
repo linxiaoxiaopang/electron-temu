@@ -61,7 +61,7 @@ router.post('/validatePricingStrategy', async (req, res, next) => {
     extCodeLike,
     page: {
       pageIndex: 1,
-      pageSize: 50
+      pageSize: 200
     }
   }
   const errorData = []
@@ -185,12 +185,13 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
   const wholeUrl = `${getTemuTarget()}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
   const query = {
-    pageSize: 50,
+    pageSize: 100,
     pageNum: 1,
     supplierTodoTypeList: [1]
   }
   instance.requestCallback = async () => {
-    const data = await getData(wholeUrl, { data: query })
+    const startPageNum = query.pageNum
+    const data = await getMoreData()
     const dataList = data?.data?.dataList || []
     const totalTasks = data?.data?.total || 0
     const tasks = dataList.length
@@ -202,7 +203,7 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
     })
     const response2 = await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:add', syncData)
     if (response2[0]) return response2
-    if (query.pageNum == 1) {
+    if (startPageNum == 1) {
       res.noUseProxy = true
       res.customResult = [false, {
         totalTasks,
@@ -211,7 +212,6 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
       }]
       next()
     }
-    query.pageNum++
     return [false, {
       totalTasks,
       tasks
@@ -220,6 +220,35 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
   res.noUseProxy = true
   res.customResult = await instance.action()
   next()
+
+  async function getMoreData() {
+    if (instance.summary.totalTasks == 0) {
+      const response = await getData(wholeUrl, { data: query })
+      query.pageNum++
+      return response
+    }
+    const pArr = []
+    const totalTasks = instance.summary.totalTasks
+    let completedTasks = instance.summary.completedTasks
+    for (let i = 0; i < 5; i++) {
+      if (completedTasks >= totalTasks) continue
+      const p = getData(wholeUrl, { data: query })
+      query.pageNum++
+      completedTasks += query.pageSize
+      pArr.push(p)
+    }
+    const allData = await Promise.all(pArr)
+    let response = null
+    allData.map(item => {
+      if (!response) {
+        response = item
+        return
+      }
+      const itemDataList = item?.data?.dataList || []
+      if (response?.data?.dataList) response.data.dataList.push(...itemDataList)
+    })
+    return response
+  }
 })
 
 router.post('/getSyncSearchForChainSupplier', async (req, res, next) => {
