@@ -6,5 +6,7 @@ const apiFactory = createApiFactory(router)
 
 apiFactory(require('./pricingStrategy'))
 apiFactory(require('./pricingConfig'))
+apiFactory(require('./searchForChainSupplier'))
+apiFactory(require('./styleMatchingPrice'))
 
 module.exports = router
