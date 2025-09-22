@@ -168,6 +168,17 @@ router.post('/getPricingConfigHistory', async (req, res, next) => {
   next()
 })
 
+router.post('/getSearchForChainSupplier', async (req, res, next) => {
+  const query = req.body
+  const response = await getFullSearchForChainSupplierData({
+    req,
+    query
+  })
+  res.noUseProxy = true
+  res.customResult = [false, response]
+  next()
+})
+
 router.post('/syncSearchForChainSupplier', async (req, res, next) => {
   const { mallId } = req.body
   const instance = new LoopRequest({
