@@ -6,6 +6,7 @@ const latestPricingStrategy = require('./latestPricingStrategy/init')
 const pricingStrategyHistory = require('./pricingStrategyHistory/init')
 const searchForChainSupplier = require('./searchForChainSupplier/init')
 const extCodeSearchForChainSupplier = require('./extCodeSearchForChainSupplier/init')
+const styleMatchingPrice = require('./styleMatchingPrice/init')
 
 async function init() {
   await batchReportingActivities.init()
@@ -16,6 +17,7 @@ async function init() {
   await pricingStrategyHistory.init()
   await searchForChainSupplier.init()
   await extCodeSearchForChainSupplier.init()
+  await styleMatchingPrice.init()
 }
 
 module.exports = {
