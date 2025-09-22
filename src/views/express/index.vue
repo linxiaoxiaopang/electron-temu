@@ -122,14 +122,14 @@
     }"/>
 
 
-    <ApiItem url="/temu-agentseller/api/verifyPrice/updateCreatePricingStrategyPassSetting" :params="{
-     mallId,
-    }"/>
+<!--    <ApiItem url="/temu-agentseller/api/verifyPrice/updateCreatePricingStrategyPassSetting" :params="{-->
+<!--     mallId,-->
+<!--    }"/>-->
 
-    <ApiItem url="/temu-agentseller/api/verifyPrice/validatePricingStrategy" :params="{
-     mallId,
-     extCodeLike: 'MSJK2-T001251_00004'
-    }"/>
+<!--    <ApiItem url="/temu-agentseller/api/verifyPrice/validatePricingStrategy" :params="{-->
+<!--     mallId,-->
+<!--     extCodeLike: 'MSJK2-T001251_00004'-->
+<!--    }"/>-->
 
   </div>
 </template>

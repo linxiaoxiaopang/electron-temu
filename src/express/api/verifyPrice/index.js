@@ -181,9 +181,12 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
     return await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:clear')
   }
 
-  const relativeUrl = '/api/kiana/mms/robin/searchForSemiSupplier'
-  const wholeUrl = `${getTemuTarget()}${relativeUrl}`
-  const getData = createProxyToGetTemuData(req)
+  const relativeUrl0 = '/api/kiana/mms/robin/searchForSemiSupplier'
+  const relativeUrl1 = '/api/kiana/magnus/mms/price/bargain-no-bom/batch/info/query'
+  const wholeUrl0 = `${getTemuTarget()}${relativeUrl0}`
+  const wholeUrl1 = `${getTemuTarget()}${relativeUrl1}`
+  const getData0 = createProxyToGetTemuData(req)
+  const getData1 = createProxyToGetTemuData(req)
   const query = {
     pageSize: 100,
     pageNum: 1,
@@ -223,7 +226,7 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
 
   async function getMoreData() {
     if (instance.summary.totalTasks == 0) {
-      const response = await getData(wholeUrl, { data: query })
+      const response = await getFullData()
       query.pageNum++
       return response
     }
@@ -232,7 +235,7 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
     let completedTasks = instance.summary.completedTasks
     for (let i = 0; i < 5; i++) {
       if (completedTasks >= totalTasks) continue
-      const p = getData(wholeUrl, { data: query })
+      const p = getFullData()
       query.pageNum++
       completedTasks += query.pageSize
       pArr.push(p)
@@ -248,6 +251,31 @@ router.post('/syncSearchForChainSupplier', async (req, res, next) => {
       if (response?.data?.dataList) response.data.dataList.push(...itemDataList)
     })
     return response
+  }
+
+  async function getFullData() {
+    const response0 = await getData0(wholeUrl0, { data: query })
+    const dataList = response0?.data?.dataList || []
+    const orderList = []
+    dataList.map(item => {
+      const skcList = item?.skcList || []
+      skcList.map(sItem => {
+        const supplierPriceReviewInfoList = sItem.supplierPriceReviewInfoList || []
+        supplierPriceReviewInfoList.map(sItem => {
+          orderList.push(sItem)
+        })
+      })
+    })
+    const response1 = await getData1(wholeUrl1, {
+      data: {
+        orderIds: map(orderList, 'priceOrderId')
+      }
+    })
+    const priceReviewItemList = response1?.data?.priceReviewItemList || []
+    orderList.map(item => {
+      item.priceReviewItem = priceReviewItemList.find(sItem => sItem.priceOrderId == item.id)
+    })
+    return response0
   }
 })
 

@@ -1,11 +1,11 @@
 <template>
   <div class="api-item-component">
-<!--    <div class="btn" @click="onClick">-->
-<!--      点击{{ label }}{{ apiName }}-->
-<!--    </div>-->
-<!--    <div class="result">-->
-<!--      {{ data }}-->
-<!--    </div>-->
+    <div class="btn" @click="onClick">
+      点击{{ label }}{{ apiName }}
+    </div>
+    <div class="result">
+      {{ data }}
+    </div>
   </div>
 </template>
 
