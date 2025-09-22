@@ -1,4 +1,4 @@
-import { updateCreatePricingStrategy } from '@/express/controllers/verifyPrice'
+import { updateCreatePricingStrategy } from '@/express/controllers/verifyPrice/updatePricingStrategy'
 import { headers, temuTarget } from '@/express/const'
 import { chunk, groupBy, isNil, map, merge } from 'lodash'
 import proxyMiddleware from '@/express/middleware/proxyMiddleware'

@@ -1,7 +1,7 @@
 const express = window.require('express')
 const axios = window.require('axios')
 const { map, uniqBy } = require('lodash')
-const { updateCreatePricingStrategy } = require('@/express/controllers/verifyPrice')
+const { updateCreatePricingStrategy } = require('@/express/controllers/verifyPrice/updatePricingStrategy')
 const { getTemuTarget } = require('@/express/const')
 const { createProxyToGetTemuData } = require('@/express/middleware/proxyMiddleware')
 const { LoopRequest } = require('@/express/utils/loopUtils')
