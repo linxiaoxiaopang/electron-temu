@@ -82,13 +82,16 @@ function strategyListCalculateCost(strategyList) {
 
   function calcItemCalculateCost(item) {
     const { max, ceil } = Math
-    let { isClose, minCost, maxCost, priceFixed, pricePercentage, alreadyPricingNumber } = item
+    let { isClose, minCost, maxCost, priceFixed, pricePercentage, alreadyPricingNumber, suggestSupplyPrice } = item
     let calculateCost = maxCost
     if (isClose) return maxCost
     if (priceFixed) {
       calculateCost = ceil(maxCost - priceFixed * alreadyPricingNumber)
     } else {
       calculateCost = ceil(maxCost - pricePercentage / 100 * maxCost)
+    }
+    if (suggestSupplyPrice && calculateCost < +suggestSupplyPrice) {
+      calculateCost = suggestSupplyPrice
     }
     return max(calculateCost, minCost)
   }

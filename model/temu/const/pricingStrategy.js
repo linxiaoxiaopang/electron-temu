@@ -31,6 +31,12 @@ const commonDefine = {
     allowNull: true,
     comment: '最大成本'
   },
+  // 建议价格
+  suggestSupplyPrice: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: '建议价格'
+  },
   // 店铺ID
   mallId: {
     type: DataTypes.BIGINT,

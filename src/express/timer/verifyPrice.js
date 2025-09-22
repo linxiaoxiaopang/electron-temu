@@ -36,10 +36,12 @@ export class UpdateCreatePricingStrategyTimer {
     return res
   }
 
-  async maskPassSearchForSemiSupplier() {
+  async getAllDataByPriceOrderId() {
     const { strategyList } = this
     const productSkuIdList = map(strategyList, 'skuId')
-    const pageSize = Object.keys(groupBy(strategyList, 'priceOrderId')).length
+    const pageSize = 50
+    const chunkData = chunk(productSkuIdList, pageSize)
+    const allDataList = []
     const req = {
       body: {
         pageSize,
@@ -52,15 +54,24 @@ export class UpdateCreatePricingStrategyTimer {
       baseUrl: '/temu-agentseller',
       url: '/api/kiana/mms/robin/searchForSemiSupplier'
     }
-    const res = {}
-    const proxyMiddlewareFn = proxyMiddleware({
-      target: () => {
-        return temuTarget
-      },
-      isReturnData: true
-    })
-    const response = await proxyMiddlewareFn(req, res)
-    const dataList = response?.dataList || []
+    for (let item of chunkData) {
+      const res = {}
+      const proxyMiddlewareFn = proxyMiddleware({
+        target: () => {
+          return temuTarget
+        },
+        isReturnData: true
+      })
+      const response = await proxyMiddlewareFn(req, res)
+      const dataList = response?.dataList || []
+      allDataList.push(...dataList)
+    }
+    return allDataList
+  }
+
+  async maskPassSearchForSemiSupplier() {
+    const { strategyList } = this
+    const dataList = await this.getAllDataByPriceOrderId()
     const flatSkuList = []
     dataList.map(item => {
       const hasToConfirmPriceReviewOrder = item.hasToConfirmPriceReviewOrder
@@ -82,7 +93,7 @@ export class UpdateCreatePricingStrategyTimer {
         item.isDelete = true
         return
       }
-      if(fItem.priceReviewStatus != 0 && fItem.priceReviewStatus != 1) {
+      if (fItem.priceReviewStatus != 0 && fItem.priceReviewStatus != 1) {
         item.isDelete = true
         return
       }
