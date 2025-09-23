@@ -39,7 +39,7 @@ export async function getFullSearchForChainSupplierData(
   })
   const priceReviewItemList = response1?.data?.priceReviewItemList || []
   orderList.map(item => {
-    item.priceReviewItem = priceReviewItemList.find(sItem => sItem.priceOrderId == item.id)
+    item.priceReviewItem = priceReviewItemList.find(sItem => sItem.id == item.priceOrderId)
   })
   return response0
 }

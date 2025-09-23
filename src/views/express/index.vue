@@ -13,137 +13,12 @@
      <span v-if="!headers">
       未获取temu店铺，请刷新temu页面。
      </span>
-      <span v-else>
-       <div>店铺名称：{{ realUserInfo.mallName }}</div>
-       <div>店铺id：{{ realUserInfo.mallId }}</div>
-       <div>店铺类型：{{ realUserInfo.managedType }}</div>
-      </span>
+      <div class="content" v-else>
+        <div>店铺名称：{{ realUserInfo.mallName }}</div>
+        <div>店铺id：{{ realUserInfo.mallId }}</div>
+        <div>店铺类型：{{ realUserInfo.managedType }}</div>
+      </div>
     </div>
-
-    <ApiItem
-      url="/temu-agentseller/api/kiana/gamblers/marketing/enroll/activity/list"
-      :params="{
-        needCanEnrollCnt: true,
-        needSessionItem: true,
-        mallId,
-        filter: {
-            json: {
-               activityType: 13
-            },
-            page: {
-              pageIndex: 1,
-              pageSize: 3
-            }
-          }
-       }"
-      v-model="activityInfo"
-    />
-
-    <ApiItem url="/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match" :params="{
-      mallId,
-      activityType,
-      rowCount: 50
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/kiana/mms/robin/searchForSemiSupplier" :params="{
-      mallId,
-      supplierTodoTypeList: [1],
-      page: {
-        pageIndex: 2,
-        pageSize: 15
-      }
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingStrategy" :params="{
-      mallId,
-      skuIdList
-    }"/>
-
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingStrategyHistory" :params="{
-      mallId,
-      page: {
-        pageIndex: 1,
-        pageSize: 10
-      }
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/updateCreatePricingStrategy" :params="{
-      mallId,
-      strategyList
-    }"/>
-
-
-    <ApiItem label="interval 10s " url="/temu-agentseller/api/verifyPrice/setPricingConfig" :params="{
-      mallId,
-      interval: 10000,
-      autoplay: true
-    }"/>
-
-    <ApiItem label="interval最大值" url="/temu-agentseller/api/verifyPrice/setPricingConfig" :params="{
-      mallId,
-      interval: 2147483647,
-      autoplay: true
-    }"/>
-
-
-    <ApiItem label="autoplay = false " url="/temu-agentseller/api/verifyPrice/setPricingConfig" :params="{
-      mallId,
-      autoplay: false,
-      processing: 0
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfig" :params="{
-     mallId
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfigHistory" :params="{
-     mallId
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getPricingConfigHistory" :params="{
-     mallId,
-     page: {
-       pageIndex: 1,
-       pageSize: 10
-     }
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getSearchForChainSupplier" :params="{
-     mallId,
-     page: {
-       pageIndex: 1,
-       pageSize: 20
-     }
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/syncSearchForChainSupplier" :params="{
-     mallId
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplier" :params="{
-     mallId,
-      page: {
-       pageIndex: 1,
-       pageSize: 10
-     }
-    }"/>
-
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplierMinSuggestSupplyPrice" :params="{
-     mallId
-    }"/>
-
-
-
-<!--    <ApiItem url="/temu-agentseller/api/verifyPrice/updateCreatePricingStrategyPassSetting" :params="{-->
-<!--     mallId,-->
-<!--    }"/>-->
-
-<!--    <ApiItem url="/temu-agentseller/api/verifyPrice/validatePricingStrategy" :params="{-->
-<!--     mallId,-->
-<!--     extCodeLike: 'MSJK2-T001251_00004'-->
-<!--    }"/>-->
-
   </div>
 </template>
 
@@ -151,21 +26,11 @@
 import { mapState } from 'vuex'
 import ZdRadioGroup from './module/zdRadioGroup'
 import ZdRadio from './module/zdRadio'
-import ApiItem from './module/apiItem'
-import updateJson from './update.json'
+
 export default {
   components: {
     ZdRadioGroup,
-    ZdRadio,
-    ApiItem
-  },
-
-  data() {
-    return {
-      activityInfo: null,
-      strategyList: updateJson.strategyList[0],
-      pricingStrategy: null
-    }
+    ZdRadio
   },
 
   computed: {
@@ -182,18 +47,6 @@ export default {
 
     realUserInfo({ userInfo }) {
       return userInfo?.mallList?.[0] || {}
-    },
-
-    mallId({ headers }) {
-      return headers?.mallid || ''
-    },
-
-    activityType({ activityInfo }) {
-      return activityInfo?.activityList?.[0]?.activityType || ''
-    },
-
-    skuIdList({ strategyList }) {
-      return strategyList.map(item => item.skuId)
     }
   }
 }
@@ -201,4 +54,10 @@ export default {
 </script>
 
 <style scoped>
+.content {
+    display: inline-block;
+    border: 1px solid #eee;
+    padding: 15px;
+    border-radius: 4px;
+}
 </style>
