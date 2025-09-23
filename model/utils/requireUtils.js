@@ -22,10 +22,11 @@ async function getSubdirectories(dirPath) {
   }
 }
 
-async function requiredModelDefine(targetDir, exclude = []) {
+async function requiredModelDefine(targetDir, exclude = [], include = []) {
   const folders = await getSubdirectories(targetDir)
-  const exportList= folders.map(folder => {
-    if(exclude.includes(folder)) return
+  const exportList = folders.map(folder => {
+    if (include.length && !include.includes(folder)) return
+    if (exclude.includes(folder)) return
     return require(`${targetDir}/${folder}/init`)
   })
   const pArr = exportList.map(item => item?.init())
