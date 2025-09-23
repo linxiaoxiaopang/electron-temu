@@ -126,8 +126,37 @@ WHERE json_extract(item.value, '$.extCode') like :pattern and t.mallId = :mallId
   next()
 }
 
+
+async function getSyncSearchForChainSupplierMinSuggestSupplyPrice(req, res, next) {
+  const { body } = req
+  let { mallId, extCodeLike } = body
+
+  const sql = `
+      SELECT 
+        MIN(json_extract(skuInfo.value, '$.suggestSupplyPrice')) AS minSuggestSupplyPrice 
+      FROM 
+        extCodeSearchForChainSupplier t,
+        json_each(json_extract(t.json, '$.skcList')) AS skcItem,
+        json_each(json_extract(skcItem.value, '$.supplierPriceReviewInfoList')) AS supplierPriceReviewInfo,
+        json_each(json_extract(supplierPriceReviewInfo.value, '$.priceReviewItem.skuInfoList')) AS skuInfo
+      WHERE 
+        json_extract(skcItem.value, '$.extCode') LIKE :pattern 
+        AND t.mallId = :mallId
+    `
+  res.customResult = await window.ipcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:query', {
+    sql,
+    replacements: {
+      mallId,
+      pattern: extCodeLike ? `%${extCodeLike}%` : '%'
+    }
+  })
+  res.noUseProxy = true
+  next()
+}
+
 module.exports = {
   getSearchForChainSupplier,
   syncSearchForChainSupplier,
-  getSyncSearchForChainSupplier
+  getSyncSearchForChainSupplier,
+  getSyncSearchForChainSupplierMinSuggestSupplyPrice
 }
