@@ -129,7 +129,7 @@
      }
     }"/>
 
-    <ApiItem url="/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplierMinSuggestSupplyPrice/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplierMinSuggestSupplyPrice" :params="{
+    <ApiItem url="/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplierMinSuggestSupplyPrice" :params="{
      mallId
     }"/>
 
