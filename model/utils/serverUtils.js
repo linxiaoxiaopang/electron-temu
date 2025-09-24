@@ -115,6 +115,7 @@ class CreateServer {
   async batchUpdate(updates) {
     // const transaction = await this.model.transaction()
     try {
+      if (!isArray(updates)) updates = [updates]
       // 遍历每条更新数据
       for (const item of updates) {
         const { id, ...updateFields } = item // 分离ID和更新字段

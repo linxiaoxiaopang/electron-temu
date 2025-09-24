@@ -18,7 +18,9 @@ async function updateStyleMatchingPrice(req, res, next) {
 
 async function deleteStyleMatchingPrice(req, res, next) {
   const { body } = req
-  res.customResult = await window.ipcRenderer.invoke('db:temu:styleMatchingPrice:delete', body)
+  res.customResult = await window.ipcRenderer.invoke('db:temu:styleMatchingPrice:delete', {
+    where: body
+  })
   res.noUseProxy = true
   next()
 }

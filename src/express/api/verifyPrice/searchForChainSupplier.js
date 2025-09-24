@@ -8,7 +8,7 @@ async function getSearchForChainSupplier(req, res, next) {
     query
   })
   res.noUseProxy = true
-  res.customResult = [false, response]
+  res.customResult = [false, response?.data]
   next()
 }
 
