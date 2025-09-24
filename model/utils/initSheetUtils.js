@@ -1,6 +1,7 @@
-const { BrowserWindow, ipcMain } = require('electron')
+const { emitter } = require('../../utils/event')
 const { factory } = require('../factory')
 const { CreateServer } = require('./serverUtils')
+
 const MAX_SAFE_DELAY = 2147483647
 
 class InitSheet {
@@ -46,12 +47,8 @@ class InitTimerSheet extends InitSheet {
   }
 
   sendMessage() {
-    BrowserWindow.getAllWindows().forEach(window => {
-      if (window.webContents) {
-        const eventName = `${this.model.name}:timer:update`
-        window.webContents.send(eventName, this.record)
-      }
-    })
+    const eventName = `${this.model.name}:timer:update`
+    emitter.emit(eventName, this.record)
   }
 
   async setInterval() {
@@ -75,8 +72,8 @@ class InitTimerSheet extends InitSheet {
       if (this.prevAutoplay == this.autoplay) return
       this.setInterval()
     })
-    ipcMain.handle(`${this.model.name}:timer:update:done`, async () => {
-      this.setInterval()
+    emitter.on(`${this.model.name}:timer:update:done`, async () => {
+      await this.setInterval()
     })
   }
 

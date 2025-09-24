@@ -1,8 +1,13 @@
 require('./model')
+require('./express/init')
+require('./express/timer/verifyPrice')
+const { emitter} = require('./utils/event')
+const { customIpc } = require('./model/utils/eventUtils')
 const { app, BrowserWindow, Tray, Menu, ipcMain, session, MenuItem } = require('electron')
 const path = require('path')
 const axios = require('axios')
 app.commandLine.appendSwitch('disable-content-security-policy')
+app.commandLine.appendSwitch('disable-web-security')
 if (require('electron-squirrel-startup')) {
   app.quit() // 若为安装/更新相关启动，则自动退出
 }
@@ -10,23 +15,8 @@ let tray = null
 let mainWindow = null
 const isDev = process.env.NODE_ENV === 'development'
 const indexPath = isDev ? 'http://localhost:8080' : 'dist/index.html'
-let requestHeaders = null
 
-
-// 监听渲染进程请求，返回 app 信息
-ipcMain.handle('getAppInfo', () => {
-  return {
-    path: app.getAppPath(),
-    version: app.getVersion()
-  }
-})
-
-// 监听渲染进程请求，返回 app 信息
-ipcMain.handle('getRequestHeaders', () => {
-  return requestHeaders
-})
-
-ipcMain.handle('proxyRequest', async (event, config = {}) => {
+customIpc.handle('proxyRequest', async (config = {}) => {
   try {
     // 主进程中可自由设置 Cookie 头
     const response = await axios(config)
@@ -149,7 +139,8 @@ function watchPage() {
   }
 
   session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
-    requestHeaders = details.requestHeaders
+    const requestHeaders = details.requestHeaders
+    emitter.emit('getRequestHeaders', requestHeaders)
     callback({ requestHeaders: details.requestHeaders })
   })
 }
