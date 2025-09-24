@@ -1,5 +1,5 @@
 require('./model')
-const { app, BrowserWindow, Tray, Menu, ipcMain } = require('electron')
+const { app, BrowserWindow, Tray, Menu, ipcMain, session, MenuItem } = require('electron')
 const path = require('path')
 const axios = require('axios')
 app.commandLine.appendSwitch('disable-content-security-policy')
@@ -9,43 +9,9 @@ if (require('electron-squirrel-startup')) {
 let tray = null
 let mainWindow = null
 const isDev = process.env.NODE_ENV === 'development'
-const createWindow = () => {
-  mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
-    webPreferences: {
-      webSecurity: false,
-      nodeIntegration: true,        // 允许渲染进程使用 Node.js API
-      contextIsolation: false,    // 关闭上下文隔离（Vue 2 通常需要此设置）
-      preload: path.join(__dirname, 'preload.js')
-    }
-  })
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:8080')
-    mainWindow.webContents.openDevTools()
-    const chokidar = require('chokidar')
-    // 监听渲染进程文件变化，自动刷新
-    const watcher = chokidar.watch(path.join(__dirname, '../src'), {
-      ignoreInitial: true
-    })
+const indexPath = isDev ? 'http://localhost:8080' : 'dist/index.html'
+let requestHeaders = null
 
-    watcher.on('change', (path) => {
-      console.log(`文件变化: ${path}，自动刷新...`)
-      mainWindow.reload()
-    })
-  } else {
-    mainWindow.webContents.openDevTools()
-    mainWindow.loadFile(path.join(__dirname, 'dist/index.html'))
-  }
-  // 关闭窗口时默认最小化到托盘
-  mainWindow.on('close', (event) => {
-    // 只有明确退出时才真正关闭
-    if (!app.isQuiting) {
-      event.preventDefault()
-      mainWindow.hide()
-    }
-  })
-}
 
 // 监听渲染进程请求，返回 app 信息
 ipcMain.handle('getAppInfo', () => {
@@ -53,6 +19,11 @@ ipcMain.handle('getAppInfo', () => {
     path: app.getAppPath(),
     version: app.getVersion()
   }
+})
+
+// 监听渲染进程请求，返回 app 信息
+ipcMain.handle('getRequestHeaders', () => {
+  return requestHeaders
 })
 
 ipcMain.handle('proxyRequest', async (event, config = {}) => {
@@ -68,13 +39,72 @@ ipcMain.handle('proxyRequest', async (event, config = {}) => {
   }
 })
 
+ipcMain.handle('openNewWindow', (event, url) => {
+  loadUrl(url)
+})
+
 app.whenReady().then(() => {
-  createWindow()
+  watchPage()
+  initWindow()
+  createMenu()
   if (!isDev) {
     createTray()
   }
 })
 
+function loadUrl(url) {
+  if (url.startsWith('http')) return mainWindow.loadURL(url)
+  mainWindow.loadFile(path.join(__dirname, url))
+}
+
+// 创建菜单栏
+function createMenu() {
+  const menu = new Menu()
+
+  // File 菜单
+  menu.append(new MenuItem({
+    label: '操作',
+    submenu: [
+      {
+        label: '返回首页',
+        click: () => {
+          loadUrl(indexPath)
+        }
+      },
+      { type: 'separator' }, // 分隔线
+      {
+        label: 'Exit',
+        click: () => {
+          app.quit()
+        }
+      }
+    ]
+  }))
+
+
+  // View 菜单
+  menu.append(new MenuItem({
+    label: '视图',
+    submenu: [
+      { label: '重新加载', role: 'reload' },
+      { label: '切换开放工具', role: 'toggleDevTools' }
+    ]
+  }))
+
+  // Window 菜单
+  menu.append(new MenuItem({
+    label: 'Window',
+    role: 'window',
+    submenu: [
+      { label: 'Minimize', role: 'minimize' },
+      { label: 'Maximize', role: 'maximize' },
+      { label: 'Close', role: 'close' }
+    ]
+  }))
+
+  // 设置应用菜单
+  Menu.setApplicationMenu(menu)
+}
 
 // 创建托盘图标
 function createTray() {
@@ -112,3 +142,56 @@ function createTray() {
   })
 }
 
+function watchPage() {
+  const filter = {
+    // urls: ["<all_urls>"]
+    urls: ['https://api.zhengdingyunshang.com/business/authService/user/getUserInfo']
+  }
+
+  session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
+    requestHeaders = details.requestHeaders
+    callback({ requestHeaders: details.requestHeaders })
+  })
+}
+
+function initWindow() {
+  mainWindow = new BrowserWindow({
+    width: 800,
+    height: 600,
+    webPreferences: {
+      webSecurity: false,
+      nodeIntegration: true,        // 允许渲染进程使用 Node.js API
+      contextIsolation: false,    // 关闭上下文隔离（Vue 2 通常需要此设置）
+      preload: path.join(__dirname, 'preload.js')
+    }
+  })
+  if (isDev) {
+    mainWindow.webContents.openDevTools()
+    const chokidar = require('chokidar')
+    // 监听渲染进程文件变化，自动刷新
+    const watcher = chokidar.watch(path.join(__dirname, '../src'), {
+      ignoreInitial: true
+    })
+
+    watcher.on('change', (path) => {
+      console.log(`文件变化: ${path}，自动刷新...`)
+      mainWindow.reload()
+    })
+  } else {
+    mainWindow.webContents.openDevTools()
+  }
+  loadUrl(indexPath)
+
+  mainWindow.webContents.setWindowOpenHandler(() => {
+    return { action: 'deny' }
+  })
+
+  // 关闭窗口时默认最小化到托盘
+  mainWindow.on('close', (event) => {
+    // 只有明确退出时才真正关闭
+    if (!app.isQuiting) {
+      event.preventDefault()
+      mainWindow.hide()
+    }
+  })
+}

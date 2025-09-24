@@ -2,7 +2,7 @@ const express = window.require('express')
 const bodyParser = window.require('body-parser')
 const cors = window.require('cors')
 import store from '@/store'
-import proxyMiddleware,  { createProxyToGetTemuData } from './middleware/proxyMiddleware'
+import proxyMiddleware, { createProxyToGetTemuData } from './middleware/proxyMiddleware'
 import responseMiddleware from './middleware/responseMiddleware'
 import errorMiddleware from './middleware/errorMiddleware'
 import validHeadersMiddleware from './middleware/validHeadersMiddleware'
@@ -18,6 +18,16 @@ app.use(cors())
 app.use(bodyParser.json({ limit: '50mb' })) // 设置为 50mb
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
+
+window.ipcRenderer.invoke('getRequestHeaders').then(async headers => {
+  let result = null
+  if (headers) result = await getUserInfo({ method: 'POST', body: { headers } }, {})
+  await store.dispatch('user/SetUserInfo', {
+    headers,
+    userInfo: result
+  })
+})
+
 app.post('/setHeaders', async (req, res, next) => {
   const { headers } = req.body
   let result = null
@@ -27,7 +37,7 @@ app.post('/setHeaders', async (req, res, next) => {
     userInfo: result
   })
   res.noUseProxy = true
-  res.customResult  = [!result, result]
+  res.customResult = [!result, result]
   next()
 })
 
@@ -55,7 +65,7 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
     restBody.searchScrollContext = result?.searchScrollContext
   } while (response?.hasMore)
   res.noUseProxy = true
-  res.customResult  = [err, response]
+  res.customResult = [err, response]
   next()
 })
 

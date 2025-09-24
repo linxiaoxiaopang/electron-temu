@@ -3,7 +3,7 @@ const user = {
 
   state: {
     headers: null,
-    apiMode: 'temu',
+    apiMode: 'proxy',
     userInfo: null
   },
 

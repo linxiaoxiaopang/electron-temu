@@ -19,6 +19,10 @@
         <div>店铺类型：{{ realUserInfo.managedType }}</div>
       </div>
     </div>
+    <div class="btn-wrapper">
+      <button onclick="window.ipcRenderer.invoke('openNewWindow', 'https://toolbox.zdcustom.com/#/')">核价</button>
+      <button onclick="window.ipcRenderer.invoke('openNewWindow', 'https://www.zhengdingyunshang.com/#/')">正丁</button>
+    </div>
   </div>
 </template>
 
