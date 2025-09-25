@@ -5,11 +5,8 @@ const { createProxyMiddleware, createProxyToGetTemuData } = require('./middlewar
 const responseMiddleware = require('./middleware/responseMiddleware')
 const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
-const { getTemuTarget } = require('~store/user')
+const { getTemuTarget, getPort } = require('~store/user')
 const verifyPriceRouter = require('./api/verifyPrice')
-
-
-const PORT = 3000
 
 const app = express()
 // 使用cors中间件，允许所有来源的请求
@@ -57,7 +54,10 @@ app.use('/temu-agentseller', createProxyMiddleware({
 app.use(responseMiddleware)
 app.use(errorMiddleware)
 
-// 启动服务器
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`)
+getPort().then(port => {
+  // 启动服务器
+  app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}/`)
+  })
 })
+

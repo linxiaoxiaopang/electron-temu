@@ -2,8 +2,9 @@ const { getUserInfo } = require('~express/controllers/user')
 const { emitter } = require('~utils/event')
 
 const user = {
-  apiMode: 'proxy',
+  apiMode: 'temu',
   userInfo: null,
+  port: '',
   headers: {}
 }
 
@@ -21,6 +22,12 @@ exports.getHeaders = function () {
 
 exports.getTemuTarget = function () {
   return exports.getIsProxy() ? 'http://192.168.10.81:3000/temu-agentseller' : 'https://agentseller.temu.com'
+}
+
+exports.getPort = async function () {
+  const { default: getPort } = require('get-port')
+  user.port = await getPort({ port: 3000 })
+  return user.port
 }
 
 exports.user = user

@@ -13,6 +13,7 @@
       未获取temu店铺，请刷新temu页面。
      </span>
       <div class="content" v-else>
+        <div v-if="port">监听端口：{{ port }}</div>
         <div>店铺名称：{{ userInfo.mallName }}</div>
         <div>店铺id：{{ userInfo.mallId }}</div>
         <div>店铺类型：{{ userInfo.managedType }}</div>
@@ -60,6 +61,10 @@ export default {
 
     userInfo({ user }) {
       return user?.userInfo?.mallList?.[0] || {}
+    },
+
+    port({ user }) {
+      return user?.port
     }
   },
 

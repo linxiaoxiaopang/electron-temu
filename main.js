@@ -3,7 +3,7 @@ require('~/store')
 require('~/model')
 require('~/express/init')
 require('~/express/timer/verifyPrice')
-const { emitter} = require('~/utils/event')
+const { emitter } = require('~/utils/event')
 const { customIpc } = require('~/utils/event')
 const { app, BrowserWindow, Tray, Menu, ipcMain, session, MenuItem } = require('electron')
 const path = require('path')
@@ -53,33 +53,46 @@ function loadUrl(url) {
 function createMenu() {
   const menu = new Menu()
 
-  // File 菜单
+  // 首页 菜单
+  menu.append(new MenuItem({
+    label: '首页',
+    click: () => {
+      loadUrl(indexPath)
+    }
+  }))
+
+  menu.append(new MenuItem({
+    label: 'temu工具',
+    click: () => {
+      loadUrl('https://toolbox.zdcustom.com/#/')
+    }
+  }))
+
+  menu.append(new MenuItem({
+    label: 'kuajingmaihuo',
+    click: () => {
+      loadUrl('https://seller.kuajingmaihuo.com/login/')
+    }
+  }))
+
+  // menu.append(new MenuItem({
+  //   label: 'agentseller',
+  //   click: () => {
+  //     loadUrl('https://agentseller.temu.com/')
+  //   }
+  // }))
+
   menu.append(new MenuItem({
     label: '操作',
     submenu: [
+      { label: '重新加载', role: 'reload' },
+      { label: '切换开放工具', role: 'toggleDevTools' },
       {
-        label: '返回首页',
-        click: () => {
-          loadUrl(indexPath)
-        }
-      },
-      { type: 'separator' }, // 分隔线
-      {
-        label: 'Exit',
+        label: '退出',
         click: () => {
           app.quit()
         }
       }
-    ]
-  }))
-
-
-  // View 菜单
-  menu.append(new MenuItem({
-    label: '视图',
-    submenu: [
-      { label: '重新加载', role: 'reload' },
-      { label: '切换开放工具', role: 'toggleDevTools' }
     ]
   }))
 
@@ -137,11 +150,12 @@ function createTray() {
 function watchPage() {
   const filter = {
     // urls: ["<all_urls>"]
-    urls: ['https://api.zhengdingyunshang.com/business/authService/user/getUserInfo']
+    urls: ['https://agentseller.temu.com/api/seller/auth/userInfo']
   }
 
   session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
     const requestHeaders = details.requestHeaders
+    console.log('requestHeaders', requestHeaders)
     emitter.emit('getRequestHeaders', requestHeaders)
     callback({ requestHeaders: details.requestHeaders })
   })
@@ -154,7 +168,8 @@ function initWindow() {
     webPreferences: {
       webSecurity: false,
       nodeIntegration: true,        // 允许渲染进程使用 Node.js API
-      contextIsolation: false,    // 关闭上下文隔离（Vue 2 通常需要此设置）
+      contextIsolation: true,    // 关闭上下文隔离（Vue 2 通常需要此设置）
+      // contextIsolation: false,    // 关闭上下文隔离（Vue 2 通常需要此设置）
       preload: path.join(__dirname, 'preload.js')
     }
   })
@@ -175,9 +190,9 @@ function initWindow() {
   }
   loadUrl(indexPath)
 
-  mainWindow.webContents.setWindowOpenHandler(() => {
-    return { action: 'deny' }
-  })
+  // mainWindow.webContents.setWindowOpenHandler(() => {
+  //   return { action: 'deny' }
+  // })
 
   // 关闭窗口时默认最小化到托盘
   mainWindow.on('close', (event) => {

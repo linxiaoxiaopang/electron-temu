@@ -9,12 +9,12 @@ const background = {
 
   actions: {
     SetBackgroundStore({ commit }, { key, value }) {
-      return window.ipcRenderer.invoke('data:set:store', key, value)
+      return window.electronAPI.invoke('data:set:store', key, value)
     }
   }
 }
 
-window.ipcRenderer.invoke('data:get:store').then(res => {
+window.electronAPI.invoke('data:get:store').then(res => {
   Object.keys(res).map(key => {
     background.state[key] = res[key]
   })
