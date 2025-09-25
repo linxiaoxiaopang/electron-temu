@@ -4,7 +4,7 @@
   "private": true,
   "description": "正丁",
   "authors": "正丁",
-  "main": "./background.js",
+  "main": "background/main.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development electron-forge start",
     "package": "cross-env NODE_ENV=production electron-forge package --platform=win32",
@@ -74,7 +74,9 @@
     }
   },
   "_moduleAliases": {
-    "~": "."
+    "~": "./background",
+    "~express": "./background/express",
+    "~model": "./background/model"
   },
   "browserslist": [
     "> 1%",

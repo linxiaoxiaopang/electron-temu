@@ -1,7 +1,7 @@
 const EventEmitter = require('eventemitter3')
 const { Op, Sequelize } = require('sequelize')
 const sequelize = require('../temu/db')
-const { formatTimeZoneAndTime } = require('../utils/timeUtils')
+const { formatTimeZoneAndTime } = require('./timeUtils')
 const { isArray, cloneDeep, mergeWith, isFunction, merge } = require('lodash')
 
 const jsonExtract = (column, path) => {

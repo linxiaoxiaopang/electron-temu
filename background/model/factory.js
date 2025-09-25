@@ -1,4 +1,4 @@
-const { customIpc } = require('../model/utils/eventUtils')
+const { customIpc } = require('./utils/eventUtils')
 
 function factory(db, sheet) {
   return function (fnMap = {}) {

@@ -30,6 +30,7 @@ customIpc.handle('proxyRequest', async (config = {}) => {
   }
 })
 
+console.log(1111)
 ipcMain.handle('openNewWindow', (event, url) => {
   loadUrl(url)
 })
