@@ -27,7 +27,9 @@ class InitSheet {
 
   async init() {
     this.bindEvent()
-    await this.syncModel()
+    await this.syncModel().catch(err => {
+      console.log('err', err)
+    })
   }
 }
 

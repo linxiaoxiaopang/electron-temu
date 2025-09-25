@@ -25,6 +25,7 @@
     "eventemitter3": "^5.0.1",
     "express": "^5.1.0",
     "lodash": "^4.17.21",
+    "module-alias": "^2.2.3",
     "sequelize": "^6.37.7",
     "sqlite3": "^5.1.7",
     "uuid": "^11.1.0",
@@ -71,6 +72,9 @@
       "no-unused-vars": "off",
       "no-unreachable": "off"
     }
+  },
+  "_moduleAliases": {
+    "~": "."
   },
   "browserslist": [
     "> 1%",
