@@ -7,6 +7,8 @@
   "main": "background/main.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development electron-forge start",
+    "inspect": "cross-env NODE_ENV=development electron-forge start -- --inspect=9229",
+    "inspect-brk": "cross-env NODE_ENV=development electron-forge start -- --inspect-brk=9229",
     "package": "cross-env NODE_ENV=production electron-forge package --platform=win32",
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
