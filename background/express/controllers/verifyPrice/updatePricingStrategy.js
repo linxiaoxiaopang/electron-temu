@@ -1,7 +1,7 @@
 const { groupBy, map, cloneDeep } = require('lodash')
 const { getIsMock, getTemuTarget } =  require('../../const')
 const { createProxyToGetTemuData } =  require('../../middleware/proxyMiddleware')
-const { customIpcRenderer } = require('../../../model/utils/eventUtils')
+const { customIpcRenderer } = require('~/utils/event')
 const { ipcRendererInvokeAdd } = require('../../utils/dbDataUtils')
 
 async function updateCreatePricingStrategy(req) {

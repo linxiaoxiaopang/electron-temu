@@ -1,4 +1,4 @@
-const { customIpcRenderer } = require('../../../model/utils/eventUtils')
+const { customIpcRenderer } = require('~/utils/event')
 
 async function getStyleMatchingPrice(req, res, next) {
   const { body } = req

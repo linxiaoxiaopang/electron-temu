@@ -1,4 +1,4 @@
-const { customIpcRenderer } = require('../../../model/utils/eventUtils')
+const { customIpcRenderer } = require('~/utils/event')
 
 async function getPricingConfig(req, res, next) {
   let [err, response] = await customIpcRenderer.invoke('db:temu:pricingConfig:find', {

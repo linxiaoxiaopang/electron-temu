@@ -2,7 +2,7 @@ const axios = require('axios')
 const { LoopRequest } = require('../../utils/loopUtils')
 const { map, uniqBy } = require('lodash')
 const { updateCreatePricingStrategy: toUpdateCreatePricingStrategy } = require('../../controllers/verifyPrice/updatePricingStrategy')
-const { customIpcRenderer } = require('../../../model/utils/eventUtils')
+const { customIpcRenderer } = require('~/utils/event')
 
 async function getLatestPricingStrategy(req, res, next) {
   const { body } = req

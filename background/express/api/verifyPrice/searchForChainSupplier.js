@@ -1,6 +1,6 @@
 const { getFullSearchForChainSupplierData } = require('../../controllers/verifyPrice/searchForChainSupplier')
 const { LoopRequest } = require('../../utils/loopUtils')
-const { customIpcRenderer } = require('../../../model/utils/eventUtils')
+const { customIpcRenderer } = require('~/utils/event')
 
 async function getSearchForChainSupplier(req, res, next) {
   const query = req.body

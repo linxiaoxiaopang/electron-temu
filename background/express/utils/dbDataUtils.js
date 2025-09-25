@@ -1,5 +1,5 @@
 const { chunk, isArray } = require('lodash')
-const { customIpcRenderer } = require('../../model/utils/eventUtils')
+const { customIpcRenderer } = require('~/utils/event')
 
 async function ipcRendererInvoke(opName, ...args) {
   return await customIpcRenderer.invoke(opName, ...args)

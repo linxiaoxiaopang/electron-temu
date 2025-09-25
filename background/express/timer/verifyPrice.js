@@ -3,7 +3,7 @@ const { updateCreatePricingStrategy } = require('../controllers/verifyPrice/upda
 const { getHeaders, getTemuTarget } = require('../const')
 const { chunk, groupBy, isNil, map, merge } = require('lodash')
 const { createProxyMiddleware } = require('../middleware/proxyMiddleware')
-const { customIpcRenderer } = require('../../model/utils/eventUtils')
+const { customIpcRenderer } = require('~/utils/event')
 
 class UpdateCreatePricingStrategyTimer {
   constructor(

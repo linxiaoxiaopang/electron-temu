@@ -2,7 +2,7 @@ const path = require('path')
 const { app } = require('electron')
 const { merge, isFunction } = require('lodash')
 const { getIsMock, getIsProxy, getHeaders } = require('../const')
-const { customIpcRenderer } = require('../../model/utils/eventUtils')
+const { customIpcRenderer } = require('~/utils/event')
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
 
 const defaultHandleReq = (req) => {
