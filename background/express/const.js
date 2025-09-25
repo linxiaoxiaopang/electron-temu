@@ -13,10 +13,6 @@ exports.getApiMode = function () {
   return store.user.apiMode
 }
 
-exports.getIsMock = function () {
-  return exports.getApiMode() === 'mock'
-}
-
 exports.getIsProxy = function () {
   return exports.getApiMode() === 'proxy'
 }

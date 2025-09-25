@@ -5,7 +5,7 @@ const { createProxyMiddleware, createProxyToGetTemuData } = require('./middlewar
 const responseMiddleware = require('./middleware/responseMiddleware')
 const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
-const { getIsMock, getTemuTarget } = require('./const')
+const { getTemuTarget } = require('./const')
 const verifyPriceRouter = require('./api/verifyPrice')
 
 
@@ -21,7 +21,6 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 app.use('/temu-agentseller', validHeadersMiddleware)
 
 app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', async (req, res, next) => {
-  if (getIsMock()) return next()
   const { body } = req
   const relativeUrl = req.originalUrl.replace(/^\/temu-agentseller/, '')
   const wholeUrl = `${getTemuTarget()}${relativeUrl}`

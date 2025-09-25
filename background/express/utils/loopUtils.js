@@ -1,6 +1,5 @@
 const { noop, merge } = require('lodash')
 const { getUUID } = require('../../utils/random')
-const { getIsMock } = require('../const')
 
 const allSummary = {}
 const actionPromiseList = {}
@@ -36,13 +35,6 @@ class LoopRequest {
     return this.req.body
   }
 
-  mockResponse() {
-    return {
-      totalTasks: 0,
-      completedTasks: 0
-    }
-  }
-
   async loop() {
     const { summary } = this
     allSummary[this.uuid] = summary
@@ -74,7 +66,6 @@ class LoopRequest {
       this.currentPromiseList.splice(fIndex, 1)
     })
     try {
-      if (getIsMock()) return [false, this.mockResponse]
       const beforeLoopRes = await this.beforeLoopCallback(this)
       if (beforeLoopRes[0]) return beforeLoopRes
       await this.loop()

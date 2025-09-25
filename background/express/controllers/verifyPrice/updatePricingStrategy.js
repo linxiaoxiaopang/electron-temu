@@ -1,5 +1,5 @@
 const { groupBy, map, cloneDeep } = require('lodash')
-const { getIsMock, getTemuTarget } =  require('../../const')
+const { getTemuTarget } =  require('../../const')
 const { createProxyToGetTemuData } =  require('../../middleware/proxyMiddleware')
 const { customIpcRenderer } = require('~/utils/event')
 const { ipcRendererInvokeAdd } = require('../../utils/dbDataUtils')
@@ -47,18 +47,6 @@ async function updateCreatePricingStrategy(req) {
   })
   body.itemRequests = itemRequests
   delete body.strategyList
-  if (getIsMock()) {
-    const result = {
-      batchOperateResult: Object.keys(groupData).reduce((acc, cur) => {
-        acc[cur] = {
-          success: true,
-          priceOrderId: cur
-        }
-        return acc
-      }, {})
-    }
-    return [false, result]
-  }
   const response = await getData(wholeUrl)
   const needUpdateBatchOperateResult = []
   const batchOperateResult = response?.data?.batchOperateResult
