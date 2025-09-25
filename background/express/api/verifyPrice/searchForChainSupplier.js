@@ -20,9 +20,13 @@ async function syncSearchForChainSupplier(req, res, next) {
     res,
     cacheKey: 'syncSearchForChainSupplier'
   })
-
+  if (!mallId) return [true, '请选择店铺']
   instance.beforeLoopCallback = async () => {
-    return await customIpcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:clear')
+    return await customIpcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:delete', {
+      where: {
+        mallId
+      }
+    })
   }
 
   const query = {
