@@ -4,7 +4,7 @@
   "private": true,
   "description": "正丁",
   "authors": "正丁",
-  "main": "background/main.js",
+  "main": "main.js",
   "scripts": {
     "start": "cross-env NODE_ENV=development electron-forge start",
     "inspect": "cross-env NODE_ENV=development electron-forge start -- --inspect=9229",
