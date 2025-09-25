@@ -152,12 +152,10 @@ function watchPage() {
     // urls: ["<all_urls>"]
     urls: ['https://agentseller.temu.com/api/seller/auth/userInfo']
   }
-
-  session.defaultSession.webRequest.onBeforeSendHeaders(filter, (details, callback) => {
-    const requestHeaders = details.requestHeaders
-    console.log('requestHeaders', requestHeaders)
+  let requestHeaders = null
+  session.defaultSession.webRequest.onSendHeaders(filter, (details) => {
+    requestHeaders = details.requestHeaders
     emitter.emit('getRequestHeaders', requestHeaders)
-    callback({ requestHeaders: details.requestHeaders })
   })
 }
 

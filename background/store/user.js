@@ -5,7 +5,7 @@ const user = {
   apiMode: 'temu',
   userInfo: null,
   port: '',
-  headers: {}
+  headers: null
 }
 
 exports.getApiMode = function () {
@@ -32,10 +32,35 @@ exports.getPort = async function () {
 
 exports.user = user
 
+
 emitter.on('getRequestHeaders', async (headers) => {
-  let userInfo = null
-  if (headers) userInfo = await getUserInfo({ method: 'POST', body: { headers } }, {})
+  user.headers = headers
+  await updateUserInfo()
+})
+
+loopGetUserInfo()
+
+async function loopGetUserInfo() {
+  setTimeout(async () => {
+    let { userInfo } = user
+    if (userInfo) {
+      return loopGetUserInfo()
+    }
+    await updateUserInfo()
+    return loopGetUserInfo()
+  }, 3000)
+}
+
+let lastPromise = null
+
+async function updateUserInfo() {
+  let { headers } = user
+  if (!headers) return
+  const p = lastPromise = getUserInfo({ method: 'POST', body: { headers } }, {})
+  const data = await p
+  if (lastPromise !== p) return
+  const userInfo = data
+  user.userInfo = userInfo
   headers.mallid = userInfo?.mallList?.[0]?.mallId
   user.headers = headers
-  user.userInfo = userInfo
-})
+}
