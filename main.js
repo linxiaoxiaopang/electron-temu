@@ -1,4 +1,5 @@
 require('module-alias/register')
+require('~/store')
 require('~/model')
 require('~/express/init')
 require('~/express/timer/verifyPrice')

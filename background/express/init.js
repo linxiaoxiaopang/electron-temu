@@ -5,7 +5,7 @@ const { createProxyMiddleware, createProxyToGetTemuData } = require('./middlewar
 const responseMiddleware = require('./middleware/responseMiddleware')
 const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
-const { getTemuTarget } = require('./const')
+const { getTemuTarget } = require('~store/user')
 const verifyPriceRouter = require('./api/verifyPrice')
 
 

@@ -1,5 +1,5 @@
 const { groupBy, map, cloneDeep } = require('lodash')
-const { getTemuTarget } =  require('../../const')
+const { getTemuTarget } =  require('~store/user')
 const { createProxyToGetTemuData } =  require('../../middleware/proxyMiddleware')
 const { customIpcRenderer } = require('~/utils/event')
 const { ipcRendererInvokeAdd } = require('../../utils/dbDataUtils')

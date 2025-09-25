@@ -78,7 +78,9 @@
   "_moduleAliases": {
     "~": "./background",
     "~express": "./background/express",
-    "~model": "./background/model"
+    "~model": "./background/model",
+    "~store": "./background/store",
+    "~utils": "./background/utils"
   },
   "browserslist": [
     "> 1%",

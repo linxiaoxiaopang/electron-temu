@@ -1,6 +1,6 @@
 const { emitter } = require('../../utils/event')
 const { updateCreatePricingStrategy } = require('../controllers/verifyPrice/updatePricingStrategy')
-const { getHeaders, getTemuTarget } = require('../const')
+const { getHeaders, getTemuTarget } = require('~store/user')
 const { chunk, groupBy, isNil, map, merge } = require('lodash')
 const { createProxyMiddleware } = require('../middleware/proxyMiddleware')
 const { customIpcRenderer } = require('~/utils/event')

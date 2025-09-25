@@ -1,4 +1,4 @@
-const { getHeaders } = require('../const')
+const { getHeaders } = require('~store/user')
 module.exports = function (req, res, next) {
   const headers = getHeaders()
   const { mallId } = req.body

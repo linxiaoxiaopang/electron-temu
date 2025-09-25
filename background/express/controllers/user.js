@@ -1,5 +1,5 @@
 async function getUserInfo(req, res) {
-  const { getTemuTarget } = require('../const')
+  const { getTemuTarget } = require('~store/user')
   const { createProxyMiddleware } = require('../middleware/proxyMiddleware')
   const getData = createProxyMiddleware({
     target: () => {

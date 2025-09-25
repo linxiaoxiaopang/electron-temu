@@ -1,7 +1,5 @@
-const path = require('path')
-const { app } = require('electron')
 const { merge, isFunction } = require('lodash')
-const { getIsProxy, getHeaders } = require('../const')
+const { getIsProxy, getHeaders } = require('~store/user')
 const { customIpcRenderer } = require('~/utils/event')
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
 

@@ -4,7 +4,6 @@
       style="margin-bottom: 20px;"
       v-model="mode"
     >
-      <ZdRadio :value="mode" label="mock">使用mock数据</ZdRadio>
       <ZdRadio :value="mode" label="proxy">使用本地电脑代理真实数据</ZdRadio>
       <ZdRadio :value="mode" label="temu">直接连接真实数据</ZdRadio>
     </ZdRadioGroup>
@@ -14,9 +13,9 @@
       未获取temu店铺，请刷新temu页面。
      </span>
       <div class="content" v-else>
-        <div>店铺名称：{{ realUserInfo.mallName }}</div>
-        <div>店铺id：{{ realUserInfo.mallId }}</div>
-        <div>店铺类型：{{ realUserInfo.managedType }}</div>
+        <div>店铺名称：{{ userInfo.mallName }}</div>
+        <div>店铺id：{{ userInfo.mallId }}</div>
+        <div>店铺类型：{{ userInfo.managedType }}</div>
       </div>
     </div>
     <div class="btn-wrapper">
@@ -27,7 +26,7 @@
 </template>
 
 <script>
-import { mapState } from 'vuex'
+import { mapState, mapActions } from 'vuex'
 import ZdRadioGroup from './module/zdRadioGroup'
 import ZdRadio from './module/zdRadio'
 
@@ -38,20 +37,34 @@ export default {
   },
 
   computed: {
-    ...mapState('user', ['headers', 'apiMode', 'userInfo']),
+    ...mapState('background', ['user']),
 
     mode: {
       get() {
-        return this.apiMode
+        return this.user?.apiMode
       },
-      set(val) {
-        this.$store.commit('user/SET_API_MODE', val)
+
+      async set(val) {
+        if (!this.user) return
+        this.user.apiMode = val
+        await this.SetBackgroundStore({
+          key: 'user',
+          value: this.user
+        })
       }
     },
 
-    realUserInfo({ userInfo }) {
-      return userInfo?.mallList?.[0] || {}
+    headers({ user }) {
+      return user?.headers
+    },
+
+    userInfo({ user }) {
+      return user?.userInfo?.mallList?.[0] || {}
     }
+  },
+
+  methods: {
+    ...mapActions('background', ['SetBackgroundStore'])
   }
 }
 
