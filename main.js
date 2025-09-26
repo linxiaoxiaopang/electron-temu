@@ -1,8 +1,9 @@
 require('module-alias/register')
-require('~/store')
+const store = require('~/store')
 require('~/model')
 require('~/express/init')
 require('~/express/timer/verifyPrice')
+const { URL } = require('node:url')
 const { emitter } = require('~/utils/event')
 const { customIpc } = require('~/utils/event')
 const { app, BrowserWindow, Tray, Menu, ipcMain, session, MenuItem } = require('electron')
@@ -31,22 +32,21 @@ customIpc.handle('proxyRequest', async (config = {}) => {
   }
 })
 
-ipcMain.handle('openNewWindow', (event, url) => {
-  loadUrl(url)
-})
-
 app.whenReady().then(() => {
   watchPage()
   initWindow()
   createMenu()
-  if (!isDev) {
-    createTray()
-  }
+  createTray()
 })
 
 function loadUrl(url) {
   if (url.startsWith('http')) return mainWindow.loadURL(url)
   mainWindow.loadFile(path.join(__dirname, url))
+}
+
+const temuUrlList = {
+  default: 'https://seller.kuajingmaihuo.com/login/',
+  current: ''
 }
 
 // 创建菜单栏
@@ -69,9 +69,13 @@ function createMenu() {
   }))
 
   menu.append(new MenuItem({
-    label: 'kuajingmaihuo',
+    label: 'temu平台',
     click: () => {
-      loadUrl('https://seller.kuajingmaihuo.com/login/')
+      let url = temuUrlList.default
+      if (store?.user?.userInfo) {
+        url = temuUrlList.current
+      }
+      loadUrl(url)
     }
   }))
 
@@ -172,7 +176,6 @@ function initWindow() {
     }
   })
   if (isDev) {
-    mainWindow.webContents.openDevTools()
     const chokidar = require('chokidar')
     // 监听渲染进程文件变化，自动刷新
     const watcher = chokidar.watch(path.join(__dirname, '../src'), {
@@ -183,14 +186,29 @@ function initWindow() {
       console.log(`文件变化: ${path}，自动刷新...`)
       mainWindow.reload()
     })
-  } else {
-    mainWindow.webContents.openDevTools()
   }
   loadUrl(indexPath)
 
-  // mainWindow.webContents.setWindowOpenHandler(() => {
-  //   return { action: 'deny' }
-  // })
+  mainWindow.webContents.setWindowOpenHandler((details) => {
+    const url = details.url
+    collectTemuUrl(url)
+    loadUrl(url)
+    return { action: 'deny' }
+  })
+
+  mainWindow.webContents.on('did-navigate-in-page', (event, url, isMainFrame) => {
+    collectTemuUrl(url)
+  })
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(`
+      window.close = () => {
+        console.log('window.close() 已被重写');
+        // window.electronAPI.invoke('window:close')
+      }
+  `)
+  })
+
 
   // 关闭窗口时默认最小化到托盘
   mainWindow.on('close', (event) => {
@@ -200,4 +218,13 @@ function initWindow() {
       mainWindow.hide()
     }
   })
+}
+
+function collectTemuUrl(url) {
+  if (url.indexOf('https://agentseller.temu.com') >= 0) {
+    const urlInstance = new URL(url)
+    const redirectUrl = urlInstance.searchParams.get('redirectUrl')
+    temuUrlList.current = url
+    if (redirectUrl) temuUrlList.current = redirectUrl
+  }
 }
