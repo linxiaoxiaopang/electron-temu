@@ -80,7 +80,11 @@ class InitTimerSheet extends InitSheet {
   }
 
   async syncModel() {
-    await super.syncModel()
+    try {
+      await super.syncModel()
+    } catch (err) {
+      console.log('err', err)
+    }
     const [err, res] = await this.server.find({
       where: {
         id: 1

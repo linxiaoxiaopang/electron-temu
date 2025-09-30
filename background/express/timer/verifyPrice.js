@@ -298,10 +298,10 @@ class BatchUpdateCreatePricingStrategyTimer {
   }
 }
 
-emitter.on('pricingConfig:timer:update', async (event, timerRecord) => {
+emitter.on('pricingConfig:timer:update', async (timerRecord) => {
   const instance = new BatchUpdateCreatePricingStrategyTimer({
     timerRecord,
-    mallIds: getMallIds
+    mallIds: getMallIds()
   })
   await instance.action()
 })
