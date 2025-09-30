@@ -1,11 +1,11 @@
+const { uniq } = require('lodash')
 const { getUserInfo } = require('~express/controllers/user')
 const { emitter } = require('~utils/event')
 
 const user = {
   apiMode: 'temu',
-  userInfo: null,
-  port: '',
-  headers: null
+  mallList: {},
+  port: ''
 }
 
 exports.getApiMode = function () {
@@ -16,8 +16,25 @@ exports.getIsProxy = function () {
   return exports.getApiMode() === 'proxy'
 }
 
-exports.getHeaders = function () {
-  return user.headers
+exports.getHeaders = function (mallId) {
+  const { mallList } = user
+  for (let key in mallList) {
+    const item = mallList[key]
+    if (!item.list[mallId]) continue
+    return item.list[mallId]?.headers
+  }
+  return null
+}
+
+exports.getMallIds = function () {
+  const { mallList } = user
+  const tmpData = []
+  Object.values(mallList).map(item => {
+    Object.values(item.list).map(sItem => {
+      tmpData.push(sItem.mallId)
+    })
+  })
+  return uniq(tmpData)
 }
 
 exports.getTemuTarget = function () {
@@ -34,33 +51,47 @@ exports.user = user
 
 
 emitter.on('getRequestHeaders', async (headers) => {
-  user.headers = headers
-  await updateUserInfo()
+  await updateUserInfo(headers)
 })
 
 loopGetUserInfo()
 
 async function loopGetUserInfo() {
   setTimeout(async () => {
-    let { userInfo } = user
-    if (userInfo) {
-      return loopGetUserInfo()
+    const { mallList } = user
+    for (let key in mallList) {
+      const item = mallList
+      let { userInfo, headers } = item
+      if (!userInfo) continue
+      await updateUserInfo(headers)
     }
-    await updateUserInfo()
     return loopGetUserInfo()
   }, 3000)
 }
 
-let lastPromise = null
+let lastPromiseList = {}
 
-async function updateUserInfo() {
-  let { headers } = user
+async function updateUserInfo(headers) {
   if (!headers) return
-  const p = lastPromise = getUserInfo({ method: 'POST', body: { headers } }, {})
+  const { Origin: origin } = headers
+  const key = origin
+  if (!lastPromiseList[key]) lastPromiseList[key] = {}
+  const item = lastPromiseList[key]
+  const p = item.lastPromise = getUserInfo(headers)
   const data = await p
-  if (lastPromise !== p) return
-  const userInfo = data
-  user.userInfo = userInfo
-  headers.mallid = userInfo?.mallList?.[0]?.mallId
-  user.headers = headers
+  if (item.lastPromise !== p) return
+  if (!user.mallList[key]) user.mallList[key] = {}
+  const sameOriginMall = user.mallList[key]
+  if (!sameOriginMall.list) {
+    sameOriginMall.list = {}
+  }
+  if (!data) return
+  const sameOriginMallList = sameOriginMall.list
+  const mallId = headers.mallid = data?.mallList?.[0]?.mallId
+  sameOriginMallList[mallId] = {
+    mallId,
+    headers,
+    origin,
+    userInfo: data
+  }
 }

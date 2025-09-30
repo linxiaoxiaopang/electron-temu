@@ -1,21 +1,15 @@
-async function getUserInfo(req, res) {
+const { customIpcRenderer } = require('~/utils/event')
+
+async function getUserInfo(headers) {
   const { getTemuTarget } = require('~store/user')
-  const { createProxyMiddleware } = require('../middleware/proxyMiddleware')
-  const getData = createProxyMiddleware({
-    target: () => {
-      return getTemuTarget()
-    },
-    handleReq: (req) => {
-      return {
-        ...req,
-        url: '/api/seller/auth/userInfo',
-        baseUrl: '/temu-agentseller',
-        body: {}
-      }
-    },
-    isReturnData: true
+  const wholeUrl = `${getTemuTarget()}/api/seller/auth/userInfo`
+  const response = await customIpcRenderer.invoke('proxyRequest', {
+    url: wholeUrl,
+    method: 'POST',
+    data: {},
+    headers
   })
-  return await getData(req, res)
+  return response?.data
 }
 
 module.exports = {

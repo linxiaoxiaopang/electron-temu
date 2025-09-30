@@ -33,7 +33,8 @@ function createProxyMiddleware(option) {
 function createProxyToGetTemuData(req) {
   return async function (wholeUrl, mergeConfig = {}) {
     const { method, body } = req
-    const headers = getHeaders()
+    const { mallId, page, ...restBody } = body
+    const headers = getHeaders(mallId)
     const isProxy = getIsProxy()
     const formatHeaderKeys = Object.keys(headers || {}).filter(key => {
       const lowerCaseKey = key.toLowerCase()
@@ -43,7 +44,6 @@ function createProxyToGetTemuData(req) {
       if (headers[key]) acc[key] = headers[key]
       return acc
     }, {})
-    const { mallId, page, ...restBody } = body
     let finalPage = {}
     if (page) {
       finalPage.pageNum = page.pageIndex

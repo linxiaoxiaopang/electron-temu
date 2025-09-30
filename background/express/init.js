@@ -1,12 +1,14 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
+const { emitter } = require('~/utils/event')
 const { createProxyMiddleware, createProxyToGetTemuData } = require('./middleware/proxyMiddleware')
 const responseMiddleware = require('./middleware/responseMiddleware')
 const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
 const { getTemuTarget, getPort } = require('~store/user')
 const verifyPriceRouter = require('./api/verifyPrice')
+const mallRouter = require('./api/mall')
 
 const app = express()
 // 使用cors中间件，允许所有来源的请求
@@ -16,6 +18,13 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
 
 app.use('/temu-agentseller', validHeadersMiddleware)
+
+app.post('/setHeaders', async (req, res, next) => {
+  const { headers } = req.body
+  emitter.emit('getRequestHeaders', headers)
+  res.customResult = [false, true]
+  next()
+})
 
 app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', async (req, res, next) => {
   const { body } = req
@@ -43,6 +52,7 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
 })
 
 
+app.use('/temu-agentseller/api/mall', mallRouter)
 app.use('/temu-agentseller/api/verifyPrice', verifyPriceRouter)
 
 app.use('/temu-agentseller', createProxyMiddleware({

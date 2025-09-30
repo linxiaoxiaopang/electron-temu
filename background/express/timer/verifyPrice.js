@@ -1,17 +1,23 @@
 const { emitter } = require('../../utils/event')
 const { updateCreatePricingStrategy } = require('../controllers/verifyPrice/updatePricingStrategy')
-const { getHeaders, getTemuTarget } = require('~store/user')
+const { getMallIds, getTemuTarget } = require('~store/user')
 const { chunk, groupBy, isNil, map, merge } = require('lodash')
 const { createProxyMiddleware } = require('../middleware/proxyMiddleware')
 const { customIpcRenderer } = require('~/utils/event')
 
 class UpdateCreatePricingStrategyTimer {
   constructor(
-    { timerRecord }
+    {
+      timerRecord,
+      mallId,
+      parent
+    }
   ) {
+    this.mallId = mallId
+    this.parent = parent
+    this.timerRecord = timerRecord
     this.strategyList = []
     this.updateRes = null
-    this.timerRecord = timerRecord
   }
 
   get batchOperateResult() {
@@ -22,19 +28,15 @@ class UpdateCreatePricingStrategyTimer {
     return this.strategyList.filter(item => !item.isDelete && !item.isIgnore)
   }
 
-  get headers() {
-    return getHeaders()
-  }
-
-  validHeaders() {
-    if (!this.headers) throw 'headers 为空'
+  validMallId() {
+    if (!this.mallId) throw 'mallId 为空'
   }
 
   async getData() {
     const [err, res] = await customIpcRenderer.invoke('db:temu:pricingStrategy:find', {
       where: {
         ['op:or']: [{
-          mallId: this.headers?.mallid
+          mallId: this.mallId
         }]
       }
     })
@@ -51,7 +53,7 @@ class UpdateCreatePricingStrategyTimer {
     const req = {
       body: {
         pageSize,
-        mallId: this.headers?.mallid,
+        mallId: this.mallId,
         productSkuIdList,
         supplierTodoTypeList: [],
         pageNum: 1
@@ -130,10 +132,6 @@ class UpdateCreatePricingStrategyTimer {
   async updateData() {
     const { usedStrategyList } = this
     if (!usedStrategyList.length) return
-    await this.updatePricingConfig({
-      completedTasks: 0,
-      totalTasks: usedStrategyList.length
-    })
     const chunkData = chunk(Object.values(groupBy(usedStrategyList, 'priceOrderId')), 50)
     let response = {}
     for (let chunk of chunkData) {
@@ -144,13 +142,13 @@ class UpdateCreatePricingStrategyTimer {
       const [err, res] = await updateCreatePricingStrategy({
         method: 'POST',
         body: {
-          mallId: this.headers?.mallid,
+          mallId: this.mallId,
           strategyList: chunkStrategyList
         }
       })
       if (err) throw  res
       merge(response, res)
-      await this.updatePricingConfig({
+      await this?.parent?.updatePricingConfig({
         completedTasks: chunkStrategyList.length
       })
     }
@@ -219,19 +217,74 @@ class UpdateCreatePricingStrategyTimer {
     }
   }
 
+  async prepare() {
+    this.validMallId()
+    this.strategyList = await this.getData()
+    if (!this.strategyList.length) return
+    await this.maskPassSearchForSemiSupplier()
+    this.maskDeletePassRejectPriority()
+  }
+
+  async action() {
+    this.updateRes = await this.updateData()
+    const { deleteData, updateData } = this.distinguishBatchOperateResult()
+    await Promise.all([this.deleteDataByResponse(deleteData), this.updateDataByResponse(updateData)])
+  }
+}
+
+class BatchUpdateCreatePricingStrategyTimer {
+  constructor(
+    {
+      timerRecord,
+      mallIds = []
+    }
+  ) {
+    this.timerRecord = timerRecord
+    this.mallIds = mallIds
+    this.instanceList = this.mallIds.map(mallId => {
+      return new UpdateCreatePricingStrategyTimer({
+        mallId,
+        parent: this,
+        timerRecord: this.timerRecord
+      })
+    })
+  }
+
+  validMallIds() {
+    if (!this.mallIds.length) throw 'mallIds 为空'
+  }
+
+  async updatePricingConfig(obj) {
+    const [err, res] = await customIpcRenderer.invoke('db:temu:pricingConfig:update', 1, obj)
+    if (err) throw  res
+    return res
+  }
+
   async action() {
     try {
-      this.validHeaders()
+      this.validMallIds()
       await this.updatePricingConfig({
         processing: true
       })
-      this.strategyList = await this.getData()
-      if (!this.strategyList.length) return
-      await this.maskPassSearchForSemiSupplier()
-      this.maskDeletePassRejectPriority()
-      this.updateRes = await this.updateData()
-      const { deleteData, updateData } = this.distinguishBatchOperateResult()
-      await Promise.all([this.deleteDataByResponse(deleteData), this.updateDataByResponse(updateData)])
+
+      for (let i = 0; i < this.instanceList.length; i++) {
+        const item = this.instanceList[i]
+        await item.prepare()
+      }
+
+      const totalTasks = this.instanceList.reduce((total, item) => {
+        return total + item.usedStrategyList.length
+      }, 0)
+
+      await this.updatePricingConfig({
+        totalTasks,
+        completedTasks: 0
+      })
+
+      for (let i = 0; i < this.instanceList.length; i++) {
+        const item = this.instanceList[i]
+        await item.action()
+      }
     } catch (err) {
       console.log('err', err)
     } finally {
@@ -246,12 +299,13 @@ class UpdateCreatePricingStrategyTimer {
 }
 
 emitter.on('pricingConfig:timer:update', async (event, timerRecord) => {
-  const instance = new UpdateCreatePricingStrategyTimer({
-    timerRecord
+  const instance = new BatchUpdateCreatePricingStrategyTimer({
+    timerRecord,
+    mallIds: getMallIds
   })
   await instance.action()
 })
 
 module.exports = {
-  UpdateCreatePricingStrategyTimer
+  BatchUpdateCreatePricingStrategyTimer
 }
