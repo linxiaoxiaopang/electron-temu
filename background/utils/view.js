@@ -89,6 +89,7 @@ class ViewMenu {
     this.appendHome()
     this.appendTemuToolbox()
     this.appendTemuPlatform()
+    this.appendOperation()
     this.appendWindow()
     Menu.setApplicationMenu(this.menu)
   }

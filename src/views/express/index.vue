@@ -9,15 +9,24 @@
     </ZdRadioGroup>
 
     <div class="headers" style="margin-bottom: 10px">
-     <span v-if="!headers">
+     <span v-if="!existMall">
       未获取temu店铺，请刷新temu页面。
      </span>
-      <div class="content" v-else>
-        <div v-if="port">监听端口：{{ port }}</div>
-        <div>店铺名称：{{ userInfo.mallName }}</div>
-        <div>店铺id：{{ userInfo.mallId }}</div>
-        <div>店铺类型：{{ userInfo.managedType }}</div>
-      </div>
+      <template v-else>
+        <div class="content-container">
+          <div class="content" :key="index" v-for="(item, origin, index) in mallList" >
+            <div v-if="port">监听端口：{{ port }}</div>
+            <div>来源：{{ origin }}</div>
+            <div class="item" :key="`${index}_${key}`" v-for="(sItem, key) in item.list">
+              <div>店铺名称：{{ userInfo(sItem.userInfo).mallName }}</div>
+              <div>店铺id：{{ userInfo(sItem.userInfo).mallId }}</div>
+              <div>店铺类型：{{ userInfo(sItem.userInfo).managedType }}</div>
+            </div>
+          </div>
+        </div>
+
+      </template>
+
     </div>
   </div>
 </template>
@@ -55,8 +64,18 @@ export default {
       return user?.headers
     },
 
-    userInfo({ user }) {
-      return user?.userInfo?.mallList?.[0] || {}
+    mallList({ user }) {
+      return user?.mallList || {}
+    },
+
+    existMall({ mallList }) {
+      return Object.keys(mallList).length
+    },
+
+    userInfo() {
+      return (row) => {
+        return row?.mallList?.[0] || {}
+      }
     },
 
     port({ user }) {
@@ -72,10 +91,23 @@ export default {
 </script>
 
 <style scoped>
+.content-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
 .content {
     display: inline-block;
     border: 1px solid #eee;
     padding: 15px;
+    border-radius: 4px;
+    margin: 5px;
+}
+
+.item {
+    margin: 5px;
+    padding: 5px;
+    border: 1px solid #8590f3;
     border-radius: 4px;
 }
 </style>

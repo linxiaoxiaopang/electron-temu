@@ -1,8 +1,12 @@
 const { customIpcRenderer } = require('~/utils/event')
 
 async function getUserInfo(headers) {
-  const { getTemuTarget } = require('~store/user')
-  const wholeUrl = `${getTemuTarget()}/api/seller/auth/userInfo`
+  const { getTemuTarget, getIsProxy } = require('~store/user')
+  let { Origin: origin } = headers
+  if (getIsProxy()) {
+    origin = getTemuTarget()
+  }
+  const wholeUrl = `${origin}/api/seller/auth/userInfo`
   const response = await customIpcRenderer.invoke('proxyRequest', {
     url: wholeUrl,
     method: 'POST',
