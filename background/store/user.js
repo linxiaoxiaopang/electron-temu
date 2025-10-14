@@ -1,3 +1,4 @@
+const URL = require('url')
 const { uniq } = require('lodash')
 const { getUserInfo } = require('~express/controllers/user')
 const { emitter } = require('~utils/event')
@@ -73,7 +74,12 @@ let lastPromiseList = {}
 
 async function updateUserInfo(headers) {
   if (!headers) return
-  const { Origin: origin } = headers
+  let { Origin: origin, Referer: referer } = headers
+  if (!origin && referer) {
+    const { host, protocol } = URL.parse(referer)
+    headers.Origin = `${protocol}//${host}`
+    origin = headers.Origin
+  }
   const key = origin
   if (!lastPromiseList[key]) lastPromiseList[key] = {}
   const item = lastPromiseList[key]
