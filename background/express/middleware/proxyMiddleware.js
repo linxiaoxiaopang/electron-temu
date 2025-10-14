@@ -32,7 +32,8 @@ function createProxyMiddleware(option) {
 
 function createProxyToGetTemuData(req) {
   return async function (wholeUrl, mergeConfig = {}) {
-    const { method, body } = req
+    let { method, body } = req
+    method = method || 'POST'
     const { mallId, page, ...restBody } = body
     const headers = getHeaders(mallId)
     const isProxy = getIsProxy()

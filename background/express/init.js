@@ -7,8 +7,9 @@ const responseMiddleware = require('./middleware/responseMiddleware')
 const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
 const { getTemuTarget, getPort } = require('~store/user')
-const verifyPriceRouter = require('./api/verifyPrice')
 const mallRouter = require('./api/mall')
+const batchReportingActivities = require('./api/batchReportingActivities')
+const verifyPriceRouter = require('./api/verifyPrice')
 
 const app = express()
 // 使用cors中间件，允许所有来源的请求
@@ -53,6 +54,7 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
 
 
 app.use('/temu-agentseller/api/mall', mallRouter)
+app.use('/temu-agentseller/api/batchReportingActivities', batchReportingActivities)
 app.use('/temu-agentseller/api/verifyPrice', verifyPriceRouter)
 
 app.use('/temu-agentseller', createProxyMiddleware({

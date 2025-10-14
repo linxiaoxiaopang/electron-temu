@@ -16,6 +16,7 @@
     "make": "electron-forge make --platform=win32"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "axios": "^1.11.0",
     "body-parser": "^2.2.0",
     "core-js": "^3.8.3",
@@ -25,6 +26,7 @@
     "dayjs-timezone-iana-plugin": "^0.2.0",
     "electron-squirrel-startup": "^1.0.1",
     "eventemitter3": "^5.0.1",
+    "exceljs": "^4.4.0",
     "express": "^5.1.0",
     "get-port": "^7.1.0",
     "lodash": "^4.17.21",

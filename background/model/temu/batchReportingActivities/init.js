@@ -1,7 +1,7 @@
-const model = require('./define')
-const { InitSheet } = require('../../utils/initSheetUtils')
+const { requiredModelDefine } = require('../../utils/requireUtils')
 
-module.exports = new InitSheet({
-  model,
-  eventPath: 'temu.batchReportingActivities'
-})
+module.exports = {
+  async init() {
+    return await requiredModelDefine(__dirname)
+  }
+}
