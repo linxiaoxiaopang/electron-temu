@@ -46,15 +46,27 @@ class ViewMenu {
 
   appendTemuPlatform() {
     this.append({
-      label: 'temu平台',
-      click: () => {
-        let url = this.temuUrlList.default
-        const existMall = Object.keys(store?.user?.mallList).length > 0
-        if (existMall) {
-          url = this.temuUrlList.current
+      label: 'temu',
+      submenu: [
+        {
+          label: 'temu平台',
+          click: () => {
+            let url = this.temuUrlList.default
+            const existMall = Object.keys(store?.user?.mallList).length > 0
+            if (existMall) {
+              url = this.temuUrlList.current
+            }
+            this.loadUrl(url)
+          }
+        },
+        {
+          label: 'temu登出',
+          click: () => {
+            let url = this.temuUrlList.default
+            this.loadUrl(url)
+          }
         }
-        this.loadUrl(url)
-      }
+      ]
     })
   }
 
