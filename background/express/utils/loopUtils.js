@@ -1,5 +1,6 @@
 const { noop, merge } = require('lodash')
 const { getUUID } = require('../../utils/random')
+const { waitTimeByNum } = require('../../utils/sleep')
 
 // allSummary: {},
 // actionPromiseList: {},
@@ -13,12 +14,14 @@ class LoopRequest {
       req,
       res,
       cacheKey,
+      retryCount = 3,
       beforeLoopCallback = async () => [false, null],
       requestCallback = noop
     }
   ) {
     this.req = req
     this.res = res
+    this.retryCount = retryCount
     this.uuid = getUUID()
     this.abandon = false
     this.summary = {
@@ -61,17 +64,24 @@ class LoopRequest {
     return allRequestCache[cacheKey]
   }
 
-  clearCache(promise) {
-    delete this.allSummary[this.uuid]
+  clearCache(promise, response) {
+    const { success, message } = response
+    this.summary.isFinish = true
+    this.summary.success = success
+    this.summary.message = message
     let fIndex = this.actionPromiseList.findIndex(item => item === promise)
     this.actionPromiseList.splice(fIndex, 1)
     fIndex = this.instanceList.findIndex(item => item === this)
     this.instanceList.splice(fIndex, 1)
+    //5分钟后清理数据
+    setTimeout(() => {
+      delete this.allSummary[this.uuid]
+    }, 1000 * 60 * 5)
   }
 
   async abandonCacheInstanceRequest() {
     this.instanceList.map(item => {
-      if(item == this) return
+      if (item == this) return
       item.abandon = true
     })
     await this.wait()
@@ -81,7 +91,14 @@ class LoopRequest {
     const { summary } = this
     this.allSummary[this.uuid] = summary
     do {
-      const [err, taskRes] = await this.requestCallback(summary)
+      let [err, taskRes] = await this.requestCallback(summary)
+      if (err && this.retryCount >= 0) {
+        for (let i = 0; i < this.retryCount; i++) {
+          await waitTimeByNum((i + 1) * 1000)
+          ;[err, taskRes] = await this.requestCallback(summary)
+          if (!err) break
+        }
+      }
       if (err) throw taskRes
       if (this.abandon) throw '新任务进入，旧任务中断。'
       const { totalTasks, tasks, ...restRes } = taskRes
@@ -92,13 +109,15 @@ class LoopRequest {
   }
 
   async wait() {
-   return await Promise.all(this.actionPromiseList)
+    return await Promise.all(this.actionPromiseList)
   }
 
   async action() {
     const { requestUuid } = this.body
     if (requestUuid) {
       if (!this.allSummary[requestUuid]) return [true, '请求已取消']
+      const { isFinish, success, message } = this.allSummary[requestUuid]
+      if (isFinish && !success) return [true, message]
       return [false, this.allSummary[requestUuid]]
     }
     let resolveHandler = null
@@ -107,19 +126,25 @@ class LoopRequest {
       resolveHandler = resolve
     })
     this.actionPromiseList.push(p)
-    p.then(() => {
-      this.clearCache(p)
+    p.then((success) => {
+      this.clearCache(p, success)
     })
     try {
       const beforeLoopRes = await this.beforeLoopCallback(this)
       if (beforeLoopRes[0]) return beforeLoopRes
       await this.loop()
       return [false, this.allSummary[this.uuid]]
-    } catch (e) {
-      console.log('e', e)
-      return [true, e]
+    } catch (err) {
+      console.log('e', err)
+      resolveHandler({
+        success: false,
+        message: err
+      })
+      return [true, err]
     } finally {
-      resolveHandler()
+      resolveHandler({
+        success: true
+      })
     }
   }
 }

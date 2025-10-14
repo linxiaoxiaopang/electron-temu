@@ -1,4 +1,5 @@
 const path = require('path')
+const fs = require('fs').promises
 const axios = require('axios')
 const { app } = require('electron')
 const {
@@ -134,21 +135,21 @@ async function getSyncGenBatchReportingActivitiesTemplate(req, res, next) {
       if (startSuggestedActivityPrice && endSuggestedActivityPrice) {
         return `
           AND
-          json_extract(sku.value, '$.rawSuggestActivityPrice') > :startSuggestedActivityPrice 
+          json_extract(sku.value, '$.suggestActivityPrice') > :startSuggestedActivityPrice 
           AND
-          json_extract(sku.value, '$.rawSuggestActivityPrice') < :endSuggestedActivityPrice
+          json_extract(sku.value, '$.suggestActivityPrice') < :endSuggestedActivityPrice
         `
       }
       if (startSuggestedActivityPrice) {
         return `
           AND
-          json_extract(sku.value, '$.rawSuggestActivityPrice') > :startSuggestedActivityPrice
+          json_extract(sku.value, '$.suggestActivityPrice') > :startSuggestedActivityPrice
         `
       }
       if (endSuggestedActivityPrice) {
         return `
           AND
-          json_extract(sku.value, '$.rawSuggestActivityPrice') < :endSuggestedActivityPrice
+          json_extract(sku.value, '$.suggestActivityPrice') < :endSuggestedActivityPrice
         `
       }
     },
@@ -245,6 +246,7 @@ async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
   const filePaths = []
   const keys = Object.keys(excelInstanceList)
   const needZip = keys.length > 1
+  const contentType = needZip ? 'application/zip' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   for (let key in excelInstanceList) {
     const item = excelInstanceList[key]
     await item.commit()
@@ -264,7 +266,15 @@ async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
       return
     }
   }
-  res.customResult = [false, returnFilePath]
+  const fileBuffer = await fs.readFile(returnFilePath)
+  res.setHeader('Content-Type', contentType)
+  await fs.unlink(returnFilePath)
+  if (needZip) {
+    for (let item of filePaths) {
+      await fs.unlink(item)
+    }
+  }
+  res.customResult = [false, fileBuffer]
   next()
 
   function getFormatData(data) {

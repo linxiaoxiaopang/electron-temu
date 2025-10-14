@@ -22,7 +22,11 @@ module.exports = function (req, res, next) {
     }
   }
   try {
-    res.status(HTTP_STATUS_CODES.SUCCESS).json(resJson)
+    if (Buffer.isBuffer(resJson.data)) {
+      res.status(HTTP_STATUS_CODES.SUCCESS).send(resJson.data)
+    } else {
+      res.status(HTTP_STATUS_CODES.SUCCESS).json(resJson)
+    }
   } catch (err) {
     res.status(HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR).send('Failed to send response')
   }
