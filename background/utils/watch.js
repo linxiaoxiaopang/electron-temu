@@ -1,5 +1,6 @@
-const { session } = require('electron')
+const { session, ipcMain } = require('electron')
 const { emitter } = require('~/utils/event')
+const servicePromise = require('~/utils/service')
 
 function watchUserInfo() {
   const filter = {
@@ -11,6 +12,31 @@ function watchUserInfo() {
   })
 }
 
+function watchLogin() {
+  const filter = {
+    urls: ['https://seller.kuajingmaihuo.com/bg/quiet/api/mms/login']
+  }
+  let cacheUserInfo = {}
+  ipcMain.handle('window:dom:loginInfo', (event, userInfo) => {
+    cacheUserInfo = userInfo
+  })
+
+  session.defaultSession.webRequest.onCompleted(
+    filter,
+    async () => {
+      if (!cacheUserInfo.usernameId || !cacheUserInfo.passwordId) return
+      const service = await servicePromise
+      const response = await service({
+        method: 'post',
+        url: '/temu-agentseller/api/user/createUserAuth',
+        data: cacheUserInfo
+      })
+      return response
+    }
+  )
+}
+
 module.exports = {
-  watchUserInfo
+  watchUserInfo,
+  watchLogin
 }

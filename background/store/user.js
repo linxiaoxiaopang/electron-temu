@@ -2,6 +2,7 @@ const URL = require('url')
 const { uniq } = require('lodash')
 const { getUserInfo } = require('~express/controllers/user')
 const { emitter } = require('~utils/event')
+const { default: getPort } = require('get-port')
 
 const user = {
   apiMode: 'temu',
@@ -42,9 +43,12 @@ exports.getTemuTarget = function () {
   return exports.getIsProxy() ? 'http://192.168.10.81:3000/temu-agentseller' : 'https://agentseller.temu.com'
 }
 
+let p = null //promise
 exports.getPort = async function () {
   const { default: getPort } = require('get-port')
-  user.port = await getPort({ port: 3000 })
+  if(p) return await p
+  p = getPort({ port: 3000 })
+  user.port = await p
   return user.port
 }
 

@@ -3,7 +3,7 @@ const { indexPath } = require('~store/env.js')
 require('~/model')
 require('~/express/init')
 require('~/express/timer/verifyPrice')
-const { watchUserInfo } = require('~/utils/watch')
+const { watchUserInfo, watchLogin } = require('~/utils/watch')
 const { URL } = require('node:url')
 const { customIpc } = require('~/utils/event')
 const { ViewMenu, ViewTray } = require('~/utils/view')
@@ -32,8 +32,10 @@ customIpc.handle('proxyRequest', async (config = {}) => {
   }
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   watchUserInfo()
+  watchLogin()
+  await loadExtensions()
   initWindow()
   createMenu()
   createTray()
@@ -104,11 +106,27 @@ function initWindow() {
     collectTemuUrl(url)
   })
 
+
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
       window.close = () => {
         console.log('window.close() 已被重写');
         // window.electronAPI.invoke('window:close')
+      }
+      getLoginInfo()
+      function getLoginInfo() {
+         const usernameId = document.querySelector('#usernameId')
+         const passwordId = document.querySelector('#passwordId')
+         if(!usernameId || !passwordId) {
+          setTimeout(getLoginInfo, 200)
+          return
+         } 
+         document.querySelector('button[data-testid="beast-core-button"]').onclick = function() {
+            window.electronAPI.invoke('window:dom:loginInfo', {
+              usernameId: usernameId.value,
+              passwordId: passwordId.value
+           })
+         }
       }
   `)
   })
@@ -130,5 +148,20 @@ function collectTemuUrl(url) {
     const redirectUrl = urlInstance.searchParams.get('redirectUrl')
     temuUrlList.current = url
     if (redirectUrl) temuUrlList.current = redirectUrl
+  }
+}
+
+async function loadExtensions() {
+  // 插件路径（绝对路径）
+  const extensionPath = path.join(__dirname, './extension/passwordMange')
+
+  try {
+    // 加载插件
+    const extension = await session.defaultSession.extensions.loadExtension(extensionPath)
+    console.log('插件加载成功：', extension.name)
+
+    // 加载目标网页（插件会作用于该网页）
+  } catch (err) {
+    console.error('插件加载失败：', err)
   }
 }

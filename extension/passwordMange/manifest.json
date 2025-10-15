@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "页面加载提示",
+  "version": "1.0",
+  "description": "网页加载完成后弹出123",
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["https://seller.kuajingmaihuo.com/login/", "https://seller.kuajingmaihuo.com/login/*"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ]
+}

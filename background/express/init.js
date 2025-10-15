@@ -8,6 +8,7 @@ const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
 const { getTemuTarget, getPort } = require('~store/user')
 const mallRouter = require('./api/mall')
+const userRouter = require('./api/user')
 const batchReportingActivities = require('./api/batchReportingActivities')
 const verifyPriceRouter = require('./api/verifyPrice')
 
@@ -54,6 +55,7 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
 
 
 app.use('/temu-agentseller/api/mall', mallRouter)
+app.use('/temu-agentseller/api/user', userRouter)
 app.use('/temu-agentseller/api/batchReportingActivities', batchReportingActivities)
 app.use('/temu-agentseller/api/verifyPrice', verifyPriceRouter)
 
