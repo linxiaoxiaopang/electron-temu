@@ -110,7 +110,10 @@ function initWindow() {
 
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
-  
+       window.close = () => {
+        console.log('window.close() 已被重写');
+        // window.electronAPI.invoke('window:close')
+      }
       getLoginInfo()
       function getLoginInfo() {
          const usernameId = document.querySelector('#usernameId')
