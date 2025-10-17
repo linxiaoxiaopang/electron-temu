@@ -6,6 +6,7 @@ require('~/express/timer/verifyPrice')
 const { watchUserInfo, watchLogin } = require('~/utils/watch')
 const { URL } = require('node:url')
 const { customIpc } = require('~/utils/event')
+const { getPathToRoot } = require('~/utils/path')
 const { ViewMenu, ViewTray } = require('~/utils/view')
 const { app, BrowserWindow, Tray, Menu, ipcMain, session, MenuItem } = require('electron')
 const path = require('path')
@@ -109,10 +110,7 @@ function initWindow() {
 
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(`
-      window.close = () => {
-        console.log('window.close() 已被重写');
-        // window.electronAPI.invoke('window:close')
-      }
+  
       getLoginInfo()
       function getLoginInfo() {
          const usernameId = document.querySelector('#usernameId')
@@ -153,7 +151,7 @@ function collectTemuUrl(url) {
 
 async function loadExtensions() {
   // 插件路径（绝对路径）
-  const extensionPath = path.join(__dirname, './extension/passwordMange')
+  const extensionPath = getPathToRoot('extension/passwordMange')
 
   try {
     // 加载插件

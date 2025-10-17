@@ -1,8 +1,8 @@
 const fs = require('fs')
 const path = require('path')
-const { app } = require('electron')
 const ExcelJS = require('exceljs')
 const { isArray, isFunction } = require('lodash')
+const { getPathToRoot } = require('~/utils/path')
 
 class GenerateSheet {
   constructor(
@@ -61,7 +61,7 @@ class ExportExcel {
       sheetOption = []
     }
   ) {
-    const outputPath = this.outputPath = path.join(app.getAppPath(), filename)
+    const outputPath = this.outputPath = getPathToRoot(filename)
     const dirPath = path.dirname(outputPath)
     this.sheetOptionList = this.formatSheetOption(sheetOption)
     fs.mkdirSync(dirPath, { recursive: true })

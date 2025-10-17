@@ -1,7 +1,5 @@
-const path = require('path')
 const fs = require('fs').promises
 const axios = require('axios')
-const { app } = require('electron')
 const {
   getGenBatchReportingActivitiesTemplateData,
   getActivityThematicList
@@ -13,6 +11,7 @@ const { flatMapDeepByArray } = require('~/utils/array')
 const { ExportExcel } = require('~/utils/excel')
 const { formatTime } = require('~/utils/date')
 const { zipFiles } = require('~/utils/zip')
+const { getPathToRoot } = require('~/utils/path')
 const { get, groupBy, uniqBy } = require('lodash')
 
 async function syncGenBatchReportingActivitiesTemplate(req, res, next) {
@@ -257,7 +256,7 @@ async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
   if (needZip) {
     const date = formatTime(new Date(), 'yyyy-MM-dd-hh-mm-ss')
     const name = date + '_' + '批量报活动'
-    returnFilePath = path.join(app.getAppPath(), `./static/zip/batchReportingActivitiesTemplate/${name}.zip`)
+    returnFilePath = getPathToRoot(`static/zip/batchReportingActivitiesTemplate/${name}.zip`)
     try {
       await zipFiles(filePaths, returnFilePath)
     } catch (err) {
@@ -393,7 +392,7 @@ async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
     ]
     let uniqData = []
     const exportExcelInstance = new ExportExcel({
-      filename: `./static/excel/batchReportingActivitiesTemplate/${filename}.xlsx`,
+      filename: `static/excel/batchReportingActivitiesTemplate/${filename}.xlsx`,
       sheetOption: [
         {
           headers: exportDataExcelColumn.map(item => {
