@@ -2,7 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 const { emitter } = require('~/utils/event')
-const { createProxyMiddleware, createProxyToGetTemuData } = require('./middleware/proxyMiddleware')
+const { createProxyMiddleware } = require('./middleware/proxyMiddleware')
 const responseMiddleware = require('./middleware/responseMiddleware')
 const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
@@ -27,32 +27,6 @@ app.post('/setHeaders', async (req, res, next) => {
   res.customResult = [false, true]
   next()
 })
-
-app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', async (req, res, next) => {
-  const { body } = req
-  const relativeUrl = req.originalUrl.replace(/^\/temu-agentseller/, '')
-  const wholeUrl = `${getTemuTarget()}${relativeUrl}`
-  const getData = createProxyToGetTemuData(req)
-  let response = {
-    hasMore: false,
-    matchList: []
-  }
-  let err = null
-  const matchList = response.matchList
-  const { mallId, ...restBody } = body
-  do {
-    const data = await getData(wholeUrl, { data: restBody })
-    const result = data?.result
-    if (!result) err = true
-    response.hasMore = result?.hasMore
-    matchList.push(...(result?.matchList || []))
-    restBody.searchScrollContext = result?.searchScrollContext
-  } while (response?.hasMore)
-  res.noUseProxy = true
-  res.customResult = [err, response]
-  next()
-})
-
 
 app.use('/temu-agentseller/api/mall', mallRouter)
 app.use('/temu-agentseller/api/user', userRouter)
