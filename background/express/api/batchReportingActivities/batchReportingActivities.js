@@ -5,8 +5,17 @@ const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 
 async function syncBatchReportingActivities(req, res, next) {
   let { mallId, activityType } = req.body
-  if (!mallId) return [true, '请选择店铺']
-  if (!activityType) return [true, '活动不能为空']
+  res.noUseProxy = true
+  if (!mallId) {
+    res.customResult = [true, '请选择店铺']
+    next()
+    return
+  }
+  if (!activityType) {
+    res.customResult = [true, '活动不能为空']
+    next()
+    return
+  }
   const cacheKey = `${mallId}_syncBatchReportingActivities`
   const instance = new LoopRequest({
     req,
@@ -18,7 +27,8 @@ async function syncBatchReportingActivities(req, res, next) {
     await instance.abandonCacheInstanceRequest()
   }
   const query = {
-    activityType
+    activityType,
+    rowCount: 50
   }
   instance.beforeLoopCallback = async () => {
     return await customIpcRenderer.invoke('db:temu:batchReportingActivities:delete', {
@@ -62,7 +72,6 @@ async function syncBatchReportingActivities(req, res, next) {
       tasks
     }]
   }
-  res.noUseProxy = true
   res.customResult = await instance.action()
   next()
 

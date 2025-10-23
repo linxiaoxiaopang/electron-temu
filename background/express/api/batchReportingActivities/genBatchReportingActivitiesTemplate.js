@@ -16,8 +16,17 @@ const { get, groupBy, uniqBy } = require('lodash')
 
 async function syncGenBatchReportingActivitiesTemplate(req, res, next) {
   let { mallId, list } = req.body
-  if (!mallId) return [true, '请选择店铺']
-  if (!list?.length) return [true, '活动不能为空']
+  res.noUseProxy = true
+  if (!mallId) {
+    res.customResult = [true, '请选择店铺']
+    next()
+    return
+  }
+  if (!list?.length) {
+    res.customResult = [true, '活动不能为空']
+    next()
+    return
+  }
   const cacheKey = `${mallId}_syncGenBatchReportingActivitiesTemplate`
   const instance = new LoopRequest({
     req,
@@ -48,7 +57,6 @@ async function syncGenBatchReportingActivitiesTemplate(req, res, next) {
   instance.requestCallback = async () => {
     if (instance.summary.totalTasks == 0) {
       totalTasks = await getTotal()
-      res.noUseProxy = true
       res.customResult = [false, {
         totalTasks,
         requestUuid: instance.uuid,
@@ -80,7 +88,6 @@ async function syncGenBatchReportingActivitiesTemplate(req, res, next) {
       tasks
     }]
   }
-  res.noUseProxy = true
   res.customResult = await instance.action()
   next()
 
@@ -159,7 +166,12 @@ async function getSyncGenBatchReportingActivitiesTemplate(req, res, next) {
 
 async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
   const { body, body: { mallId }, protocol, host } = req
-  if (!mallId) return [true, '请选择店铺']
+  res.noUseProxy = true
+  if (!mallId) {
+    res.customResult = [true, '请选择店铺']
+    next()
+    return
+  }
   const cacheKey = `${mallId}_exportGenBatchReportingActivitiesTemplate`
   const instance = new LoopRequest({
     req,
@@ -216,7 +228,6 @@ async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
     filePaths.push(item.outputPath)
   }
   let returnFilePath = filePaths[0] || ''
-  res.noUseProxy = true
   if (needZip) {
     const date = formatTime(new Date(), 'yyyy-MM-dd-hh-mm-ss')
     const name = date + '_' + '批量报活动'
