@@ -73,6 +73,18 @@ class CreateServer {
     }
   }
 
+  static getFirstTableName(sql) {
+    // 匹配第一个表名的正则
+    const regex = /(?:\b(?:FROM|UPDATE|INSERT\s+INTO|JOIN|FROM\s+ONLY)\s+)(?!\()([\w`"'\[\]]+)/i;
+    const match = sql.match(regex);
+
+    if (match) {
+      // 去除表名中的引号/反引号/方括号
+      return match[1].replace(/[`"'[\]]/g, '');
+    }
+    return null; // 未匹配到表名
+  }
+
   /**
    * 将原始SELECT查询SQL转换为COUNT统计查询
    * @param {string} originalSql - 原始SQL语句（如SELECT DISTINCT t.* FROM ...）
@@ -81,10 +93,10 @@ class CreateServer {
   static convertToCountSql(originalSql) {
     // 正则表达式：匹配 SELECT DISTINCT t.* 部分，并替换为 COUNT(DISTINCT t.id)
     // 适配各种格式（如换行、空格差异）
-    const regex = /SELECT\s+DISTINCT\s+t\.\*\s+/i
-
+    const regex = /SELECT .+? from/i
+    const table = CreateServer.getFirstTableName(originalSql)
     // 替换为 COUNT(DISTINCT t.id) AS total，并保留FROM及之后的部分
-    const countSql = originalSql.replace(regex, 'SELECT COUNT(DISTINCT t.id) AS total ')
+    const countSql = originalSql.replace(regex, `SELECT COUNT(DISTINCT ${table}.id) AS total from`)
 
     return countSql
   }

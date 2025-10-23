@@ -89,7 +89,6 @@ async function syncBatchReportingActivities(req, res, next) {
   }
 }
 
-
 async function getSyncBatchReportingActivities(req, res, next) {
   const { body } = req
   let { mallId, page, filter = {} } = body
