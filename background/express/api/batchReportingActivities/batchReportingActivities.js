@@ -1,6 +1,7 @@
 const { LoopRequest } = require('~express/utils/loopUtils')
 const { customIpcRenderer } = require('~utils/event')
 const { getBatchReportingActivitiesData } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
+const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 
 async function syncBatchReportingActivities(req, res, next) {
   let { mallId, activityType } = req.body
@@ -89,6 +90,112 @@ async function syncBatchReportingActivities(req, res, next) {
 }
 
 
+async function getSyncBatchReportingActivities(req, res, next) {
+  const { body } = req
+  let { mallId, page, filter = {} } = body
+  const buildSqlInstance = new BuildSql({
+    table: 'batchReportingActivities',
+    selectModifier: 'DISTINCT',
+    query: {
+      ...filter,
+      mallId
+    },
+    column: [
+      {
+        prop: 'mallId',
+        value: mallId
+      },
+      {
+        prop: 'json:json.productName',
+        queryProp: 'titleFiltering'
+      },
+      {
+        prop: 'json:json.productId[op:in]',
+        queryProp: 'spuId'
+      },
+      {
+        prop: 'json:json.skcList[*].extCode[op:in]',
+        queryProp: 'skcExtCode'
+      },
+      {
+        prop: 'json:json.skcList[*].extCode[op:in]',
+        queryProp: 'skcExtCodeMatch',
+        value(prop, query) {
+          const item = query[this.prop]
+          if (!item) return
+          return likeMatch(item.matchType, item.matchContent)
+        }
+      },
+      {
+        prop: 'json:json.skcList[*].skcList[*].skuList[*].extCode[op:in]',
+        queryProp: 'skuExtCode'
+      },
+      {
+        prop: 'json:json.skcList[*].skuList[*].extCode[op:like]',
+        queryProp: 'skuExtCodeMatch',
+        value(prop, query) {
+          const item = query[prop]
+          if (!item) return
+          return likeMatch(item.matchType, item.matchContent)
+        }
+      },
+      {
+        prop: 'json:json.sites[*].siteId[op:in]',
+        queryProp: 'semiManagedSiteIds'
+      },
+      {
+        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+        queryProp: 'dailyPriceRange',
+        value(prop, query) {
+          const item = query[prop]
+          if (!item) return
+          return item?.min || 0
+        }
+      },
+      {
+        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
+        queryProp: 'dailyPriceRange',
+        value(prop, query) {
+          const item = query[prop]
+          if (!item) return
+          return item?.max || 0
+        }
+      },
+      {
+        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>]',
+        queryProp: 'suggestActivityPriceRange',
+        value(prop, query) {
+          const item = query[prop]
+          if (!item) return
+          return item?.min || 0
+        }
+      },
+      {
+        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:<=]',
+        queryProp: 'suggestActivityPriceRange',
+        value(prop, query) {
+          const item = query[prop]
+          if (!item) return
+          return item?.max || 0
+        }
+      }
+    ]
+  })
+  const sql = buildSqlInstance.generateSql()
+  res.customResult = await customIpcRenderer.invoke('db:temu:batchReportingActivities:query', {
+    sql,
+    page
+  })
+  if (!res.customResult[0]) {
+    res.customResult[1] = res.customResult[1].map(item => {
+      return JSON.parse(item.json)
+    })
+  }
+  res.noUseProxy = true
+  next()
+}
+
 module.exports = {
-  syncBatchReportingActivities
+  syncBatchReportingActivities,
+  getSyncBatchReportingActivities
 }
