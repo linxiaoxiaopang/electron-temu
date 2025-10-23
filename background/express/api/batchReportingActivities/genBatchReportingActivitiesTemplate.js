@@ -6,7 +6,7 @@ const {
 } = require('~express/controllers/batchReportingActivities/genBatchReportingActivitiesTemplate')
 const { LoopRequest } = require('../../utils/loopUtils')
 const { customIpcRenderer } = require('~/utils/event')
-const { buildSQL } = require('~express/utils/sqlUtils')
+const { BuildSql } = require('~express/utils/sqlUtils')
 const { flatMapDeepByArray } = require('~/utils/array')
 const { ExportExcel } = require('~/utils/excel')
 const { formatTime } = require('~/utils/date')
@@ -120,69 +120,33 @@ async function syncGenBatchReportingActivitiesTemplate(req, res, next) {
 
 async function getSyncGenBatchReportingActivitiesTemplate(req, res, next) {
   const { body } = req
-  let { mallId, page, activityCodeList, startSuggestedActivityPrice, endSuggestedActivityPrice } = body
-  const replacements = {
-    $1: {
-      condition: startSuggestedActivityPrice || endSuggestedActivityPrice,
-      content: `
-        ,json_each(json_extract(t.json, '$.activitySiteInfoList')) AS site,
-         json_each(json_extract(site.value, '$.skcList')) AS skc,
-         json_each(json_extract(skc.value, '$.skuList')) AS sku
-      `
-    },
-    $2: () => {
-      if (startSuggestedActivityPrice && endSuggestedActivityPrice) {
-        return `
-          AND
-          json_extract(sku.value, '$.suggestActivityPrice') > :startSuggestedActivityPrice 
-          AND
-          json_extract(sku.value, '$.suggestActivityPrice') < :endSuggestedActivityPrice
-        `
+  let { page } = body
+  const buildSqlInstance = new BuildSql({
+    table: 'genBatchReportingActivitiesTemplate',
+    selectModifier: 'DISTINCT',
+    query: body,
+    column: [
+      {
+        prop: 'mallId'
+      },
+      {
+        prop: 'json:json.activityCode',
+        queryProp: 'activityCodeList'
+      },
+      {
+        prop: 'json:json.activitySiteInfoList[*].skcList[*].skuList[*].suggestActivityPrice[op:>]',
+        queryProp: 'startSuggestedActivityPrice'
+      },
+      {
+        prop: 'json:json.activitySiteInfoList[*].skcList[*].skuList[*].suggestActivityPrice[op:<]',
+        queryProp: 'endSuggestedActivityPrice'
       }
-      if (startSuggestedActivityPrice) {
-        return `
-          AND
-          json_extract(sku.value, '$.suggestActivityPrice') > :startSuggestedActivityPrice
-        `
-      }
-      if (endSuggestedActivityPrice) {
-        return `
-          AND
-          json_extract(sku.value, '$.suggestActivityPrice') < :endSuggestedActivityPrice
-        `
-      }
-    },
-    $3: {
-      condition: activityCodeList?.length,
-      content: `
-            AND
-            json_extract(t.json, '$.activityCode') 
-            IN (:activityCodeList)
-        `
-    }
-  }
-  const replaceSql = `
-    SELECT DISTINCT
-       t.* 
-      FROM
-       genBatchReportingActivitiesTemplate t
-       $1
-      WHERE
-       t.mallId = :mallId
-       $2
-       $3
-  `
-
-  const sql = buildSQL(replaceSql, replacements)
+    ]
+  })
+  const sql = buildSqlInstance.generateSql()
   res.customResult = await customIpcRenderer.invoke('db:temu:genBatchReportingActivitiesTemplate:query', {
     sql,
-    page,
-    replacements: {
-      mallId,
-      activityCodeList,
-      startSuggestedActivityPrice,
-      endSuggestedActivityPrice
-    }
+    page
   })
   if (!res.customResult[0]) {
     res.customResult[1] = res.customResult[1].map(item => {

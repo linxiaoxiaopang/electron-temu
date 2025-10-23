@@ -1,22 +1,4 @@
-const { isString, isFunction, isPlainObject, cloneDeep, isUndefined, isArray } = require('lodash')
-
-function buildSQL(sql, replacements = []) {
-  for (let key in replacements) {
-    const item = replacements[key]
-    const keyword = escapeRegExp(key)
-    const regex = new RegExp(`(?<![a-zA-Z0-9_])${keyword}(?![a-zA-Z0-9_])`, 'g')
-    if (isString(item)) {
-      sql = sql.replace(regex, item || '')
-    }
-    if (isFunction(item)) {
-      sql = sql.replace(regex, item() || '')
-    }
-    if (isPlainObject(item)) {
-      sql = sql.replace(regex, item.condition ? item.content : '')
-    }
-  }
-  return sql
-}
+const { isString, isFunction, cloneDeep, isUndefined, isArray } = require('lodash')
 
 
 class BuildSql {
@@ -79,7 +61,7 @@ class BuildSql {
     column.map(item => {
       let { queryProp, prop } = item
       queryProp = queryProp || prop
-      if (typeof item.value == 'function') {
+      if (isFunction(item.value)) {
         item.value = item.value(queryProp, query, this)
         return
       }
@@ -182,6 +164,12 @@ class BuildSql {
     return { joins, extractExpr, lastAlias: currentAlias }
   }
 
+  escapeValue(value) {
+    if (isArray(value))  return value.map(item => this.escapeValue(item))
+    if(isString(value)) return `'${value.replace(/'/g, "''")}'`
+    return value
+  }
+
   generateWhereClauses() {
     const { where } = this
     const whereClauses = []
@@ -211,12 +199,12 @@ class BuildSql {
       // 步骤4：处理参数值（添加单引号等区分符号）
       let processedValue = value
 
-      if (typeof value === 'string') {
-        processedValue = `'${value.replace(/'/g, "''")}'` // 转义单引号
+      if (isString(value)) {
+        processedValue = this.escapeValue(value) // 转义单引号
       }
 
       if (/^in$/ig.test(operator)) {
-        processedValue = `(${value})`
+        processedValue = `(${this.escapeValue(value)})`
       }
 
       // 步骤5：解析JSON路径并生成条件
@@ -305,9 +293,6 @@ class BuildSql {
   }
 }
 
-function escapeRegExp(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
 const matchList = {
   all: (value) => {
     return value
@@ -328,8 +313,6 @@ function likeMatch(type, value) {
 }
 
 module.exports = {
-  buildSQL,
   BuildSql,
-  escapeRegExp,
   likeMatch
 }
