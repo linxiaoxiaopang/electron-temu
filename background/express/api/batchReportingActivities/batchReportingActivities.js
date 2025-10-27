@@ -4,7 +4,7 @@ const { getBatchReportingActivitiesData } = require('~express/controllers/batchR
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 
 async function syncBatchReportingActivities(req, res, next) {
-  let { mallId, activityType } = req.body
+  let { mallId, activityType, activityLabelTag, activityThematicId } = req.body
   res.noUseProxy = true
   if (!mallId) {
     res.customResult = [true, '请选择店铺']
@@ -60,6 +60,9 @@ async function syncBatchReportingActivities(req, res, next) {
     const syncData = matchList.map(item => {
       return {
         mallId,
+        activityType,
+        activityLabelTag,
+        activityThematicId,
         json: item
       }
     })
@@ -100,32 +103,57 @@ async function syncBatchReportingActivities(req, res, next) {
 
 async function getSyncBatchReportingActivities(req, res, next) {
   const { body } = req
-  let { mallId, page, filter = {} } = body
+  let {
+    page,
+    filter = {},
+    ...restFilter
+  } = body
   const buildSqlInstance = new BuildSql({
     table: 'batchReportingActivities',
     selectModifier: 'DISTINCT',
     query: {
       ...filter,
-      mallId
+      ...restFilter
     },
     column: [
       {
-        prop: 'mallId',
-        value: mallId
+        label: '店铺Id',
+        prop: 'mallId'
       },
       {
-        prop: 'json:json.productName',
-        queryProp: 'titleFiltering'
+        label: '活动类型',
+        prop: 'activityType'
       },
       {
+        label: '活动标签',
+        prop: 'activityLabelTag'
+      },
+      {
+        label: '活动主题ID',
+        prop: 'activityThematicId'
+      },
+      {
+        label: 'SPU ID',
         prop: 'json:json.productId[op:in]',
         queryProp: 'spuId'
       },
       {
+        label: 'SKC ID',
+        prop: 'json:json.skcList[*].skcId[op:in]',
+        queryProp: 'skcId'
+      },
+      {
+        label: 'SKU ID',
+        prop: 'json:json.skcList[*].skcList[*].skuList[*].skuId[op:in]',
+        queryProp: 'skuId'
+      },
+      {
+        label: 'SKC货号',
         prop: 'json:json.skcList[*].extCode[op:in]',
         queryProp: 'skcExtCode'
       },
       {
+        label: 'SKC货号-模糊匹配',
         prop: 'json:json.skcList[*].extCode[op:in]',
         queryProp: 'skcExtCodeMatch',
         value(prop, query) {
@@ -135,10 +163,12 @@ async function getSyncBatchReportingActivities(req, res, next) {
         }
       },
       {
+        label: 'SKU货号',
         prop: 'json:json.skcList[*].skcList[*].skuList[*].extCode[op:in]',
         queryProp: 'skuExtCode'
       },
       {
+        label: 'SKU货号-模糊匹配',
         prop: 'json:json.skcList[*].skuList[*].extCode[op:like]',
         queryProp: 'skuExtCodeMatch',
         value(prop, query) {
@@ -148,10 +178,7 @@ async function getSyncBatchReportingActivities(req, res, next) {
         }
       },
       {
-        prop: 'json:json.sites[*].siteId[op:in]',
-        queryProp: 'semiManagedSiteIds'
-      },
-      {
+        label: '最小日常申报价格',
         prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
         queryProp: 'dailyPriceRange',
         value(prop, query) {
@@ -161,6 +188,7 @@ async function getSyncBatchReportingActivities(req, res, next) {
         }
       },
       {
+        label: '最大日常申报价格',
         prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
         queryProp: 'dailyPriceRange',
         value(prop, query) {
@@ -170,6 +198,7 @@ async function getSyncBatchReportingActivities(req, res, next) {
         }
       },
       {
+        label: '最小参考申报价格',
         prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>]',
         queryProp: 'suggestActivityPriceRange',
         value(prop, query) {
@@ -179,6 +208,7 @@ async function getSyncBatchReportingActivities(req, res, next) {
         }
       },
       {
+        label: '最大参考申报价格',
         prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:<=]',
         queryProp: 'suggestActivityPriceRange',
         value(prop, query) {
@@ -186,6 +216,10 @@ async function getSyncBatchReportingActivities(req, res, next) {
           if (!item) return
           return item?.max || 0
         }
+      },
+      {
+        prop: 'json:json.sites[*].siteId[op:in]',
+        queryProp: 'semiManagedSiteIds'
       }
     ]
   })
