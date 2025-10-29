@@ -101,6 +101,7 @@ WHERE json_extract(item.value, '$.extCode') like :pattern and t.mallId = :mallId
   res.customResult = await customIpcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:query', {
     sql,
     page,
+    usedJsonProp: 'json',
     replacements: {
       mallId,
       pattern: extCodeLike ? `%${extCodeLike}%` : '%'
@@ -108,9 +109,7 @@ WHERE json_extract(item.value, '$.extCode') like :pattern and t.mallId = :mallId
   })
   if (!res.customResult[0]) {
     res.customResult[1] = {
-      dataList: res.customResult[1].map(item => {
-        return JSON.parse(item.json)
-      }),
+      dataList: res.customResult[1],
       total: res.customResult[2]?.page?.total
     }
   }

@@ -1,4 +1,4 @@
-const { isArray } = require('lodash')
+const { isArray, uniq, get } = require('lodash')
 const { formatTimeZoneAndTime } = require('../../timeUtils')
 
 class ResDataFormatter {
@@ -21,6 +21,17 @@ class ResDataFormatter {
     return [jsonToObjectProps]
   }
 
+  get usedJsonProp() {
+    return this.req?.usedJsonProp
+  }
+
+  get finalJsonToObjectProps() {
+    const tmpArr = []
+    tmpArr.push(...this.jsonToObjectProps)
+    if (this.usedJsonProp) tmpArr.push(this.usedJsonProp)
+    return uniq(tmpArr)
+  }
+
   formatTime(resItem) {
     if (!resItem) return
     if (resItem.createTime) {
@@ -32,7 +43,7 @@ class ResDataFormatter {
   }
 
   parseJson(resItem) {
-    this.jsonToObjectProps.map(prop => {
+    this.finalJsonToObjectProps.map(prop => {
       if (!resItem[prop]) return
       resItem[prop] = JSON.parse(resItem[prop])
     })
@@ -44,7 +55,7 @@ class ResDataFormatter {
     return resItem
   }
 
-  action() {
+  formatData() {
     const data = this.res.data
     if (isArray(data)) {
       return data.map(item => {
@@ -52,6 +63,23 @@ class ResDataFormatter {
       })
     }
     return this.format(data)
+  }
+
+  useJsonReplaceItem() {
+    if (!this.usedJsonProp) return
+    let data = this.res.data
+    if (isArray(data)) {
+      this.res.data = data.map(item => {
+        return get(item, this.usedJsonProp, {})
+      })
+    } else {
+      this.res.data = get(data, this.usedJsonProp, {})
+    }
+  }
+
+  action() {
+    this.formatData()
+    this.useJsonReplaceItem()
   }
 }
 

@@ -224,13 +224,9 @@ async function list(req, res, next) {
   const sql = buildSqlInstance.generateSql()
   res.customResult = await customIpcRenderer.invoke('db:temu:batchReportingActivities:query', {
     sql,
-    page
+    page,
+    usedJsonProp: 'json'
   })
-  if (!res.customResult[0]) {
-    res.customResult[1] = res.customResult[1].map(item => {
-      return JSON.parse(item.json)
-    })
-  }
   next()
 }
 
