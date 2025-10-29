@@ -7,21 +7,18 @@ async function getUserAuthList(req, res, next) {
     where,
     page
   })
-  res.noUseProxy = true
   next()
 }
 
 async function updateUserAuth(req, res, next) {
   const { body } = req
   res.customResult = await customIpcRenderer.invoke('db:temu:userAuth:batchUpdate', body)
-  res.noUseProxy = true
   next()
 }
 
 async function createUserAuth(req, res, next) {
   const { body } = req
   res.customResult = await customIpcRenderer.invoke('db:temu:userAuth:add', body)
-  res.noUseProxy = true
   next()
 }
 

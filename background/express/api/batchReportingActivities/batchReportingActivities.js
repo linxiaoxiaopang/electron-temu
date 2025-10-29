@@ -5,7 +5,6 @@ const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 
 async function syncBatchReportingActivities(req, res, next) {
   let { mallId, activityType, activityLabelTag, activityThematicId } = req.body
-  res.noUseProxy = true
   if (!mallId) {
     res.customResult = [true, '请选择店铺']
     next()
@@ -42,7 +41,6 @@ async function syncBatchReportingActivities(req, res, next) {
   instance.requestCallback = async () => {
     if (instance.summary.totalTasks == 0) {
       totalTasks = await getTotal()
-      res.noUseProxy = true
       res.customResult = [false, {
         totalTasks,
         requestUuid: instance.uuid,
@@ -233,7 +231,6 @@ async function getSyncBatchReportingActivities(req, res, next) {
       return JSON.parse(item.json)
     })
   }
-  res.noUseProxy = true
   next()
 }
 

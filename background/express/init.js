@@ -49,7 +49,6 @@ app.post('/temu-agentseller/api/kiana/gamblers/marketing/enroll/scroll/match', a
     matchList.push(...(result?.matchList || []))
     restBody.searchScrollContext = result?.searchScrollContext
   } while (response?.hasMore)
-  res.noUseProxy = true
   res.customResult = [err, response]
   next()
 })
@@ -60,7 +59,7 @@ app.use('/temu-agentseller/api/user', userRouter)
 app.use('/temu-agentseller/api/batchReportingActivities', batchReportingActivities)
 app.use('/temu-agentseller/api/verifyPrice', verifyPriceRouter)
 
-app.use('/temu-agentseller', createProxyMiddleware({
+app.use('/temu-agentseller/api/kiana', createProxyMiddleware({
   target: () => {
     return getTemuTarget()
   }

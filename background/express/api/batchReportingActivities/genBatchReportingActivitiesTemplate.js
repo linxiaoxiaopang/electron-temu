@@ -16,7 +16,6 @@ const { get, groupBy, uniqBy } = require('lodash')
 
 async function syncGenBatchReportingActivitiesTemplate(req, res, next) {
   let { mallId, list } = req.body
-  res.noUseProxy = true
   if (!mallId) {
     res.customResult = [true, '请选择店铺']
     next()
@@ -160,13 +159,11 @@ async function getSyncGenBatchReportingActivitiesTemplate(req, res, next) {
       return JSON.parse(item.json)
     })
   }
-  res.noUseProxy = true
   next()
 }
 
 async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
   const { body, body: { mallId }, protocol, host } = req
-  res.noUseProxy = true
   if (!mallId) {
     res.customResult = [true, '请选择店铺']
     next()

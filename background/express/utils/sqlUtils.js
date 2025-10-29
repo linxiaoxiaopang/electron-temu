@@ -24,7 +24,7 @@ class BuildSql {
   }
 
   get fields() {
-    return this.option?.fields || ['*']
+    return this.option?.fields || [`${this.table}.*`]
   }
 
   get selectModifier() {

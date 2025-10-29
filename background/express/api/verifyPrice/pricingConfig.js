@@ -9,7 +9,6 @@ async function getPricingConfig(req, res, next) {
   response = response?.[0]
   if (response) response.currentServeTimestamp = Date.now()
   res.customResult = [err, response]
-  res.noUseProxy = true
   next()
 }
 
@@ -25,7 +24,6 @@ async function setPricingConfig(req, res, next) {
   }
   if (response) response.currentServeTimestamp = Date.now()
   res.customResult = [err, response]
-  res.noUseProxy = true
   next()
 }
 
@@ -36,7 +34,6 @@ async function getPricingConfigHistory(req, res, next) {
     where,
     page
   })
-  res.noUseProxy = true
   next()
 }
 

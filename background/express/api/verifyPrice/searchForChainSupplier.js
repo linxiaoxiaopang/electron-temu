@@ -8,7 +8,6 @@ async function getSearchForChainSupplier(req, res, next) {
     req,
     query
   })
-  res.noUseProxy = true
   res.customResult = [false, response?.data]
   next()
 }
@@ -49,7 +48,6 @@ async function syncSearchForChainSupplier(req, res, next) {
     const response2 = await customIpcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:add', syncData)
     if (response2[0]) return response2
     if (startPageNum == 1) {
-      res.noUseProxy = true
       res.customResult = [false, {
         totalTasks,
         requestUuid: instance.uuid,
@@ -62,7 +60,6 @@ async function syncSearchForChainSupplier(req, res, next) {
       tasks
     }]
   }
-  res.noUseProxy = true
   res.customResult = await instance.action()
   next()
 
@@ -127,7 +124,6 @@ WHERE json_extract(item.value, '$.extCode') like :pattern and t.mallId = :mallId
       total: res.customResult[2]?.page?.total
     }
   }
-  res.noUseProxy = true
   next()
 }
 
@@ -155,7 +151,6 @@ async function getSyncSearchForChainSupplierMinSuggestSupplyPrice(req, res, next
       pattern: extCodeLike ? `%${extCodeLike}%` : '%'
     }
   })
-  res.noUseProxy = true
   next()
 }
 

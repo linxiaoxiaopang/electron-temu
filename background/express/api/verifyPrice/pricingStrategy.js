@@ -22,7 +22,6 @@ async function getLatestPricingStrategy(req, res, next) {
   res.customResult = await customIpcRenderer.invoke('db:temu:latestPricingStrategy:find', {
     where
   })
-  res.noUseProxy = true
   next()
 }
 
@@ -33,13 +32,11 @@ async function getPricingStrategyHistory(req, res, next) {
     where,
     page
   })
-  res.noUseProxy = true
   next()
 }
 
 async function updateCreatePricingStrategy(req, res, next) {
   res.customResult = await toUpdateCreatePricingStrategy(req)
-  res.noUseProxy = true
   next()
 }
 
@@ -105,7 +102,6 @@ async function validatePricingStrategy(req, res, next) {
     const uniqErrorData = map(uniqBy(rawErrorData, 'extCode'), 'extCode')
     errorData.push(...uniqErrorData)
     if (query.page.pageIndex == 1) {
-      res.noUseProxy = true
       res.customResult = [false, {
         errorData,
         requestUuid: instance.uuid,
@@ -121,7 +117,6 @@ async function validatePricingStrategy(req, res, next) {
       errorData
     }]
   }
-  res.noUseProxy = true
   res.customResult = await instance.action()
   next()
 }
@@ -142,7 +137,6 @@ async function updateCreatePricingStrategyPassSetting(req, res, next) {
   })
   const dataList = response?.data?.data?.dataList || []
   res.customResult = [false, dataList]
-  res.noUseProxy = true
   next()
 }
 

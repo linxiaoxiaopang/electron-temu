@@ -5,7 +5,6 @@ const router = express.Router()
 
 router.post('/getMallList', async (req, res, next) => {
   const mallIds = getMallIds()
-  res.noUseProxy = true
   if (!mallIds.length) {
     res.customResult = [true, '店铺信息为空']
     next()
