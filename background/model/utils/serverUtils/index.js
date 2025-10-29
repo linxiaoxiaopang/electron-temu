@@ -164,7 +164,6 @@ class CreateServer {
 
   async query(req) {
     const chain = new ServerWare()
-    req.convertToCount = true
     chain
       .use(reqFormatter)
       .use(async (ctx, next) => {

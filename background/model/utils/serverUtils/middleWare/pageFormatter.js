@@ -2,10 +2,10 @@ const sequelize = require('~model/temu/db')
 
 module.exports = async function (ctx, next) {
   const { req, res, server } = ctx
-  const { sql, page, pageQuery, whereQuery, convertToCount, replacements } = req
+  const { sql, page, pageQuery, whereQuery, replacements } = req
   if (!pageQuery) return next()
   let total = 0
-  if (convertToCount) {
+  if (sql) {
     const [totalRes] = await sequelize.query(convertToCountSql(sql), {
       replacements,
       // 打印生成的SQL，用于验证
