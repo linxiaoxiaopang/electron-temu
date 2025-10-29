@@ -26,12 +26,12 @@ module.exports = async function (ctx, next) {
 
 function getFirstTableName(sql) {
   // 匹配第一个表名的正则
-  const regex = /(?:\b(?:FROM|UPDATE|INSERT\s+INTO|JOIN|FROM\s+ONLY)\s+)(?!\()([\w `"'\[\]]+)/i
+  const regex = /(?:\b(?:FROM|UPDATE|INSERT\s+INTO|JOIN|FROM\s+ONLY)\s+)(?!\()([\w`"'\[\]]+(?:\.[\w`"'\[\]]+)*)(?:\s+(?:AS\s+)?(?!WHERE|ON|JOIN|AND|OR|GROUP|ORDER|HAVING|SET|VALUES|LIMIT|OFFSET)([\w`"'\[\]]+))?/i
   const match = sql.match(regex)
 
   if (match) {
     // 去除表名中的引号/反引号/方括号
-    return match[1].replace(/[`"'[\]]/g, '').split(/ +/).pop()
+    return  (match[2] || match[1]).replace(/[`"'[\]]/g, '')
   }
   return null // 未匹配到表名
 }
