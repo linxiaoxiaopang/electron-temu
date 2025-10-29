@@ -30,9 +30,7 @@ class CreateServer {
       })
       .use(resFormatter)
       .use(errFormatter)
-    return await chain.run({
-      req: {}
-    })
+    return await chain.run()
   }
 
   async update(id, obj) {
@@ -60,27 +58,29 @@ class CreateServer {
     chain
       .use(async (ctx, next) => {
         const { res } = ctx
-        // const transaction = await this.model.transaction()
+        const transaction = await sequelize.transaction()
         if (!isArray(updates)) updates = [updates]
-        for (const item of updates) {
-          const { id, ...updateFields } = item // 分离ID和更新字段
-
-          // 执行单条更新
-          const [updatedCount] = await this.model.update(
-            updateFields, // 每条数据的更新内容不同
-            {
-              where: { id } // 按ID定位
-              // transaction // 绑定事务
+        try {
+          for (const item of updates) {
+            const { id, ...restFields } = item // 分离ID和更新字段
+            // 执行单条更新
+            const [updatedCount] = await this.model.update(
+              restFields, // 每条数据的更新内容不同
+              {
+                where: { id }, // 按ID定位
+                transaction // 绑定事务
+              }
+            )
+            if (updatedCount === 0) {
+              throw `id:${id}数据更新失败，数据已经回滚。`
             }
-          )
-          if (updatedCount === 0) {
-            console.warn(`ID为${id}的记录不存在，跳过更新`)
           }
+          // 所有更新成功，提交事务
+          await transaction.commit()
+        } catch (err) {
+          await transaction.rollback()
+          throw err
         }
-
-        // 所有更新成功，提交事务
-        // await transaction.commit()
-        console.log(`批量更新完成，共处理${updates.length}条数据`)
 
         // 验证更新结果
         const data = await this.model.findAll({
@@ -92,11 +92,8 @@ class CreateServer {
       })
       .use(resFormatter)
       .use(errFormatter)
-    return await chain.run({
-      req: {}
-    })
+    return await chain.run()
   }
-
 
   async find(req) {
     const chain = new ServerWare()
@@ -106,7 +103,7 @@ class CreateServer {
         const { req, res } = ctx
         const { pageQuery, whereQuery } = req
         const data = await this.model.findAll({
-          ...whereQuery,
+          where: whereQuery,
           ...(pageQuery || {}),
           raw: true,
           // 打印生成的SQL，用于验证
@@ -133,11 +130,12 @@ class CreateServer {
         const { req, res } = ctx
         const { whereQuery } = req
         const data = await this.model.destroy({
-          ...whereQuery,
+          where: whereQuery,
           // 打印生成的SQL，用于验证
           logging: sql => console.log('SQL:', sql)
         })
-        res.data = data || []
+        if (!data) throw '未找到该数据'
+        res.data = data
         next()
       })
       .use(resFormatter)

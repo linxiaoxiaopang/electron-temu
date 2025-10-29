@@ -100,11 +100,15 @@ class ServerWare extends Ware {
     super()
   }
 
-  async run(ctx) {
+  async run(ctx = {}) {
     let resolveHandler = null
     const p = new Promise(resolve => {
       resolveHandler = resolve
     })
+    if(!ctx) ctx = {}
+    if (!ctx?.req) {
+      ctx.req = {}
+    }
     if (!ctx?.res) {
       ctx.res = {}
     }
