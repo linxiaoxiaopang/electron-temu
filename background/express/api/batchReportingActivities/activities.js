@@ -3,7 +3,7 @@ const { customIpcRenderer } = require('~utils/event')
 const { getBatchReportingActivitiesData } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 
-async function syncBatchReportingActivities(req, res, next) {
+async function sync(req, res, next) {
   let { mallId, activityType, activityLabelTag, activityThematicId } = req.body
   if (!mallId) {
     res.customResult = [true, '请选择店铺']
@@ -99,7 +99,7 @@ async function syncBatchReportingActivities(req, res, next) {
   }
 }
 
-async function getSyncBatchReportingActivities(req, res, next) {
+async function list(req, res, next) {
   const { body } = req
   let {
     page,
@@ -235,6 +235,6 @@ async function getSyncBatchReportingActivities(req, res, next) {
 }
 
 module.exports = {
-  syncBatchReportingActivities,
-  getSyncBatchReportingActivities
+  sync,
+  list
 }

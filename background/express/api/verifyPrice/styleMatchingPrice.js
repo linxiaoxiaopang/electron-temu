@@ -1,6 +1,6 @@
 const { customIpcRenderer } = require('~/utils/event')
 
-async function getStyleMatchingPrice(req, res, next) {
+async function list(req, res, next) {
   const { body } = req
   const { mallId, page, ...where } = body
   res.customResult = await customIpcRenderer.invoke('db:temu:styleMatchingPrice:find', {
@@ -10,13 +10,13 @@ async function getStyleMatchingPrice(req, res, next) {
   next()
 }
 
-async function updateStyleMatchingPrice(req, res, next) {
+async function update(req, res, next) {
   const { body } = req
   res.customResult = await customIpcRenderer.invoke('db:temu:styleMatchingPrice:batchUpdate', body)
   next()
 }
 
-async function deleteStyleMatchingPrice(req, res, next) {
+async function del(req, res, next) {
   const { body } = req
   res.customResult = await customIpcRenderer.invoke('db:temu:styleMatchingPrice:delete', {
     where: body
@@ -24,15 +24,15 @@ async function deleteStyleMatchingPrice(req, res, next) {
   next()
 }
 
-async function createStyleMatchingPrice(req, res, next) {
+async function create(req, res, next) {
   const { body } = req
   res.customResult = await customIpcRenderer.invoke('db:temu:styleMatchingPrice:add', body)
   next()
 }
 
 module.exports = {
-  getStyleMatchingPrice,
-  updateStyleMatchingPrice,
-  deleteStyleMatchingPrice,
-  createStyleMatchingPrice
+  list,
+  update,
+  del,
+  create
 }

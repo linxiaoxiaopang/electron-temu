@@ -28,7 +28,7 @@ function watchLogin() {
       const service = await servicePromise
       const response = await service({
         method: 'post',
-        url: '/temu-agentseller/api/user/createUserAuth',
+        url: '/temu-agentseller/api/user/userAuth/create',
         data: cacheUserInfo
       })
       return response

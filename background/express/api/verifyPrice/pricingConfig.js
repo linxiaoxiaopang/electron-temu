@@ -1,6 +1,6 @@
 const { customIpcRenderer } = require('~/utils/event')
 
-async function getPricingConfig(req, res, next) {
+async function list(req, res, next) {
   let [err, response] = await customIpcRenderer.invoke('db:temu:pricingConfig:find', {
     where: {
       id: 1
@@ -12,7 +12,7 @@ async function getPricingConfig(req, res, next) {
   next()
 }
 
-async function setPricingConfig(req, res, next) {
+async function update(req, res, next) {
   const { body } = req
   let [err, response] = await customIpcRenderer.invoke('db:temu:pricingConfig:update', 1, {
     ...body,
@@ -27,18 +27,8 @@ async function setPricingConfig(req, res, next) {
   next()
 }
 
-async function getPricingConfigHistory(req, res, next) {
-  const { body } = req
-  const { mallId, page, ...where } = body
-  res.customResult = await customIpcRenderer.invoke('db:temu:pricingConfigHistory:find', {
-    where,
-    page
-  })
-  next()
-}
 
 module.exports = {
-  getPricingConfig,
-  setPricingConfig,
-  getPricingConfigHistory
+  list,
+  update
 }

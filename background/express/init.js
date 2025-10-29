@@ -59,7 +59,7 @@ app.use('/temu-agentseller/api/user', userRouter)
 app.use('/temu-agentseller/api/batchReportingActivities', batchReportingActivities)
 app.use('/temu-agentseller/api/verifyPrice', verifyPriceRouter)
 
-app.use('/temu-agentseller/api/kiana', createProxyMiddleware({
+app.use('/temu-agentseller/proxy', createProxyMiddleware({
   target: () => {
     return getTemuTarget()
   }

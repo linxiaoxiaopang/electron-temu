@@ -14,7 +14,7 @@ const { zipFiles } = require('~/utils/zip')
 const { getPathToRoot } = require('~/utils/path')
 const { get, groupBy, uniqBy } = require('lodash')
 
-async function syncGenBatchReportingActivitiesTemplate(req, res, next) {
+async function sync(req, res, next) {
   let { mallId, list } = req.body
   if (!mallId) {
     res.customResult = [true, '请选择店铺']
@@ -124,7 +124,7 @@ async function syncGenBatchReportingActivitiesTemplate(req, res, next) {
   }
 }
 
-async function getSyncGenBatchReportingActivitiesTemplate(req, res, next) {
+async function list(req, res, next) {
   const { body } = req
   let { page } = body
   const buildSqlInstance = new BuildSql({
@@ -162,7 +162,7 @@ async function getSyncGenBatchReportingActivitiesTemplate(req, res, next) {
   next()
 }
 
-async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
+async function exportFile(req, res, next) {
   const { body, body: { mallId }, protocol, host } = req
   if (!mallId) {
     res.customResult = [true, '请选择店铺']
@@ -182,7 +182,7 @@ async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
   const activityTypeList = await getActivityThematicList(mallId)
   const excelInstanceList = {}
   instance.requestCallback = async () => {
-    const relativeUrl = '/temu-agentseller/api/batchReportingActivities/getSyncGenBatchReportingActivitiesTemplate'
+    const relativeUrl = '/temu-agentseller/api/batchReportingActivities/genTemplate/list'
     const wWholeUrl = `${protocol}://${host}${relativeUrl}`
     const response = await axios({
       method: 'post',
@@ -400,7 +400,7 @@ async function exportGenBatchReportingActivitiesTemplate(req, res, next) {
 }
 
 module.exports = {
-  syncGenBatchReportingActivitiesTemplate,
-  getSyncGenBatchReportingActivitiesTemplate,
-  exportGenBatchReportingActivitiesTemplate
+  sync,
+  list,
+  exportFile
 }

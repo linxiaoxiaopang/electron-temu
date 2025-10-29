@@ -1,10 +1,10 @@
 const axios = require('axios')
 const { LoopRequest } = require('../../utils/loopUtils')
 const { map, uniqBy } = require('lodash')
-const { updateCreatePricingStrategy: toUpdateCreatePricingStrategy } = require('../../controllers/verifyPrice/updatePricingStrategy')
+const { updateCreatePricingStrategy } = require('../../controllers/verifyPrice/updatePricingStrategy')
 const { customIpcRenderer } = require('~/utils/event')
 
-async function getLatestPricingStrategy(req, res, next) {
+async function latest(req, res, next) {
   const { body } = req
   const { startUpdateTime, endUpdateTime, mallId } = body
   const skuIdList = body?.skuIdList || []
@@ -25,22 +25,13 @@ async function getLatestPricingStrategy(req, res, next) {
   next()
 }
 
-async function getPricingStrategyHistory(req, res, next) {
-  const { body } = req
-  const { mallId, page, ...where } = body
-  res.customResult = await customIpcRenderer.invoke('db:temu:pricingStrategyHistory:find', {
-    where,
-    page
-  })
+
+async function update(req, res, next) {
+  res.customResult = await updateCreatePricingStrategy(req)
   next()
 }
 
-async function updateCreatePricingStrategy(req, res, next) {
-  res.customResult = await toUpdateCreatePricingStrategy(req)
-  next()
-}
-
-async function validatePricingStrategy(req, res, next) {
+async function validate(req, res, next) {
   const { body, protocol, host } = req
   const { mallId, extCodeLike, startUpdateTime, endUpdateTime } = body
 
@@ -60,8 +51,8 @@ async function validatePricingStrategy(req, res, next) {
   }
   const errorData = []
   instance.requestCallback = async () => {
-    const relativeUrl1 = '/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplier'
-    const relativeUrl2 = '/temu-agentseller/api/verifyPrice/getLatestPricingStrategy'
+    const relativeUrl1 = '/temu-agentseller/api/verifyPrice/searchForChainSupplier/list'
+    const relativeUrl2 = '/temu-agentseller/api/verifyPrice/pricingStrategy/latest'
     const wWholeUrl1 = `${protocol}://${host}${relativeUrl1}`
     const wWholeUrl2 = `${protocol}://${host}${relativeUrl2}`
     const response1 = await axios({
@@ -121,29 +112,9 @@ async function validatePricingStrategy(req, res, next) {
   next()
 }
 
-async function updateCreatePricingStrategyPassSetting(req, res, next) {
-  const { body, protocol, host } = req
-  const {
-    allSettings,
-    strategyList,
-    ...query
-  } = body
-  const relativeUrl = '/temu-agentseller/api/verifyPrice/getSyncSearchForChainSupplier'
-  const wholeUrl = `${protocol}://${host}${relativeUrl}`
-  const response = await axios({
-    method: 'post',
-    url: wholeUrl,
-    data: query
-  })
-  const dataList = response?.data?.data?.dataList || []
-  res.customResult = [false, dataList]
-  next()
-}
 
 module.exports = {
-  getLatestPricingStrategy,
-  getPricingStrategyHistory,
-  updateCreatePricingStrategy,
-  validatePricingStrategy,
-  updateCreatePricingStrategyPassSetting
+  latest,
+  update,
+  validate
 }

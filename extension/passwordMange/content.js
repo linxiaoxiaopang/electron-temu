@@ -90,7 +90,7 @@ function simulateInput(input, value) {
 }
 
 async function getDic() {
-  const response = await fetch('http://localhost:3000/temu-agentseller/api/user/getUserAuthList', {
+  const response = await fetch('http://localhost:3000/temu-agentseller/api/user/userAuth/list', {
     method: 'POST',
     body: JSON.stringify({})
   })

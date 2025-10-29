@@ -134,7 +134,7 @@ class CreateServer {
           // 打印生成的SQL，用于验证
           logging: sql => console.log('SQL:', sql)
         })
-        if (!data) throw '未找到该数据'
+        // if (!data) throw '未找到该数据'
         res.data = data
         next()
       })

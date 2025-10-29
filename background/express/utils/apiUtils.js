@@ -1,9 +1,13 @@
 function createApiFactory(router) {
-  return function (apiList) {
+  return function (apiList, namespace = '') {
     if (!apiList) return
     Object.keys(apiList).map(path => {
       const fn = apiList[path]
-      path = `/${path}`
+      if (namespace) {
+        path = `/${namespace}/${path}`
+      } else {
+        path = `/${path}`
+      }
       router.post(path, fn)
     })
   }

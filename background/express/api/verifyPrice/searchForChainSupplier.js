@@ -2,17 +2,7 @@ const { getFullSearchForChainSupplierData } = require('../../controllers/verifyP
 const { LoopRequest } = require('../../utils/loopUtils')
 const { customIpcRenderer } = require('~/utils/event')
 
-async function getSearchForChainSupplier(req, res, next) {
-  const query = req.body
-  const response = await getFullSearchForChainSupplierData({
-    req,
-    query
-  })
-  res.customResult = [false, response?.data]
-  next()
-}
-
-async function syncSearchForChainSupplier(req, res, next) {
+async function sync(req, res, next) {
   const { mallId } = req.body
   const instance = new LoopRequest({
     req,
@@ -99,7 +89,7 @@ async function syncSearchForChainSupplier(req, res, next) {
   }
 }
 
-async function getSyncSearchForChainSupplier(req, res, next) {
+async function list(req, res, next) {
   const { body } = req
   let { mallId, page, extCodeLike } = body
 
@@ -127,8 +117,7 @@ WHERE json_extract(item.value, '$.extCode') like :pattern and t.mallId = :mallId
   next()
 }
 
-
-async function getSyncSearchForChainSupplierMinSuggestSupplyPrice(req, res, next) {
+async function getMinSuggestSupplyPrice(req, res, next) {
   const { body } = req
   let { mallId, extCodeLike } = body
 
@@ -155,8 +144,7 @@ async function getSyncSearchForChainSupplierMinSuggestSupplyPrice(req, res, next
 }
 
 module.exports = {
-  getSearchForChainSupplier,
-  syncSearchForChainSupplier,
-  getSyncSearchForChainSupplier,
-  getSyncSearchForChainSupplierMinSuggestSupplyPrice
+  sync,
+  list,
+  getMinSuggestSupplyPrice
 }
