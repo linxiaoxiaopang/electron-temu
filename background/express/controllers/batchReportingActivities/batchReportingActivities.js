@@ -37,6 +37,7 @@ async function batchModifyActivity(
   {
     req,
     res,
+    ignoreUpdate,
     modify
   }
 ) {
@@ -83,14 +84,16 @@ async function batchModifyActivity(
       })
       if (result) data = result
     }
-    const response1 = await customIpcRenderer.invoke('db:temu:batchReportingActivities:batchUpdate', data.map(item => {
-      const { _dataBaseId, ...restItem } = item
-      return {
-        id: _dataBaseId,
-        json: restItem
-      }
-    }))
-    if (response1[0]) throw response1[1]
+    if (!ignoreUpdate) {
+      const response1 = await customIpcRenderer.invoke('db:temu:batchReportingActivities:batchUpdate', data.map(item => {
+        const { _dataBaseId, ...restItem } = item
+        return {
+          id: _dataBaseId,
+          json: restItem
+        }
+      }))
+      if (response1[0]) throw response1[1]
+    }
     query.page.pageIndex++
     return [false, {
       totalTasks,
@@ -111,7 +114,29 @@ async function batchModifyActivity(
   }
 }
 
+function traverseActivity(
+  {
+    data,
+    skcCallback,
+    skuCallback,
+    siteCallback
+  }
+) {
+  data.map(productItem => {
+    productItem.skcList.map(skcItem => {
+      if (skcCallback) skcCallback(skcItem, productItem, data)
+      skcItem.skuList.map(skuItem => {
+        if (skuCallback) skuCallback(skuItem, skcItem, productItem, data)
+        skuItem.sitePriceList.map(sitePriceItem => {
+          if (siteCallback) siteCallback(sitePriceItem, skuItem, skcItem, productItem, data)
+        })
+      })
+    })
+  })
+}
+
 module.exports = {
   getBatchReportingActivitiesData,
-  batchModifyActivity
+  batchModifyActivity,
+  traverseActivity
 }

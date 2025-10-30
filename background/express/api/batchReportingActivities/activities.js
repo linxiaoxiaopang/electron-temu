@@ -3,7 +3,7 @@ const { customIpcRenderer } = require('~utils/event')
 const { getBatchReportingActivitiesData } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { flattenDeep, uniqBy } = require('lodash')
-const { batchModifyActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
+const { batchModifyActivity, traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { calculateByType, CALCULATE_TYPE_LIST } = require('~express/utils/calculate')
 
 async function sync(req, res, next) {
@@ -271,6 +271,39 @@ async function enrollSessionList(req, res, next) {
   next()
 }
 
+async function validate(req, res, next) {
+  const errorList = []
+  const response = await batchModifyActivity({
+    req,
+    res,
+    ignoreUpdate: true,
+    modify(
+      {
+        data
+      }
+    ) {
+      traverseActivity({
+        data,
+        siteCallback(sitePriceItem, skuItem, skcItem, productItem) {
+          if (sitePriceItem.activityPrice < 0 || sitePriceItem.activityPrice > sitePriceItem.suggestActivityPrice) {
+            errorList.push({
+              spuId: productItem.productId,
+              skcId: skcItem.skcId,
+              skuId: skuItem.skuId,
+              siteName: sitePriceItem.siteName,
+              siteId: sitePriceItem.siteId,
+              activityPrice: sitePriceItem.activityPrice,
+              suggestActivityPrice: sitePriceItem.suggestActivityPrice
+            })
+          }
+        }
+      })
+    }
+  })
+  res.customResult = response[0] ? response : [false, errorList]
+  next()
+}
+
 async function batchModifyActivityPrice(req, res, next) {
   const { body: { value, method } } = req
   const calculateList = {
@@ -325,22 +358,22 @@ async function batchModifyActivityPrice(req, res, next) {
         data
       }
     ) {
-      data.map(productItem => {
-        productItem.skcList.map(skcItem => {
-          skcItem.skuList.map(skuItem => {
-            skuItem.sitePriceList.map(sitePriceItem => {
-              sitePriceItem.activityPrice = calculateList[method](sitePriceItem)
-              if (sitePriceItem.activityPrice > 0 || sitePriceItem.activityPrice < sitePriceItem.suggestActivityPrice) {
-                errorList.push({
-                  spuId: productItem.productId,
-                  skcId: skcItem.skcId,
-                  skuId: skuItem.skuId,
-                  ...sitePriceItem
-                })
-              }
+      traverseActivity({
+        data,
+        siteCallback(sitePriceItem, skuItem, skcItem, productItem) {
+          sitePriceItem.activityPrice = calculateList[method](sitePriceItem)
+          if (sitePriceItem.activityPrice < 0 || sitePriceItem.activityPrice > sitePriceItem.suggestActivityPrice) {
+            errorList.push({
+              spuId: productItem.productId,
+              skcId: skcItem.skcId,
+              skuId: skuItem.skuId,
+              siteName: sitePriceItem.siteName,
+              siteId: sitePriceItem.siteId,
+              activityPrice: sitePriceItem.activityPrice,
+              suggestActivityPrice: sitePriceItem.suggestActivityPrice
             })
-          })
-        })
+          }
+        }
       })
     }
   })
@@ -405,6 +438,7 @@ module.exports = {
   sync,
   list,
   enrollSessionList,
+  validate,
   batchModifyActivityPrice,
   batchModifyActivityStock,
   batchModifyActivityEnrollSession
