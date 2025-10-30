@@ -24,7 +24,10 @@ class BuildSql {
   }
 
   get fields() {
-    return this.option?.fields || [`${this.table}.*`]
+    return this.option?.fields || [{
+      prop: `${this.table}.*`,
+      name: `${this.table}.*`
+    }]
   }
 
   get selectModifier() {
@@ -265,7 +268,7 @@ class BuildSql {
         fieldsJoins.push(...fieldJoins)
         return `${extractExpr} AS "${name}"`
       }
-      return field // 普通字段
+      return field.name // 普通字段
     })
     this.updateJoins(fieldsJoins)
     return fields
