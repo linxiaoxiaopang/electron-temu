@@ -1,4 +1,4 @@
-const { isString, isFunction, cloneDeep, isUndefined, isArray } = require('lodash')
+const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject } = require('lodash')
 
 
 class BuildSql {
@@ -69,6 +69,19 @@ class BuildSql {
       item.value = query[queryProp] || item.value
     })
     option.column = column.filter(item => !isUndefined(item.value))
+    if (isArray(option.fields)) {
+      option.fields = option.fields.map(item => {
+        if (isPlainObject(item)) {
+          if (!item.prop) throw `column ${item.prop} is not exist`
+          if(!item.name) item.name = item.prop
+          return item
+        }
+        return {
+          prop: item,
+          name: item
+        }
+      })
+    }
     return option
   }
 
@@ -165,8 +178,8 @@ class BuildSql {
   }
 
   escapeValue(value) {
-    if (isArray(value))  return value.map(item => this.escapeValue(item))
-    if(isString(value)) return `'${value.replace(/'/g, "''")}'`
+    if (isArray(value)) return value.map(item => this.escapeValue(item))
+    if (isString(value)) return `'${value.replace(/'/g, "''")}'`
     return value
   }
 
@@ -235,21 +248,22 @@ class BuildSql {
     let fields = this.fields
     const fieldsJoins = []
     fields = fields.map(field => {
-      if (field.startsWith(this.mask.json)) {
-        const jsonPath = field.slice(5) // 提取 "json.skcList[*].skuList[*].productName"
+      const { prop, name } = field
+      if (prop.startsWith(this.mask.json)) {
+        const jsonPath = prop.slice(5) // 提取 "json.skcList[*].skuList[*].productName"
         const parsed = this.parseMultiArrayPath(jsonPath)
         const { baseColumn, arrayLayers, finalProp } = parsed
         if (arrayLayers.length === 0) {
           // 无数组，普通 JSON 字段
           return finalProp
-            ? `json_extract(${baseColumn}, '$.${finalProp}') AS "${field}"`
+            ? `json_extract(${baseColumn}, '$.${finalProp}') AS "${name}"`
             : `${baseColumn} AS "${field}"`
         }
 
         // 有数组，生成 JOIN 语句和提取表达式
         const { joins: fieldJoins, extractExpr } = this.generateArrayJoins(parsed)
         fieldsJoins.push(...fieldJoins)
-        return `${extractExpr} AS "${field}"`
+        return `${extractExpr} AS "${name}"`
       }
       return field // 普通字段
     })

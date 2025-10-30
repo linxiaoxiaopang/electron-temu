@@ -2,6 +2,7 @@ const { LoopRequest } = require('~express/utils/loopUtils')
 const { customIpcRenderer } = require('~utils/event')
 const { getBatchReportingActivitiesData } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
+const { flattenDeep, uniqBy } = require('lodash')
 
 async function sync(req, res, next) {
   let { mallId, activityType, activityLabelTag, activityThematicId } = req.body
@@ -230,7 +231,45 @@ async function list(req, res, next) {
   next()
 }
 
+async function enrollSessionList(req, res, next) {
+  const { body } = req
+  const buildSqlInstance = new BuildSql({
+    table: 'batchReportingActivities',
+    selectModifier: 'DISTINCT',
+    query: body,
+    fields: [
+      {
+        prop: 'json:json.enrollSessionList',
+        name: 'enrollSessionList'
+      }
+    ],
+    column: [
+      {
+        label: '店铺Id',
+        prop: 'mallId'
+      },
+      {
+        label: '活动类型',
+        prop: 'activityType'
+      },
+      {
+        label: '活动主题ID',
+        prop: 'activityThematicId'
+      }
+    ]
+  })
+  const sql = buildSqlInstance.generateSql()
+  let [err, data] = await customIpcRenderer.invoke('db:temu:batchReportingActivities:query', {
+    sql,
+    usedJsonProp: 'enrollSessionList'
+  })
+  if (!err) data = uniqBy(flattenDeep(data), 'sessionId')
+  res.customResult = [err, data]
+  next()
+}
+
 module.exports = {
   sync,
-  list
+  list,
+  enrollSessionList
 }
