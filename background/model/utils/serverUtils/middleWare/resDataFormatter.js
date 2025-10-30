@@ -65,21 +65,17 @@ class ResDataFormatter {
     return this.format(data)
   }
 
-  useJsonReplaceItem() {
-    if (!this.usedJsonProp) return
-    let data = this.res.data
-    if (isArray(data)) {
-      this.res.data = data.map(item => {
-        return get(item, this.usedJsonProp, {})
-      })
-    } else {
-      this.res.data = get(data, this.usedJsonProp, {})
-    }
+  useJsonReplaceItem(data) {
+    if (!this.usedJsonProp) return data
+    if (isArray(data)) return data.map(item => this.useJsonReplaceItem(item))
+    const newItem = get(data, this.usedJsonProp, {})
+    newItem._dataBaseId = data.id
+    return newItem
   }
 
   action() {
     this.formatData()
-    this.useJsonReplaceItem()
+    this.res.data = this.useJsonReplaceItem(this.res.data || [])
   }
 }
 

@@ -3,6 +3,8 @@ const { customIpcRenderer } = require('~utils/event')
 const { getBatchReportingActivitiesData } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { flattenDeep, uniqBy } = require('lodash')
+const { batchModifyActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
+const { calculateByType, CALCULATE_TYPE_LIST } = require('~express/utils/calculate')
 
 async function sync(req, res, next) {
   let { mallId, activityType, activityLabelTag, activityThematicId } = req.body
@@ -57,6 +59,7 @@ async function sync(req, res, next) {
     const matchList = data?.data?.matchList || []
     const tasks = matchList.length
     const syncData = matchList.map(item => {
+      item.suggestEnrollSessionIdList = []
       return {
         mallId,
         activityType,
@@ -268,8 +271,129 @@ async function enrollSessionList(req, res, next) {
   next()
 }
 
+async function batchModifyActivityPrice(req, res, next) {
+  const { body: { value, method } } = req
+  const calculateList = {
+    lowerThanSuggestActivityPricePercentage: (item) => {
+      const { suggestActivityPrice } = item
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.lowerThanPercentage,
+        basic: suggestActivityPrice
+      })
+    },
+    lowerThanSuggestActivityPriceYuan: (item) => {
+      const { suggestActivityPrice } = item
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.lowerThanFixed,
+        basic: suggestActivityPrice
+      })
+    },
+    lowerThanDailyPricePercentage: (item) => {
+      const { dailyPrice } = item
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.lowerThanPercentage,
+        basic: dailyPrice
+      })
+    },
+    lowerThanDailyPriceYuan: (item) => {
+      const { dailyPrice } = item
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.lowerThanFixed,
+        basic: dailyPrice
+      })
+    },
+    // higherThanCostPercentage: CALCULATE_TYPE_LIST.higherThanPercentage,
+    // higherThanCostYuan: CALCULATE_TYPE_LIST.higherThanFixed,
+    constantValue: () => {
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.constantValue,
+        basic: value
+      })
+    }
+  }
+  res.customResult = await batchModifyActivity({
+    protocol: req.protocol,
+    host: req.host,
+    body: req.body,
+    modify(
+      {
+        getFlatData
+      }
+    ) {
+      const flatData = getFlatData(['skcList', 'skuList', 'sitePriceList'])
+      flatData.map(item => {
+        item.activityPrice = calculateList[method](item)
+      })
+    }
+  })
+  next()
+}
+
+async function batchModifyActivityStock(req, res, next) {
+  const { body: { value, method } } = req
+  const calculateList = {
+    moreThanSuggestActivityStock: (item) => {
+      const { suggestActivityStock } = item
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.higherThanPercentage,
+        basic: suggestActivityStock
+      })
+    },
+    constantValue: () => {
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.constantValue,
+        basic: value
+      })
+    }
+  }
+  res.customResult = await batchModifyActivity({
+    protocol: req.protocol,
+    host: req.host,
+    body: req.body,
+    modify(
+      {
+        data
+      }
+    ) {
+      data.map(item => {
+        item.activityStock = calculateList[method](item)
+      })
+    }
+  })
+  next()
+}
+
+async function batchModifyActivityEnrollSession(req, res, next) {
+  const { body: { value } } = req
+  res.customResult = await batchModifyActivity({
+    protocol: req.protocol,
+    host: req.host,
+    body: req.body,
+    modify(
+      {
+        data
+      }
+    ) {
+      data.map(item => {
+        item.suggestEnrollSessionIdList = value || []
+      })
+    }
+  })
+  next()
+}
+
 module.exports = {
   sync,
   list,
-  enrollSessionList
+  enrollSessionList,
+  batchModifyActivityPrice,
+  batchModifyActivityStock,
+  batchModifyActivityEnrollSession
 }
