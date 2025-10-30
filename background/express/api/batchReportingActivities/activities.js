@@ -316,21 +316,35 @@ async function batchModifyActivityPrice(req, res, next) {
       })
     }
   }
-  res.customResult = await batchModifyActivity({
-    protocol: req.protocol,
-    host: req.host,
-    body: req.body,
+  const errorList = []
+  const response = await batchModifyActivity({
+    req,
+    res,
     modify(
       {
-        getFlatData
+        data
       }
     ) {
-      const flatData = getFlatData(['skcList', 'skuList', 'sitePriceList'])
-      flatData.map(item => {
-        item.activityPrice = calculateList[method](item)
+      data.map(productItem => {
+        productItem.skcList.map(skcItem => {
+          skcItem.skuList.map(skuItem => {
+            skuItem.sitePriceList.map(sitePriceItem => {
+              sitePriceItem.activityPrice = calculateList[method](sitePriceItem)
+              if (sitePriceItem.activityPrice > 0 || sitePriceItem.activityPrice < sitePriceItem.suggestActivityPrice) {
+                errorList.push({
+                  spuId: productItem.productId,
+                  skcId: skcItem.skcId,
+                  skuId: skuItem.skuId,
+                  ...sitePriceItem
+                })
+              }
+            })
+          })
+        })
       })
     }
   })
+  res.customResult = response[0] ? response : [false, errorList]
   next()
 }
 
@@ -354,9 +368,8 @@ async function batchModifyActivityStock(req, res, next) {
     }
   }
   res.customResult = await batchModifyActivity({
-    protocol: req.protocol,
-    host: req.host,
-    body: req.body,
+    req,
+    res,
     modify(
       {
         data
@@ -373,9 +386,8 @@ async function batchModifyActivityStock(req, res, next) {
 async function batchModifyActivityEnrollSession(req, res, next) {
   const { body: { value } } = req
   res.customResult = await batchModifyActivity({
-    protocol: req.protocol,
-    host: req.host,
-    body: req.body,
+    req,
+    res,
     modify(
       {
         data

@@ -4,6 +4,7 @@ const { getTemuTarget } = require('~store/user')
 const { map, isString, isFunction, isArray } = require('lodash')
 const { flatMapDeepByArray } = require('~utils/array')
 const { customIpcRenderer } = require('~utils/event')
+const { LoopRequest } = require('~express/utils/loopUtils')
 
 async function getBatchReportingActivitiesData(
   {
@@ -34,47 +35,80 @@ async function getBatchReportingActivitiesData(
 
 async function batchModifyActivity(
   {
-    protocol,
-    host,
-    body,
+    req,
+    res,
     modify
   }
 ) {
+  const { protocol, host, body } = req
   const { method, value, ...restBody } = body
-  const relativeUrl = '/temu-agentseller/api/batchReportingActivities/activities/list'
-  const wWholeUrl = `${protocol}://${host}${relativeUrl}`
-  const response = await axios({
-    method: 'post',
-    url: wWholeUrl,
-    data: restBody
+  const cacheKey = `${restBody.mallId}_batchModifyActivity`
+  const instance = new LoopRequest({
+    req,
+    res,
+    cacheKey
   })
-  let data = response?.data?.data || []
-  if (isString(modify)) modify = modify.split('.')
-  if (isArray(modify)) {
-    const prop = modify.pop()
-    const flatData = flatMapDeepByArray(data, modify)
-    flatData.map(item => {
-      item[prop] = value
-    })
+  //放弃之前通过cacheKey的实例请求
+  if (!req.body?.requestUuid) {
+    await instance.abandonCacheInstanceRequest()
   }
-  if (isFunction(modify)) {
-    const result = await modify({
-      data,
-      value,
-      method,
-      getFlatData: (props) => {
-        return flatMapDeepByArray(data, props)
-      }
-    })
-    if (result) data = result
-  }
-  return await customIpcRenderer.invoke('db:temu:batchReportingActivities:batchUpdate', data.map(item => {
-    const { _dataBaseId, ...restItem } = item
-    return {
-      id: _dataBaseId,
-      json: restItem
+  const query = {
+    ...restBody,
+    page: {
+      pageIndex: 1,
+      pageSize: 10
     }
-  }))
+  }
+  instance.requestCallback = async () => {
+    const response = await getData(query)
+    const totalTasks = response?.data?.page?.total || 0
+    let data = response?.data?.data
+    const tasks = data.length
+    if (isString(modify)) modify = modify.split('.')
+    if (isArray(modify)) {
+      const prop = modify.pop()
+      const flatData = flatMapDeepByArray(data, modify)
+      flatData.map(item => {
+        item[prop] = value
+      })
+    }
+    if (isFunction(modify)) {
+      const result = await modify({
+        data,
+        value,
+        method,
+        getFlatData: (props) => {
+          return flatMapDeepByArray(data, props)
+        }
+      })
+      if (result) data = result
+    }
+    const response1 = await customIpcRenderer.invoke('db:temu:batchReportingActivities:batchUpdate', data.map(item => {
+      const { _dataBaseId, ...restItem } = item
+      return {
+        id: _dataBaseId,
+        json: restItem
+      }
+    }))
+    if (response1[0]) throw response1[1]
+    query.page.pageIndex++
+    return [false, {
+      totalTasks,
+      tasks
+    }]
+  }
+  return await instance.action()
+
+  async function getData() {
+    const relativeUrl = '/temu-agentseller/api/batchReportingActivities/activities/list'
+    const wWholeUrl = `${protocol}://${host}${relativeUrl}`
+    const response = await axios({
+      method: 'post',
+      url: wWholeUrl,
+      data: query
+    })
+    return response
+  }
 }
 
 module.exports = {
