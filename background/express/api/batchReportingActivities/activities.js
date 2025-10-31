@@ -723,6 +723,46 @@ async function batchModifyActivityEnrollSession(req, res, next) {
   next()
 }
 
+async function modifyActivityGoodsInfo(req, res, next) {
+  const { body: { cost, activityPrice, activityStock } } = req
+  const calculateList = {
+    constantValue: (value) => {
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.constantValue,
+        basic: value
+      })
+    }
+  }
+  res.customResult = await batchModifyActivity({
+    req,
+    res,
+    modify(
+      {
+        data
+      }
+    ) {
+      traverseActivity({
+        data,
+        productCallback(productItem) {
+          if(!isNil(activityStock)) {
+            productItem.activityStock = calculateList.constantValue(activityStock)
+          }
+        },
+        siteCallback(sitePriceItem) {
+          if(!isNil(cost)) {
+            sitePriceItem.cost = calculateList.constantValue(cost)
+          }
+          if(!isNil(activityPrice)) {
+            sitePriceItem.activityPrice = calculateList.constantValue(activityPrice)
+          }
+        }
+      })
+    }
+  })
+  next()
+}
+
 module.exports = {
   sync,
   list,
@@ -730,5 +770,6 @@ module.exports = {
   validate,
   batchModifyActivityPrice,
   batchModifyActivityStock,
-  batchModifyActivityEnrollSession
+  batchModifyActivityEnrollSession,
+  modifyActivityGoodsInfo
 }

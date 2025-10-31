@@ -147,7 +147,10 @@ async function batchModifyActivity(
       tasks
     }]
   }
-  return await instance.action()
+  const response = await instance.action()
+  if(response[0]) return response
+  response[1] = 1
+  return response
 
   async function getData() {
     return await getBatchReportingActivitiesList({
