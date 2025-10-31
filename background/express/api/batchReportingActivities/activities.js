@@ -1,12 +1,11 @@
 const { LoopRequest } = require('~express/utils/loopUtils')
 const { customIpcRenderer } = require('~utils/event')
-const { getBatchReportingActivitiesData } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
-const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
-const { flattenDeep, uniqBy } = require('lodash')
 const {
-  batchModifyActivity,
+  getBatchReportingActivitiesData, batchModifyActivity,
   traverseActivity
 } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
+const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
+const { flattenDeep, uniqBy } = require('lodash')
 const { calculateByType, CALCULATE_TYPE_LIST } = require('~express/utils/calculate')
 
 async function sync(req, res, next) {

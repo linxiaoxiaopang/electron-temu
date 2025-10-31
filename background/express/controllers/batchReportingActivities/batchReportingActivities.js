@@ -1,10 +1,9 @@
 const axios = require('axios')
-const { createProxyToGetTemuData } = require('../../middleware/proxyMiddleware')
-const { getTemuTarget } = require('~store/user')
-const { map, isString, isFunction, isArray } = require('lodash')
+const { map, isString, isFunction, isArray, merge } = require('lodash')
 const { flatMapDeepByArray } = require('~utils/array')
 const { customIpcRenderer } = require('~utils/event')
 const { LoopRequest } = require('~express/utils/loopUtils')
+const { getData } = require('~express/utils/apiUtils')
 
 async function getBatchReportingActivitiesData(
   {
@@ -12,23 +11,71 @@ async function getBatchReportingActivitiesData(
     query
   }
 ) {
-  const relativeUrl0 = '/api/kiana/gamblers/marketing/enroll/scroll/match'
-  const relativeUrl1 = '/api/kiana/gamblers/marketing/enroll/session/list'
-  const wholeUrl0 = `${getTemuTarget()}${relativeUrl0}`
-  const wholeUrl1 = `${getTemuTarget()}${relativeUrl1}`
-  const getData0 = createProxyToGetTemuData(req)
-  const response0 = await getData0(wholeUrl0, { data: query })
+  const response0 = await getData({
+    relativeUrl: '/api/kiana/gamblers/marketing/enroll/scroll/match',
+    req,
+    query
+  })
   const matchList = response0?.data?.matchList
   const productIds = map(matchList, 'productId')
-  const getData1 = createProxyToGetTemuData(req)
-  const response1 = await getData1(wholeUrl1, {
-    data: {
+  const p1 = getData({
+    relativeUrl: '/api/kiana/gamblers/marketing/enroll/session/list',
+    req,
+    query: {
       productIds
     }
   })
+  const p2 = getData({
+    req,
+    relativeUrl: '/api/kiana/mms/robin/searchForSemiSupplier',
+    query: {
+      pageNum: 1,
+      pageSize: productIds.length,
+      productSpuIdList: productIds,
+      supplierTodoTypeList: []
+    }
+  })
+  const [response1, response2] = await Promise.all([p1, p2])
   const productCanEnrollSessionMap = response1?.data?.productCanEnrollSessionMap || {}
+  const dataList = response2?.data?.dataList || []
   matchList.map(item => {
     item.enrollSessionList = productCanEnrollSessionMap[item.productId] || []
+  })
+  dataList.map(item => {
+    const flatSkcList = flatMapDeepByArray(item, ['skcList'])
+    const flatSitePriceList = flatMapDeepByArray(flatSkcList, ['skuList', 'siteSupplierPriceList'])
+    const fItem = matchList.find(sItem => item.productId == sItem.productId)
+    if (!fItem) return
+    traverseActivity({
+      data: [fItem],
+      productCallback(productItem) {
+        const fItem = item
+        const { catIdList, fullCategoryName, leafCategoryId, leafCategoryName } = fItem
+        merge(productItem, {
+          catIdList,
+          fullCategoryName,
+          leafCategoryId,
+          leafCategoryName
+        })
+      },
+      skcCallback(skcItem) {
+        const fItem = flatSkcList.find(item => item.skcId == skcItem.skcId)
+        if (!fItem) return
+        const { statusTime } = fItem
+        merge(skcItem, {
+          statusTime
+        })
+      },
+      siteCallback(sitePriceItem) {
+        const fItem = flatSitePriceList.find(item => item.siteId == sitePriceItem.siteId)
+        if (!fItem) return
+        const { supplierPriceValue, supplierPrice } = fItem
+        merge(sitePriceItem, {
+          supplierPriceValue,
+          supplierPrice
+        })
+      }
+    })
   })
   return response0
 }
@@ -114,12 +161,14 @@ async function batchModifyActivity(
 function traverseActivity(
   {
     data,
+    productCallback,
     skcCallback,
     skuCallback,
     siteCallback
   }
 ) {
   data.map(productItem => {
+    if (productCallback) productCallback(productItem, data)
     productItem.skcList.map(skcItem => {
       if (skcCallback) skcCallback(skcItem, productItem, data)
       skcItem.skuList.map(skuItem => {
