@@ -5,7 +5,7 @@ const {
   traverseActivity
 } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
-const { flattenDeep, uniqBy } = require('lodash')
+const { flattenDeep, uniqBy, isNil } = require('lodash')
 const { calculateByType, CALCULATE_TYPE_LIST } = require('~express/utils/calculate')
 
 async function sync(req, res, next) {
@@ -193,7 +193,7 @@ async function list(req, res, next) {
             value(prop, query) {
               const item = query[prop]
               if (!item) return
-              return item?.min || 0
+              return item?.min
             }
           },
           {
@@ -203,7 +203,7 @@ async function list(req, res, next) {
             value(prop, query) {
               const item = query[prop]
               if (!item) return
-              return item?.max || 0
+              return item?.max
             }
           },
           {
@@ -213,7 +213,7 @@ async function list(req, res, next) {
             value(prop, query) {
               const item = query[prop]
               if (!item) return
-              return item?.min || 0
+              return item?.min
             }
           },
           {
@@ -223,12 +223,248 @@ async function list(req, res, next) {
             value(prop, query) {
               const item = query[prop]
               if (!item) return
-              return item?.max || 0
+              return item?.max
             }
           },
           {
+            label: '最小日常申报价格减去参考申报价格的差值',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            queryProp: 'dailyPriceMinusSuggestActivityPrice',
+            valueFormatter(value, { query }) {
+              const item = query.dailyPriceMinusSuggestActivityPrice
+              if (!item || isNil(item.min)) return
+              return `${value} + ${item.min}`
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.min)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice`
+            }
+          },
+          {
+            label: '最大日常申报价格减去参考申报价格的差值',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
+            queryProp: 'dailyPriceMinusSuggestActivityPrice',
+            valueFormatter(value, { query }) {
+              const item = query.dailyPriceMinusSuggestActivityPrice
+              if (!item || isNil(item.max)) return
+              return `${value} + ${item.max}`
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.max)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice`
+            }
+          },
+          {
+            label: '最小日常申报价格减去成本的差值',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            queryProp: 'dailyPriceMinusCost',
+            valueFormatter(value, { query }) {
+              const item = query.dailyPriceMinusCost
+              if (!item || isNil(item.min)) return
+              return `${value} + ${item.min}`
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.min)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue`
+            }
+          },
+          {
+            label: '最大日常申报价格减去成本的差值',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
+            queryProp: 'dailyPriceMinusCost',
+            valueFormatter(value, { query }) {
+              const item = query.dailyPriceMinusCost
+              if (!item || isNil(item.max)) return
+              return `${value} + ${item.max}`
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.max)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue`
+            }
+          },
+          {
+            label: '最小参考申报价格减去成本的差值',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>]',
+            queryProp: 'suggestActivityPriceMinusCost',
+            valueFormatter(value, { query }) {
+              const item = query.suggestActivityPriceMinusCost
+              if (!item || isNil(item.min)) return
+              return `${value} + ${item.min}`
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.min)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue`
+            }
+          },
+          {
+            label: '最大参考申报价格减去成本的差值',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:<=]',
+            queryProp: 'suggestActivityPriceMinusCost',
+            valueFormatter(value, { query }) {
+              const item = query.suggestActivityPriceMinusCost
+              if (!item || isNil(item.max)) return
+              return `${value} + ${item.max}`
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.max)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue`
+            }
+          },
+          {
+            label: '最小成本',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue[op:>]',
+            queryProp: 'costPriceRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.min
+            }
+          },
+          {
+            label: '最大成本',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue[op:<=]',
+            queryProp: 'costPriceRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.max
+            }
+          },
+          {
+            label: '商品规格',
+            prop: 'json:json.skcList[*].skuList[*].颜色',
+            queryProp: 'properties'
+          },
+          {
+            label: '站点',
             prop: 'json:json.sites[*].siteId[op:in]',
             queryProp: 'semiManagedSiteIds'
+          },
+          {
+            label: '类目',
+            prop: 'json:json.leafCategoryId',
+            queryProp: 'catId'
+          },
+          {
+            label: '最小日常申报价格在参考申报价格的范围区间',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            queryProp: 'dailyPriceSuggestActivityPriceRatio',
+            valueFormatter(value, { query }) {
+              const item = query.dailyPriceSuggestActivityPriceRatio
+              if (!item || isNil(item.min)) return
+              return `${item.min / 100 * value} `
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.min)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice`
+            }
+          },
+          {
+            label: '最大日常申报价格在参考申报价格的范围区间',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
+            queryProp: 'dailyPriceSuggestActivityPriceRatio',
+            valueFormatter(value, { query }) {
+              const item = query.dailyPriceSuggestActivityPriceRatio
+              if (!item || isNil(item.max)) return
+              return `${item.max / 100 * value} `
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.max)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice`
+            }
+          },
+          {
+            label: '最小日常申报价格在成本价格的范围区间',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            queryProp: 'dailyPriceCostRatio',
+            valueFormatter(value, { query }) {
+              const item = query.dailyPriceCostRatio
+              if (!item || isNil(item.min)) return
+              return `${item.min / 100 * value} `
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.min)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue`
+            }
+          },
+          {
+            label: '最大日常申报价格在成本价格的范围区间',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
+            queryProp: 'dailyPriceCostRatio',
+            valueFormatter(value, { query }) {
+              const item = query.dailyPriceCostRatio
+              if (!item || isNil(item.max)) return
+              return `${item.max / 100 * value} `
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.max)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue`
+            }
+          },
+          {
+            label: '最小参考申报价格在成本价格的范围区间',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>]',
+            queryProp: 'suggestActivityPriceCostRatio',
+            valueFormatter(value, { query }) {
+              const item = query.suggestActivityPriceCostRatio
+              if (!item || isNil(item.min)) return
+              return `${item.min / 100 * value} `
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.min)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue`
+            }
+          },
+          {
+            label: '最大参考申报价格在成本价格的范围区间',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:<=]',
+            queryProp: 'suggestActivityPriceCostRatio',
+            valueFormatter(value, { query }) {
+              const item = query.suggestActivityPriceCostRatio
+              if (!item || isNil(item.max)) return
+              return `${item.max / 100 * value} `
+            },
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || isNil(item.max)) return
+              return `json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue`
+            }
+          },
+          {
+            label: '活动场次',
+            prop: 'json:json.enrollSessionList[*].sessionId',
+            queryProp: 'sessionIds'
+          },
+          {
+            label: '最小上架时间',
+            prop: 'json:json.skcList[*].statusTime.addedToSiteTime[op:>]',
+            queryProp: 'shelfDaysRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.min
+            }
+          },
+          {
+            label: '最大上架时间',
+            prop: 'json:json.skcList[*].statusTime.addedToSiteTime[op:<=]',
+            queryProp: 'shelfDaysRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.max
+            }
           },
           {
             label: 'activityPrice小于suggestActivityPrice',

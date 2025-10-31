@@ -1,4 +1,4 @@
-const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject, isNumber } = require('lodash')
+const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject, isNil } = require('lodash')
 
 
 class BuildSql {
@@ -30,6 +30,10 @@ class BuildSql {
     }]
   }
 
+  get query() {
+    return this.option?.query
+  }
+
   get selectModifier() {
     return this.option?.selectModifier || ''
   }
@@ -46,6 +50,11 @@ class BuildSql {
       }) {
       return `SELECT ${selectModifier} ${selectFields} FROM ${table} ${joinSql} ${whereSql}`
     }
+  }
+
+  formatFiledValue(value) {
+    if (isNil(value)) return undefined
+    return value
   }
 
   handleOption(option) {
@@ -67,6 +76,12 @@ class BuildSql {
         }
         if (!queryProp || !query || sItem.value) return
         sItem.value = query[queryProp] || sItem.value
+      })
+      item.column.map(item => {
+        item.value = this.formatFiledValue(item.value)
+        if (!item.valueFormatter) {
+          item.valueFormatter = (value) => value
+        }
       })
       item.column = item.column.filter(item => !isUndefined(item.value))
       item.logical = item.logical || 'AND'
@@ -190,7 +205,7 @@ class BuildSql {
 
   generateWhereClause(col) {
     // 处理 WHERE 条件
-    const { prop: key, value } = col
+    const { prop: key, value, valueFormatter } = col
     // 步骤1：解析路径中的 [op=操作符] 标识
     let pathWithOp = key
     let operator = ''
@@ -222,6 +237,7 @@ class BuildSql {
     if (/^in$/ig.test(operator)) {
       processedValue = `(${this.escapeValue(value)})`
     }
+    processedValue = valueFormatter(processedValue, this)
     let whereClaus = ''
     if (this.isJsonField(field)) {
       const expr = this.analysisJsonField(field)
