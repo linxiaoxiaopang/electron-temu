@@ -120,129 +120,160 @@ async function list(req, res, next) {
       ...filter,
       ...restFilter
     },
-    column: [
+    group: [
       {
-        label: '店铺Id',
-        prop: 'mallId'
+        column: [
+          {
+            label: '店铺Id',
+            prop: 'mallId'
+          },
+          {
+            label: '活动类型',
+            prop: 'activityType'
+          },
+          {
+            label: '活动标签',
+            prop: 'activityLabelTag'
+          },
+          {
+            label: '活动主题ID',
+            prop: 'activityThematicId'
+          },
+          {
+            label: 'SPU ID',
+            prop: 'json:json.productId[op:in]',
+            queryProp: 'spuId'
+          },
+          {
+            label: 'SKC ID',
+            prop: 'json:json.skcList[*].skcId[op:in]',
+            queryProp: 'skcId'
+          },
+          {
+            label: 'SKU ID',
+            prop: 'json:json.skcList[*].skcList[*].skuList[*].skuId[op:in]',
+            queryProp: 'skuId'
+          },
+          {
+            label: 'SKC货号',
+            prop: 'json:json.skcList[*].extCode[op:in]',
+            queryProp: 'skcExtCode'
+          },
+          {
+            label: 'SKC货号-模糊匹配',
+            prop: 'json:json.skcList[*].extCode[op:in]',
+            queryProp: 'skcExtCodeMatch',
+            value(prop, query) {
+              const item = query[this.prop]
+              if (!item) return
+              return likeMatch(item.matchType, item.matchContent)
+            }
+          },
+          {
+            label: 'SKU货号',
+            prop: 'json:json.skcList[*].skcList[*].skuList[*].extCode[op:in]',
+            queryProp: 'skuExtCode'
+          },
+          {
+            label: 'SKU货号-模糊匹配',
+            prop: 'json:json.skcList[*].skuList[*].extCode[op:like]',
+            queryProp: 'skuExtCodeMatch',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return likeMatch(item.matchType, item.matchContent)
+            }
+          },
+          {
+            label: '最小日常申报价格',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            queryProp: 'dailyPriceRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.min || 0
+            }
+          },
+          {
+            label: '最大日常申报价格',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
+            queryProp: 'dailyPriceRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.max || 0
+            }
+          },
+          {
+            label: '最小参考申报价格',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>]',
+            queryProp: 'suggestActivityPriceRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.min || 0
+            }
+          },
+          {
+            label: '最大参考申报价格',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:<=]',
+            queryProp: 'suggestActivityPriceRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.max || 0
+            }
+          },
+          {
+            prop: 'json:json.sites[*].siteId[op:in]',
+            queryProp: 'semiManagedSiteIds'
+          },
+          {
+            label: 'activityPrice小于suggestActivityPrice',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:<]',
+            queryProp: 'effective',
+            value(prop, query) {
+              const item = query[prop]
+              if(item != 1) return
+              return 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice'
+            }
+          },
+          {
+            label: 'activityPrice大于0',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:>]',
+            queryProp: 'effective',
+            value(prop, query) {
+              const item = query[prop]
+              if(item != 1) return
+              return 0
+            }
+          }
+        ]
       },
       {
-        label: '活动类型',
-        prop: 'activityType'
-      },
-      {
-        label: '活动标签',
-        prop: 'activityLabelTag'
-      },
-      {
-        label: '活动主题ID',
-        prop: 'activityThematicId'
-      },
-      {
-        label: 'SPU ID',
-        prop: 'json:json.productId[op:in]',
-        queryProp: 'spuId'
-      },
-      {
-        label: 'SKC ID',
-        prop: 'json:json.skcList[*].skcId[op:in]',
-        queryProp: 'skcId'
-      },
-      {
-        label: 'SKU ID',
-        prop: 'json:json.skcList[*].skcList[*].skuList[*].skuId[op:in]',
-        queryProp: 'skuId'
-      },
-      {
-        label: 'SKC货号',
-        prop: 'json:json.skcList[*].extCode[op:in]',
-        queryProp: 'skcExtCode'
-      },
-      {
-        label: 'SKC货号-模糊匹配',
-        prop: 'json:json.skcList[*].extCode[op:in]',
-        queryProp: 'skcExtCodeMatch',
-        value(prop, query) {
-          const item = query[this.prop]
-          if (!item) return
-          return likeMatch(item.matchType, item.matchContent)
-        }
-      },
-      {
-        label: 'SKU货号',
-        prop: 'json:json.skcList[*].skcList[*].skuList[*].extCode[op:in]',
-        queryProp: 'skuExtCode'
-      },
-      {
-        label: 'SKU货号-模糊匹配',
-        prop: 'json:json.skcList[*].skuList[*].extCode[op:like]',
-        queryProp: 'skuExtCodeMatch',
-        value(prop, query) {
-          const item = query[prop]
-          if (!item) return
-          return likeMatch(item.matchType, item.matchContent)
-        }
-      },
-      {
-        label: '最小日常申报价格',
-        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
-        queryProp: 'dailyPriceRange',
-        value(prop, query) {
-          const item = query[prop]
-          if (!item) return
-          return item?.min || 0
-        }
-      },
-      {
-        label: '最大日常申报价格',
-        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
-        queryProp: 'dailyPriceRange',
-        value(prop, query) {
-          const item = query[prop]
-          if (!item) return
-          return item?.max || 0
-        }
-      },
-      {
-        label: '最小参考申报价格',
-        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>]',
-        queryProp: 'suggestActivityPriceRange',
-        value(prop, query) {
-          const item = query[prop]
-          if (!item) return
-          return item?.min || 0
-        }
-      },
-      {
-        label: '最大参考申报价格',
-        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:<=]',
-        queryProp: 'suggestActivityPriceRange',
-        value(prop, query) {
-          const item = query[prop]
-          if (!item) return
-          return item?.max || 0
-        }
-      },
-      {
-        prop: 'json:json.sites[*].siteId[op:in]',
-        queryProp: 'semiManagedSiteIds'
-      },
-      {
-        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:<]',
-        queryProp: 'effective',
-        value(prop, query) {
-          const item = query[prop]
-          if (!item) return
-          return 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice'
-        }
-      },
-      {
-        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:>]',
-        queryProp: 'effective',
-        value(prop, query) {
-          const item = query[prop]
-          if (!item) return
-          return 0
-        }
+        column: [
+          {
+            label: 'activityPrice小于suggestActivityPrice',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:>]',
+            queryProp: 'effective',
+            logical: 'OR',
+            value(prop, query) {
+              const item = query[prop]
+              if(item != 2) return
+              return 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice'
+            }
+          },
+          {
+            label: 'activityPrice大于0',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:<]',
+            queryProp: 'effective',
+            value(prop, query) {
+              const item = query[prop]
+              if(item != 2) return
+              return 0
+            }
+          }
+        ]
       }
     ]
   })

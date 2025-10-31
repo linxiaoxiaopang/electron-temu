@@ -19,8 +19,8 @@ class BuildSql {
     return this.option?.table
   }
 
-  get column() {
-    return this.option?.column || []
+  get group() {
+    return this.option?.group || []
   }
 
   get fields() {
@@ -32,17 +32,6 @@ class BuildSql {
 
   get selectModifier() {
     return this.option?.selectModifier || ''
-  }
-
-  get where() {
-    return this.column.reduce((acc, cur) => {
-      const {
-        prop,
-        value
-      } = cur
-      acc[prop] = value
-      return acc
-    }, {})
   }
 
   get handleSql() {
@@ -60,18 +49,29 @@ class BuildSql {
   }
 
   handleOption(option) {
-    const { query, column } = option
-    column.map(item => {
-      let { queryProp, prop } = item
-      queryProp = queryProp || prop
-      if (isFunction(item.value)) {
-        item.value = item.value(queryProp, query, this)
-        return
-      }
-      if (!queryProp || !query || item.value) return
-      item.value = query[queryProp] || item.value
+    let { query, column, group } = option
+    if (!group) group = option.group = []
+    if (column) {
+      group.push({
+        column
+      })
+    }
+    group.map(item => {
+      item.column.map(sItem => {
+        let { queryProp, prop } = sItem
+        queryProp = queryProp || prop
+        sItem.logical = sItem.logical || 'AND'
+        if (isFunction(sItem.value)) {
+          sItem.value = sItem.value(queryProp, query, this)
+          return
+        }
+        if (!queryProp || !query || sItem.value) return
+        sItem.value = query[queryProp] || sItem.value
+      })
+      item.column = item.column.filter(item => !isUndefined(item.value))
+      item.logical = item.logical || 'AND'
     })
-    option.column = column.filter(item => !isUndefined(item.value))
+    option.group = group.filter(item => item.column.length)
     if (isArray(option.fields)) {
       option.fields = option.fields.map(item => {
         if (isPlainObject(item)) {
@@ -188,52 +188,51 @@ class BuildSql {
     return value
   }
 
-  generateWhereClauses() {
-    const { where } = this
-    const whereClauses = []
+  generateWhereClause(col) {
     // 处理 WHERE 条件
-    Object.entries(where).forEach(([key, value]) => {
-      // 步骤1：解析路径中的 [op=操作符] 标识
-      let pathWithOp = key
-      let operator = ''
-      const opReg = this.opReg
-      const opMatch = pathWithOp.match(opReg) // 匹配 [op=>] 格式
+    const { prop: key, value } = col
+    // 步骤1：解析路径中的 [op=操作符] 标识
+    let pathWithOp = key
+    let operator = ''
+    const opReg = this.opReg
+    const opMatch = pathWithOp.match(opReg) // 匹配 [op=>] 格式
 
-      if (opMatch) {
-        operator = opMatch[1] // 提取操作符（如 '>'）
-        pathWithOp = pathWithOp.replace(opReg, '') // 移除标识，保留纯路径
-      }
-      if (isArray(value)) operator = operator || 'IN'
-      operator = operator || '='
-      // 步骤2：兼容原有键尾操作符解析（若路径中无op标识则使用）
-      let field = pathWithOp
+    if (opMatch) {
+      operator = opMatch[1] // 提取操作符（如 '>'）
+      pathWithOp = pathWithOp.replace(opReg, '') // 移除标识，保留纯路径
+    }
+    if (isArray(value)) operator = operator || 'IN'
+    operator = operator || '='
+    // 步骤2：兼容原有键尾操作符解析（若路径中无op标识则使用）
+    let field = pathWithOp
 
-      // 步骤3：处理NULL特殊情况
-      if (value === null && operator === '=') {
-        operator = 'IS'
-      }
+    // 步骤3：处理NULL特殊情况
+    if (value === null && operator === '=') {
+      operator = 'IS'
+    }
 
-      // 步骤4：处理参数值（添加单引号等区分符号）
-      let processedValue = value
+    // 步骤4：处理参数值（添加单引号等区分符号）
+    let processedValue = value
 
-      if (this.isJsonField(processedValue)) {
-        processedValue = this.analysisJsonField(processedValue)
-      } else if (isString(value)) {
-        processedValue = this.escapeValue(value) // 转义单引号
-      }
-      if (/^in$/ig.test(operator)) {
-        processedValue = `(${this.escapeValue(value)})`
-      }
-      if (this.isJsonField(field)) {
-        const expr = this.analysisJsonField(field)
-        whereClauses.push(`${expr} ${operator} ${processedValue}`)
-      } else {
-        // 普通字段条件
-        whereClauses.push(`${field} ${operator} ${processedValue}`)
-      }
-
-    })
-    return whereClauses
+    if (this.isJsonField(processedValue)) {
+      processedValue = this.analysisJsonField(processedValue)
+    } else if (isString(value)) {
+      processedValue = this.escapeValue(value) // 转义单引号
+    }
+    if (/^in$/ig.test(operator)) {
+      processedValue = `(${this.escapeValue(value)})`
+    }
+    let whereClaus = ''
+    if (this.isJsonField(field)) {
+      const expr = this.analysisJsonField(field)
+      whereClaus = `${expr} ${operator} ${processedValue}`
+      // whereClauses.push(`${expr} ${operator} ${processedValue}`)
+    } else {
+      // 普通字段条件
+      whereClaus = `${field} ${operator} ${processedValue}`
+      // whereClauses.push(`${field} ${operator} ${processedValue}`)
+    }
+    return whereClaus
   }
 
   isJsonField(field) {
@@ -271,6 +270,27 @@ class BuildSql {
     this.joins.push(...joins)
   }
 
+  generateWhereSql() {
+    let whereSql = ''
+    const group = this.group
+    // 处理 WHERE 条件
+    group.map((item, index) => {
+      let itemWhereClause = ''
+      item.column.map((sItem, sIndex) => {
+        const whereClaus = this.generateWhereClause(sItem)
+        const logical = sIndex == item.column.length - 1 ? '' : sItem.logical
+        itemWhereClause += whereClaus
+        if (logical) itemWhereClause += ` ${logical} `
+      })
+      if (itemWhereClause) itemWhereClause = `(${itemWhereClause})`
+      const logical = index == group.length - 1 ? '' : item.logical
+      whereSql += itemWhereClause
+      if (logical) whereSql += ` ${item.logical} `
+    })
+    if (whereSql) whereSql = `WHERE ${whereSql}`
+    return whereSql
+  }
+
   /**
    * 通用查询方法（支持多层 JSON 数组嵌套查询）
    * @param {string} table - 表名
@@ -283,14 +303,10 @@ class BuildSql {
     let joins = this.joins // 所有 JOIN 语句
     // 处理查询字段
     const selectFields = this.formatFields().join(', ')
-
-    // 处理 WHERE 条件
-    const whereClauses = this.generateWhereClauses()
-
+    const whereSql = this.generateWhereSql()
     // 去重 JOIN 语句（避免重复展开同一数组）
     const uniqueJoins = [...new Set(joins)]
     const joinSql = uniqueJoins.join(' ')
-    const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : ''
     const sql = this.handleSql({
       table,
       selectFields,
