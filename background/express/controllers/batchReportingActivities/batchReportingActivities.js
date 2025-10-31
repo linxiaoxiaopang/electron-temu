@@ -57,7 +57,7 @@ async function batchModifyActivity(
     ...restBody,
     page: {
       pageIndex: 1,
-      pageSize: 10
+      pageSize: 1000
     }
   }
   instance.requestCallback = async () => {
@@ -103,14 +103,11 @@ async function batchModifyActivity(
   return await instance.action()
 
   async function getData() {
-    const relativeUrl = '/temu-agentseller/api/batchReportingActivities/activities/list'
-    const wWholeUrl = `${protocol}://${host}${relativeUrl}`
-    const response = await axios({
-      method: 'post',
-      url: wWholeUrl,
-      data: query
+    return await getBatchReportingActivitiesList({
+      protocol,
+      host,
+      query
     })
-    return response
   }
 }
 
@@ -133,6 +130,23 @@ function traverseActivity(
       })
     })
   })
+}
+
+async function getBatchReportingActivitiesList(
+  {
+    protocol,
+    host,
+    query
+  }
+) {
+  const relativeUrl = '/temu-agentseller/api/batchReportingActivities/activities/list'
+  const wWholeUrl = `${protocol}://${host}${relativeUrl}`
+  const response = await axios({
+    method: 'post',
+    url: wWholeUrl,
+    data: query
+  })
+  return response
 }
 
 module.exports = {

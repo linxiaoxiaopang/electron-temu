@@ -1,4 +1,4 @@
-const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject } = require('lodash')
+const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject, isNumber } = require('lodash')
 
 
 class BuildSql {
@@ -76,7 +76,7 @@ class BuildSql {
       option.fields = option.fields.map(item => {
         if (isPlainObject(item)) {
           if (!item.prop) throw `column ${item.prop} is not exist`
-          if(!item.name) item.name = item.prop
+          if (!item.name) item.name = item.prop
           return item
         }
         return {
@@ -177,6 +177,8 @@ class BuildSql {
       extractExpr = currentSource
     }
 
+    this.updateJoins(joins)
+
     return { joins, extractExpr, lastAlias: currentAlias }
   }
 
@@ -189,7 +191,6 @@ class BuildSql {
   generateWhereClauses() {
     const { where } = this
     const whereClauses = []
-    const whereFieldJoins = []
     // 处理 WHERE 条件
     Object.entries(where).forEach(([key, value]) => {
       // 步骤1：解析路径中的 [op=操作符] 标识
@@ -215,62 +216,54 @@ class BuildSql {
       // 步骤4：处理参数值（添加单引号等区分符号）
       let processedValue = value
 
-      if (isString(value)) {
+      if (this.isJsonField(processedValue)) {
+        processedValue = this.analysisJsonField(processedValue)
+      } else if (isString(value)) {
         processedValue = this.escapeValue(value) // 转义单引号
       }
-
       if (/^in$/ig.test(operator)) {
         processedValue = `(${this.escapeValue(value)})`
       }
-
-      // 步骤5：解析JSON路径并生成条件
-      if (field.startsWith(this.mask.json)) {
-        const jsonPath = field.slice(5)
-        const parsed = this.parseMultiArrayPath(jsonPath) // 复用之前的路径解析函数
-        const { arrayLayers, baseColumn, finalProp } = parsed
-        if (arrayLayers.length === 0) {
-          const expr = finalProp
-            ? `json_extract(${baseColumn}, '$.${finalProp}')`
-            : baseColumn
-          whereClauses.push(`${expr} ${operator} ${processedValue}`)
-        } else {
-          const { joins: whereJoins, extractExpr } = this.generateArrayJoins(parsed)
-          whereFieldJoins.push(...whereJoins)
-          whereClauses.push(`${extractExpr} ${operator} ${processedValue}`)
-        }
+      if (this.isJsonField(field)) {
+        const expr = this.analysisJsonField(field)
+        whereClauses.push(`${expr} ${operator} ${processedValue}`)
       } else {
         // 普通字段条件
         whereClauses.push(`${field} ${operator} ${processedValue}`)
       }
+
     })
-    this.updateJoins(whereFieldJoins)
     return whereClauses
+  }
+
+  isJsonField(field) {
+    if (!isString(field)) return false
+    return field.startsWith(this.mask.json)
+  }
+
+  analysisJsonField(field) {
+    if (!this.isJsonField(field)) return ''
+    const jsonPath = field.slice(5)
+    const parsed = this.parseMultiArrayPath(jsonPath) // 复用之前的路径解析函数
+    const { arrayLayers, baseColumn, finalProp } = parsed
+    if (arrayLayers.length === 0) {
+      return finalProp
+        ? `json_extract(${baseColumn}, '$.${finalProp}')`
+        : baseColumn
+    }
+    return this.generateArrayJoins(parsed).extractExpr
   }
 
   formatFields() {
     let fields = this.fields
-    const fieldsJoins = []
     fields = fields.map(field => {
       const { prop, name } = field
-      if (prop.startsWith(this.mask.json)) {
-        const jsonPath = prop.slice(5) // 提取 "json.skcList[*].skuList[*].productName"
-        const parsed = this.parseMultiArrayPath(jsonPath)
-        const { baseColumn, arrayLayers, finalProp } = parsed
-        if (arrayLayers.length === 0) {
-          // 无数组，普通 JSON 字段
-          return finalProp
-            ? `json_extract(${baseColumn}, '$.${finalProp}') AS "${name}"`
-            : `${baseColumn} AS "${field}"`
-        }
-
-        // 有数组，生成 JOIN 语句和提取表达式
-        const { joins: fieldJoins, extractExpr } = this.generateArrayJoins(parsed)
-        fieldsJoins.push(...fieldJoins)
-        return `${extractExpr} AS "${name}"`
+      if (this.isJsonField(prop)) {
+        const expr = this.analysisJsonField(prop)
+        return `${expr} AS "${name}"`
       }
       return field.name // 普通字段
     })
-    this.updateJoins(fieldsJoins)
     return fields
   }
 

@@ -3,7 +3,10 @@ const { customIpcRenderer } = require('~utils/event')
 const { getBatchReportingActivitiesData } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { flattenDeep, uniqBy } = require('lodash')
-const { batchModifyActivity, traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
+const {
+  batchModifyActivity,
+  traverseActivity
+} = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { calculateByType, CALCULATE_TYPE_LIST } = require('~express/utils/calculate')
 
 async function sync(req, res, next) {
@@ -222,6 +225,24 @@ async function list(req, res, next) {
       {
         prop: 'json:json.sites[*].siteId[op:in]',
         queryProp: 'semiManagedSiteIds'
+      },
+      {
+        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:<]',
+        queryProp: 'effective',
+        value(prop, query) {
+          const item = query[prop]
+          if (!item) return
+          return 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice'
+        }
+      },
+      {
+        prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:>]',
+        queryProp: 'effective',
+        value(prop, query) {
+          const item = query[prop]
+          if (!item) return
+          return 0
+        }
       }
     ]
   })
