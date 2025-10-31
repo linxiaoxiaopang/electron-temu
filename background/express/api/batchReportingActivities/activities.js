@@ -106,6 +106,9 @@ async function sync(req, res, next) {
   }
 }
 
+const EFFECTIVE = 1
+const INVALID = 2
+
 async function list(req, res, next) {
   const { body } = req
   let {
@@ -234,7 +237,7 @@ async function list(req, res, next) {
             queryProp: 'effective',
             value(prop, query) {
               const item = query[prop]
-              if(item != 1) return
+              if (item != EFFECTIVE) return
               return 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice'
             }
           },
@@ -244,7 +247,7 @@ async function list(req, res, next) {
             queryProp: 'effective',
             value(prop, query) {
               const item = query[prop]
-              if(item != 1) return
+              if (item != EFFECTIVE) return
               return 0
             }
           }
@@ -259,7 +262,7 @@ async function list(req, res, next) {
             logical: 'OR',
             value(prop, query) {
               const item = query[prop]
-              if(item != 2) return
+              if (item != INVALID) return
               return 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice'
             }
           },
@@ -269,7 +272,7 @@ async function list(req, res, next) {
             queryProp: 'effective',
             value(prop, query) {
               const item = query[prop]
-              if(item != 2) return
+              if (item != INVALID) return
               return 0
             }
           }
@@ -325,6 +328,7 @@ async function enrollSessionList(req, res, next) {
 
 async function validate(req, res, next) {
   const errorList = []
+  req.body.effective = INVALID
   const response = await batchModifyActivity({
     req,
     res,
@@ -337,17 +341,15 @@ async function validate(req, res, next) {
       traverseActivity({
         data,
         siteCallback(sitePriceItem, skuItem, skcItem, productItem) {
-          if (sitePriceItem.activityPrice < 0 || sitePriceItem.activityPrice > sitePriceItem.suggestActivityPrice) {
-            errorList.push({
-              spuId: productItem.productId,
-              skcId: skcItem.skcId,
-              skuId: skuItem.skuId,
-              siteName: sitePriceItem.siteName,
-              siteId: sitePriceItem.siteId,
-              activityPrice: sitePriceItem.activityPrice,
-              suggestActivityPrice: sitePriceItem.suggestActivityPrice
-            })
-          }
+          errorList.push({
+            spuId: productItem.productId,
+            skcId: skcItem.skcId,
+            skuId: skuItem.skuId,
+            siteName: sitePriceItem.siteName,
+            siteId: sitePriceItem.siteId,
+            activityPrice: sitePriceItem.activityPrice,
+            suggestActivityPrice: sitePriceItem.suggestActivityPrice
+          })
         }
       })
     }
