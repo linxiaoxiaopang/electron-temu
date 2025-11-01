@@ -141,20 +141,29 @@ async function list(req, res, next) {
             label: '活动主题ID',
             prop: 'activityThematicId'
           },
+
+          {
+            label: '标题',
+            prop: 'json:json.productName',
+            queryProp: 'titleFiltering'
+          },
           {
             label: 'SPU ID',
             prop: 'json:json.productId[op:in]',
-            queryProp: 'spuId'
+            queryProp: 'spuId',
+            memberType: 'number'
           },
           {
             label: 'SKC ID',
             prop: 'json:json.skcList[*].skcId[op:in]',
-            queryProp: 'skcId'
+            queryProp: 'skcId',
+            memberType: 'number'
           },
           {
             label: 'SKU ID',
-            prop: 'json:json.skcList[*].skcList[*].skuList[*].skuId[op:in]',
-            queryProp: 'skuId'
+            prop: 'json:json.skcList[*].skuList[*].skuId[op:in]',
+            queryProp: 'skuId',
+            memberType: 'number'
           },
           {
             label: 'SKC货号',
@@ -163,17 +172,17 @@ async function list(req, res, next) {
           },
           {
             label: 'SKC货号-模糊匹配',
-            prop: 'json:json.skcList[*].extCode[op:in]',
+            prop: 'json:json.skcList[*].extCode[op:like]',
             queryProp: 'skcExtCodeMatch',
             value(prop, query) {
-              const item = query[this.prop]
+              const item = query[prop]
               if (!item) return
               return likeMatch(item.matchType, item.matchContent)
             }
           },
           {
             label: 'SKU货号',
-            prop: 'json:json.skcList[*].skcList[*].skuList[*].extCode[op:in]',
+            prop: 'json:json.skcList[*].skuList[*].extCode[op:in]',
             queryProp: 'skuExtCode'
           },
           {
@@ -190,6 +199,7 @@ async function list(req, res, next) {
             label: '最小日常申报价格',
             prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
             queryProp: 'dailyPriceRange',
+            memberType: 'number',
             value(prop, query) {
               const item = query[prop]
               if (!item) return
@@ -200,6 +210,7 @@ async function list(req, res, next) {
             label: '最大日常申报价格',
             prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:<=]',
             queryProp: 'dailyPriceRange',
+            memberType: 'number',
             value(prop, query) {
               const item = query[prop]
               if (!item) return
@@ -210,6 +221,7 @@ async function list(req, res, next) {
             label: '最小参考申报价格',
             prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>]',
             queryProp: 'suggestActivityPriceRange',
+            memberType: 'number',
             value(prop, query) {
               const item = query[prop]
               if (!item) return
@@ -220,6 +232,7 @@ async function list(req, res, next) {
             label: '最大参考申报价格',
             prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:<=]',
             queryProp: 'suggestActivityPriceRange',
+            memberType: 'number',
             value(prop, query) {
               const item = query[prop]
               if (!item) return
@@ -338,7 +351,7 @@ async function list(req, res, next) {
           },
           {
             label: '商品规格',
-            prop: 'json:json.skcList[*].skuList[*].颜色',
+            prop: 'json:json.skcList[*].skuList[*].properties.颜色',
             queryProp: 'properties'
           },
           {
@@ -349,7 +362,8 @@ async function list(req, res, next) {
           {
             label: '类目',
             prop: 'json:json.leafCategoryId',
-            queryProp: 'catId'
+            queryProp: 'catId',
+            memberType: 'number'
           },
           {
             label: '最小日常申报价格在参考申报价格的范围区间',
@@ -444,7 +458,8 @@ async function list(req, res, next) {
           {
             label: '活动场次',
             prop: 'json:json.enrollSessionList[*].sessionId',
-            queryProp: 'sessionIds'
+            queryProp: 'sessionIds',
+            memberType: 'number'
           },
           {
             label: '最小上架时间',

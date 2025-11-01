@@ -1,4 +1,4 @@
-const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject, isNil } = require('lodash')
+const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject, isNil, isNaN } = require('lodash')
 
 
 class BuildSql {
@@ -53,7 +53,7 @@ class BuildSql {
   }
 
   formatFiledValue(value) {
-    if (isNil(value)) return undefined
+    if (isNil(value) || isNaN(value)) return undefined
     return value
   }
 
@@ -203,9 +203,24 @@ class BuildSql {
     return value
   }
 
+  conversionToMemberType(value, memberType) {
+    if (!memberType) return value
+    if (isArray(value)) return value.map(item => this.conversionToMemberType(item, memberType))
+    switch (memberType) {
+      case 'number':
+        return Number(value)
+      case 'boolean':
+        return Boolean(value)
+      case 'string':
+        return String(value)
+      default:
+        return value
+    }
+  }
+
   generateWhereClause(col) {
     // 处理 WHERE 条件
-    const { prop: key, value, valueFormatter } = col
+    const { prop: key, value, valueFormatter, memberType } = col
     // 步骤1：解析路径中的 [op=操作符] 标识
     let pathWithOp = key
     let operator = ''
@@ -227,15 +242,15 @@ class BuildSql {
     }
 
     // 步骤4：处理参数值（添加单引号等区分符号）
-    let processedValue = value
+    let processedValue = this.conversionToMemberType(value, memberType)
 
     if (this.isJsonField(processedValue)) {
       processedValue = this.analysisJsonField(processedValue)
-    } else if (isString(value)) {
-      processedValue = this.escapeValue(value) // 转义单引号
+    } else if (isString(processedValue)) {
+      processedValue = this.escapeValue(processedValue) // 转义单引号
     }
     if (/^in$/ig.test(operator)) {
-      processedValue = `(${this.escapeValue(value)})`
+      processedValue = `(${this.escapeValue(processedValue)})`
     }
     processedValue = valueFormatter(processedValue, this)
     let whereClaus = ''
