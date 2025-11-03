@@ -643,8 +643,24 @@ async function batchModifyActivityPrice(req, res, next) {
         basic: dailyPrice
       })
     },
-    // higherThanCostPercentage: CALCULATE_TYPE_LIST.higherThanPercentage,
-    // higherThanCostYuan: CALCULATE_TYPE_LIST.higherThanFixed,
+    higherThanCostPercentage: (item) => {
+      const { cost } = item
+      if(isNil(cost)) return cost
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.higherThanPercentage,
+        basic: cost
+      })
+    },
+    higherThanCostYuan: (item) => {
+      const { cost } = item
+      if(isNil(cost)) return cost
+      return calculateByType({
+        value,
+        type: CALCULATE_TYPE_LIST.higherThanFixed,
+        basic: cost
+      })
+    },
     constantValue: () => {
       return calculateByType({
         value,
@@ -692,7 +708,7 @@ async function batchModifyActivityStock(req, res, next) {
       const { suggestActivityStock } = item
       return calculateByType({
         value,
-        type: CALCULATE_TYPE_LIST.higherThanPercentage,
+        type: CALCULATE_TYPE_LIST.higherThanFixed,
         basic: suggestActivityStock
       })
     },

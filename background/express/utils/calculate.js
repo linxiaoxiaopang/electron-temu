@@ -1,3 +1,4 @@
+const { accAdd, accSub, accDiv, accMul } = require('~utils/calculate')
 const CALCULATE_TYPE_LIST = {
   lowerThanPercentage: 'lowerThanPercentage',
   lowerThanFixed: 'lowerThanFixed',
@@ -15,19 +16,23 @@ function calculateByType(
 ) {
   const typeList = {
     [CALCULATE_TYPE_LIST.lowerThanPercentage]() {
-      return basic - basic * (value / 100)
+      return accSub(basic, accMul(basic, accDiv(value, 100)))
+      // return basic - basic * (value / 100)
     },
 
     [CALCULATE_TYPE_LIST.lowerThanFixed]() {
-      return basic - value
+      return accSub(basic, value)
+      // return basic - value
     },
 
     [CALCULATE_TYPE_LIST.higherThanPercentage]() {
-      return basic + basic * (value / 100)
+      return accAdd(basic, accMul(basic, accDiv(value, 100)))
+      // return basic + basic * (value / 100)
     },
 
     [CALCULATE_TYPE_LIST.higherThanFixed]() {
-      return basic + value
+      return accAdd(basic, value)
+      // return basic + value
     },
 
     [CALCULATE_TYPE_LIST.constantValue]() {
