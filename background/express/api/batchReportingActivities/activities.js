@@ -9,7 +9,7 @@ const { flattenDeep, uniqBy, isNil } = require('lodash')
 const { calculateByType, CALCULATE_TYPE_LIST } = require('~express/utils/calculate')
 
 async function sync(req, res, next) {
-  let { mallId, activityType, activityLabelTag, activityThematicId } = req.body
+  let { mallId, activityType, activityLabelTag, activityThematicId, addSite } = req.body
   if (!mallId) {
     res.customResult = [true, '请选择店铺']
     next()
@@ -31,6 +31,7 @@ async function sync(req, res, next) {
     await instance.abandonCacheInstanceRequest()
   }
   const query = {
+    addSite,
     activityType,
     rowCount: 50
   }
