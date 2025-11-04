@@ -1,4 +1,14 @@
-const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject, isNil, isNaN, isNull } = require('lodash')
+const {
+  isString,
+  isFunction,
+  cloneDeep,
+  isUndefined,
+  groupBy,
+  isArray,
+  isPlainObject,
+  isNaN,
+  isNull
+} = require('lodash')
 
 
 class BuildSql {
@@ -85,6 +95,7 @@ class BuildSql {
       })
       item.column = item.column.filter(item => !isUndefined(item.value))
       item.logical = item.logical || 'AND'
+      item.part = item.part || 'default'
     })
     option.group = group.filter(item => item.column.length)
     if (isArray(option.fields)) {
@@ -303,21 +314,32 @@ class BuildSql {
   }
 
   generateWhereSql() {
-    let whereSql = ''
+    let whereSql = '1'
     const group = this.group
     // 处理 WHERE 条件
-    group.map((item, index) => {
+    group.map(item => {
       let itemWhereClause = ''
-      item.column.map((sItem, sIndex) => {
-        const whereClaus = this.generateWhereClause(sItem)
-        const logical = sIndex == 0 ? '' : sItem.logical
-        if (logical) itemWhereClause += ` ${logical} `
-        itemWhereClause += whereClaus
-      })
+      const groupData = groupBy(item.column, 'part')
+      let isStart = true
+      for (let key in groupData) {
+        let sItemWhereClause = ''
+        groupData[key].map((sItem, sIndex) => {
+          const whereClaus = this.generateWhereClause(sItem)
+          const logical = isStart ? '' : sItem.logical
+          isStart = false
+          if (logical) {
+            if (sIndex == 0) {
+              itemWhereClause += ` ${logical} `
+            } else {
+              sItemWhereClause += ` ${logical} `
+            }
+          }
+          sItemWhereClause += whereClaus
+        })
+        if (sItemWhereClause) itemWhereClause += `(${sItemWhereClause})`
+      }
       if (itemWhereClause) itemWhereClause = `(${itemWhereClause})`
-      const logical = index == 0 ? '' : item.logical
-      if (logical) whereSql += ` ${item.logical} `
-      whereSql += itemWhereClause
+      whereSql += ` ${item.logical} ${itemWhereClause}`
     })
     if (whereSql) whereSql = `WHERE ${whereSql}`
     return whereSql

@@ -532,58 +532,10 @@ async function list(req, res, next) {
       {
         column: [
           {
-            label: '未填写',
-            prop: 'json:json.skcList[*].skuList[*].skuId.activityPrice[op:is]',
-            queryProp: 'filled',
-            logical: 'OR',
-            value(prop, query) {
-              const item = query[prop]
-              if (+item !== 0) return
-              return null
-            }
-          },
-          {
-            label: '未填写',
-            prop: 'json:json.skcList[*].skuList[*].skuId.activityPrice[op:in]',
-            queryProp: 'filled',
-            logical: 'OR',
-            value(prop, query) {
-              const item = query[prop]
-              if (+item !== 0) return
-              return ['']
-            }
-          },
-          {
-            label: '未填写',
-            prop: 'json:json.activityStock[op:is]',
-            queryProp: 'filled',
-            logical: 'OR',
-            value(prop, query) {
-              const item = query[prop]
-              if (+item !== 0) return
-              return null
-            }
-          },
-          {
-            label: '未填写',
-            prop: 'json:json.activityStock[op:in]',
-            queryProp: 'filled',
-            logical: 'OR',
-            value(prop, query) {
-              const item = query[prop]
-              if (+item !== 0) return
-              return ['']
-            }
-          }
-        ]
-      },
-      {
-        column: [
-          {
             label: '已填写',
-            prop: 'json:json.skcList[*].skuList[*].skuId.activityPrice[op:is not]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:is not]',
             queryProp: 'filled',
-            groupName: 'write',
+            part: 'writeActivityPrice',
             value(prop, query) {
               const item = query[prop]
               if (!item) return
@@ -592,10 +544,9 @@ async function list(req, res, next) {
             }
           },
           {
-            logical: 'OR',
             label: '已填写',
-            prop: 'json:json.skcList[*].skuList[*].skuId.activityPrice[op:not in]',
-            groupName: 'write',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:not in]',
+            part: 'writeActivityPrice',
             queryProp: 'filled',
             value(prop, query) {
               const item = query[prop]
@@ -606,8 +557,8 @@ async function list(req, res, next) {
           },
           {
             label: '已填写',
-            groupName: 'write1',
             prop: 'json:json.activityStock[op:is not]',
+            part: 'writeActivityStock',
             queryProp: 'filled',
             logical: 'OR',
             value(prop, query) {
@@ -619,8 +570,8 @@ async function list(req, res, next) {
           },
           {
             label: '已填写',
-            groupName: 'write1',
             prop: 'json:json.activityStock[op:not in]',
+            part: 'writeActivityStock',
             queryProp: 'filled',
             value(prop, query) {
               const item = query[prop]
