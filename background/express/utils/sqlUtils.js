@@ -1,4 +1,4 @@
-const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject, isNil, isNaN } = require('lodash')
+const { isString, isFunction, cloneDeep, isUndefined, isArray, isPlainObject, isNil, isNaN, isNull } = require('lodash')
 
 
 class BuildSql {
@@ -53,7 +53,7 @@ class BuildSql {
   }
 
   formatFiledValue(value) {
-    if (isNil(value) || isNaN(value)) return undefined
+    if (isUndefined(value) || isNaN(value)) return undefined
     return value
   }
 
@@ -74,7 +74,7 @@ class BuildSql {
           sItem.value = sItem.value(queryProp, query, this)
           return
         }
-        if (!queryProp || !query || sItem.value) return
+        if (!queryProp || !query || !isUndefined(sItem.value)) return
         sItem.value = query[queryProp] || sItem.value
       })
       item.column.map(item => {
@@ -199,6 +199,7 @@ class BuildSql {
 
   escapeValue(value) {
     if (isArray(value)) return value.map(item => this.escapeValue(item))
+    if (isNull(value)) return 'Null'
     if (isString(value)) return `'${value.replace(/'/g, "''")}'`
     return value
   }
@@ -249,7 +250,7 @@ class BuildSql {
     } else if (isString(processedValue)) {
       processedValue = this.escapeValue(processedValue) // 转义单引号
     }
-    if (/^in$/ig.test(operator)) {
+    if (/^(not\s+)?in$/ig.test(operator)) {
       processedValue = `(${this.escapeValue(processedValue)})`
     }
     processedValue = valueFormatter(processedValue, this)
@@ -309,14 +310,14 @@ class BuildSql {
       let itemWhereClause = ''
       item.column.map((sItem, sIndex) => {
         const whereClaus = this.generateWhereClause(sItem)
-        const logical = sIndex == item.column.length - 1 ? '' : sItem.logical
-        itemWhereClause += whereClaus
+        const logical = sIndex == 0 ? '' : sItem.logical
         if (logical) itemWhereClause += ` ${logical} `
+        itemWhereClause += whereClaus
       })
       if (itemWhereClause) itemWhereClause = `(${itemWhereClause})`
-      const logical = index == group.length - 1 ? '' : item.logical
-      whereSql += itemWhereClause
+      const logical = index == 0 ? '' : item.logical
       if (logical) whereSql += ` ${item.logical} `
+      whereSql += itemWhereClause
     })
     if (whereSql) whereSql = `WHERE ${whereSql}`
     return whereSql

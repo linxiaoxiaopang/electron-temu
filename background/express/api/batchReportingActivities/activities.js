@@ -518,12 +518,115 @@ async function list(req, res, next) {
           },
           {
             label: 'activityPrice大于0',
+            logical: 'OR',
             prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:<]',
             queryProp: 'effective',
             value(prop, query) {
               const item = query[prop]
               if (item != INVALID) return
               return 0
+            }
+          }
+        ]
+      },
+      {
+        column: [
+          {
+            label: '未填写',
+            prop: 'json:json.skcList[*].skuList[*].skuId.activityPrice[op:is]',
+            queryProp: 'filled',
+            logical: 'OR',
+            value(prop, query) {
+              const item = query[prop]
+              if (+item !== 0) return
+              return null
+            }
+          },
+          {
+            label: '未填写',
+            prop: 'json:json.skcList[*].skuList[*].skuId.activityPrice[op:in]',
+            queryProp: 'filled',
+            logical: 'OR',
+            value(prop, query) {
+              const item = query[prop]
+              if (+item !== 0) return
+              return ['']
+            }
+          },
+          {
+            label: '未填写',
+            prop: 'json:json.activityStock[op:is]',
+            queryProp: 'filled',
+            logical: 'OR',
+            value(prop, query) {
+              const item = query[prop]
+              if (+item !== 0) return
+              return null
+            }
+          },
+          {
+            label: '未填写',
+            prop: 'json:json.activityStock[op:in]',
+            queryProp: 'filled',
+            logical: 'OR',
+            value(prop, query) {
+              const item = query[prop]
+              if (+item !== 0) return
+              return ['']
+            }
+          }
+        ]
+      },
+      {
+        column: [
+          {
+            label: '已填写',
+            prop: 'json:json.skcList[*].skuList[*].skuId.activityPrice[op:is not]',
+            queryProp: 'filled',
+            groupName: 'write',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              if (item != 2) return
+              return null
+            }
+          },
+          {
+            logical: 'OR',
+            label: '已填写',
+            prop: 'json:json.skcList[*].skuList[*].skuId.activityPrice[op:not in]',
+            groupName: 'write',
+            queryProp: 'filled',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              if (item != 2) return
+              return ['']
+            }
+          },
+          {
+            label: '已填写',
+            groupName: 'write1',
+            prop: 'json:json.activityStock[op:is not]',
+            queryProp: 'filled',
+            logical: 'OR',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              if (item != 2) return
+              return null
+            }
+          },
+          {
+            label: '已填写',
+            groupName: 'write1',
+            prop: 'json:json.activityStock[op:not in]',
+            queryProp: 'filled',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              if (item != 2) return
+              return ['']
             }
           }
         ]
@@ -645,7 +748,7 @@ async function batchModifyActivityPrice(req, res, next) {
     },
     higherThanCostPercentage: (item) => {
       const { cost } = item
-      if(isNil(cost)) return cost
+      if (isNil(cost)) return cost
       return calculateByType({
         value,
         type: CALCULATE_TYPE_LIST.higherThanPercentage,
@@ -654,7 +757,7 @@ async function batchModifyActivityPrice(req, res, next) {
     },
     higherThanCostYuan: (item) => {
       const { cost } = item
-      if(isNil(cost)) return cost
+      if (isNil(cost)) return cost
       return calculateByType({
         value,
         type: CALCULATE_TYPE_LIST.higherThanFixed,
@@ -776,15 +879,15 @@ async function modifyActivityGoodsInfo(req, res, next) {
       traverseActivity({
         data,
         productCallback(productItem) {
-          if(!isNil(activityStock)) {
+          if (!isNil(activityStock)) {
             productItem.activityStock = calculateList.constantValue(activityStock)
           }
         },
         siteCallback(sitePriceItem) {
-          if(!isNil(cost)) {
+          if (!isNil(cost)) {
             sitePriceItem.cost = calculateList.constantValue(cost)
           }
-          if(!isNil(activityPrice)) {
+          if (!isNil(activityPrice)) {
             sitePriceItem.activityPrice = calculateList.constantValue(activityPrice)
           }
         }
