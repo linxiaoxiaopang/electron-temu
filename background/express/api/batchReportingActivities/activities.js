@@ -552,7 +552,7 @@ async function list(req, res, next) {
               const item = query[prop]
               if (!item) return
               if (item != 2) return
-              return ['']
+              return ['', 0]
             }
           },
           {
@@ -577,7 +577,7 @@ async function list(req, res, next) {
               const item = query[prop]
               if (!item) return
               if (item != 2) return
-              return ['']
+              return ['', 0]
             }
           }
         ]
@@ -810,6 +810,7 @@ async function batchModifyActivityEnrollSession(req, res, next) {
 
 async function modifyActivityGoodsInfo(req, res, next) {
   const { body: { cost, activityPrice, activityStock } } = req
+  const skuIdList = req.body?.filter?.skuId || []
   const calculateList = {
     constantValue: (value) => {
       return calculateByType({
@@ -834,7 +835,9 @@ async function modifyActivityGoodsInfo(req, res, next) {
             productItem.activityStock = calculateList.constantValue(activityStock)
           }
         },
-        siteCallback(sitePriceItem) {
+        siteCallback(sitePriceItem, skuItem) {
+          const fItem = skuIdList.find(skuId => skuId == skuItem.skuId)
+          if (!fItem) return
           if (!isNil(cost)) {
             sitePriceItem.cost = calculateList.constantValue(cost)
           }
