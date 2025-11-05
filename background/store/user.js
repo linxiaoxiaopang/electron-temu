@@ -10,6 +10,12 @@ const user = {
   port: ''
 }
 
+exports.MALL_SOLE = {
+  semiSole: 1,
+  fullSole: 0
+}
+
+
 exports.getApiMode = function () {
   return user.apiMode
 }
@@ -18,14 +24,20 @@ exports.getIsProxy = function () {
   return exports.getApiMode() === 'proxy'
 }
 
-exports.getHeaders = function (mallId) {
+exports.getMall = function (mallId) {
   const { mallList } = user
   for (let key in mallList) {
     const item = mallList[key]
     if (!item.list[mallId]) continue
-    return item.list[mallId]?.headers
+    return item.list[mallId]
   }
   return null
+}
+
+exports.getHeaders = function (mallId) {
+  const mall = exports.getMall(mallId)
+  if(!mall) return  null
+  return mall.headers
 }
 
 exports.getMallIds = function () {
@@ -46,7 +58,7 @@ exports.getTemuTarget = function () {
 let p = null //promise
 exports.getPort = async function () {
   const { default: getPort } = require('get-port')
-  if(p) return await p
+  if (p) return await p
   p = getPort({ port: 3000 })
   user.port = await p
   return user.port

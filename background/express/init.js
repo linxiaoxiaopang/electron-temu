@@ -6,6 +6,7 @@ const { createProxyMiddleware, createProxyToGetTemuData } = require('./middlewar
 const responseMiddleware = require('./middleware/responseMiddleware')
 const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
+const mergeDataMiddleware = require('./middleware/mergeDataMiddleware')
 const { getTemuTarget, getPort } = require('~store/user')
 const mallRouter = require('./api/mall')
 const userRouter = require('./api/user')
@@ -20,6 +21,7 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))
 
 
 app.use('/temu-agentseller', validHeadersMiddleware)
+app.use('/temu-agentseller', mergeDataMiddleware)
 
 app.post('/setHeaders', async (req, res, next) => {
   const { headers } = req.body

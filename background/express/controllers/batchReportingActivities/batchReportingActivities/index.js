@@ -1,9 +1,13 @@
 const axios = require('axios')
-const { map, isString, isFunction, isArray, merge } = require('lodash')
+const { isString, isFunction, isArray, merge } = require('lodash')
 const { flatMapDeepByArray } = require('~utils/array')
 const { customIpcRenderer } = require('~utils/event')
 const { LoopRequest } = require('~express/utils/loopUtils')
-const { getData } = require('~express/utils/apiUtils')
+const { MALL_SOLE } = require('~store/user')
+const {
+  GetSemiBatchReportingActivitiesDataClass,
+  GetFullBatchReportingActivitiesDataClass
+} = require('./utils/getBatchReportingActivitiesDataClass')
 
 async function getBatchReportingActivitiesData(
   {
@@ -11,73 +15,17 @@ async function getBatchReportingActivitiesData(
     query
   }
 ) {
-  const response0 = await getData({
-    relativeUrl: '/api/kiana/gamblers/marketing/enroll/scroll/match',
-    req,
-    query
-  })
-  const matchList = response0?.data?.matchList
-  const productIds = map(matchList, 'productId')
-  const p1 = getData({
-    relativeUrl: '/api/kiana/gamblers/marketing/enroll/session/list',
-    req,
-    query: {
-      productIds
+  const managedType = req.customData.managedType
+  const list = {
+    [MALL_SOLE.semiSole]: {
+      classConstructor: GetSemiBatchReportingActivitiesDataClass
+    },
+
+    [MALL_SOLE.fullSole]: {
+      classConstructor: GetFullBatchReportingActivitiesDataClass
     }
-  })
-  const p2 = getData({
-    req,
-    relativeUrl: '/api/kiana/mms/robin/searchForSemiSupplier',
-    query: {
-      pageNum: 1,
-      pageSize: productIds.length,
-      productSpuIdList: productIds,
-      supplierTodoTypeList: []
-    }
-  })
-  const [response1, response2] = await Promise.all([p1, p2])
-  const productCanEnrollSessionMap = response1?.data?.productCanEnrollSessionMap || {}
-  const dataList = response2?.data?.dataList || []
-  matchList.map(item => {
-    item.enrollSessionList = productCanEnrollSessionMap[item.productId] || []
-  })
-  dataList.map(item => {
-    const flatSkcList = flatMapDeepByArray(item, ['skcList'])
-    const flatSitePriceList = flatMapDeepByArray(flatSkcList, ['skuList', 'siteSupplierPriceList'])
-    const fItem = matchList.find(sItem => item.productId == sItem.productId)
-    if (!fItem) return
-    traverseActivity({
-      data: [fItem],
-      productCallback(productItem) {
-        const fItem = item
-        const { catIdList, fullCategoryName, leafCategoryId, leafCategoryName } = fItem
-        merge(productItem, {
-          catIdList,
-          fullCategoryName,
-          leafCategoryId,
-          leafCategoryName
-        })
-      },
-      skcCallback(skcItem) {
-        const fItem = flatSkcList.find(item => item.skcId == skcItem.skcId)
-        if (!fItem) return
-        const { statusTime } = fItem
-        merge(skcItem, {
-          statusTime
-        })
-      },
-      siteCallback(sitePriceItem) {
-        const fItem = flatSitePriceList.find(item => item.siteId == sitePriceItem.siteId)
-        if (!fItem) return
-        const { supplierPriceValue, supplierPrice } = fItem
-        merge(sitePriceItem, {
-          supplierPriceValue,
-          supplierPrice
-        })
-      }
-    })
-  })
-  return response0
+  }
+  return new list[managedType].classConstructor({ req, query }).action()
 }
 
 async function batchModifyActivity(
@@ -148,7 +96,7 @@ async function batchModifyActivity(
     }]
   }
   const response = await instance.action()
-  if(response[0]) return response
+  if (response[0]) return response
   response[1] = 1
   return response
 
@@ -176,7 +124,7 @@ function traverseActivity(
       if (skcCallback) skcCallback(skcItem, productItem, data)
       skcItem.skuList.map(skuItem => {
         if (skuCallback) skuCallback(skuItem, skcItem, productItem, data)
-        skuItem.sitePriceList.map(sitePriceItem => {
+        skuItem.sitePriceList?.map(sitePriceItem => {
           if (siteCallback) siteCallback(sitePriceItem, skuItem, skcItem, productItem, data)
         })
       })
