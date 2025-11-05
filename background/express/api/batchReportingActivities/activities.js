@@ -74,7 +74,7 @@ async function sync(req, res, next) {
     const response2 = await customIpcRenderer.invoke('db:temu:batchReportingActivities:add', syncData)
     if (response2[0]) return response2
     //所有数据都加载完毕
-    if (data?.data?.hasMore) totalTasks = instance.summary.completedTasks + tasks
+    if (!data?.data?.hasMore) totalTasks = instance.summary.completedTasks + tasks
     return [false, {
       totalTasks,
       tasks
@@ -484,7 +484,7 @@ async function list(req, res, next) {
           },
           {
             label: 'activityPrice小于suggestActivityPrice',
-            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:<]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:<=]',
             queryProp: 'effective',
             value(prop, query) {
               const item = query[prop]
@@ -510,7 +510,6 @@ async function list(req, res, next) {
             label: 'activityPrice小于suggestActivityPrice',
             prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:>]',
             queryProp: 'effective',
-            logical: 'OR',
             value(prop, query) {
               const item = query[prop]
               if (item != INVALID) return
@@ -518,7 +517,7 @@ async function list(req, res, next) {
             }
           },
           {
-            label: 'activityPrice大于0',
+            label: 'activityPrice小于0',
             logical: 'OR',
             prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].activityPrice[op:<]',
             queryProp: 'effective',
