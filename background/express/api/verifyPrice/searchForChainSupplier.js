@@ -1,6 +1,7 @@
 const { getFullSearchForChainSupplierData } = require('../../controllers/verifyPrice/searchForChainSupplier')
 const { LoopRequest } = require('../../utils/loopUtils')
 const { customIpcRenderer } = require('~/utils/event')
+const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 
 async function sync(req, res, next) {
   const { mallId } = req.body
@@ -118,26 +119,43 @@ WHERE json_extract(item.value, '$.extCode') like :pattern and t.mallId = :mallId
 
 async function getMinSuggestSupplyPrice(req, res, next) {
   const { body } = req
-  let { mallId, extCodeLike } = body
-
-  const sql = `
-      SELECT 
-        MIN(json_extract(skuInfo.value, '$.suggestSupplyPrice')) AS minSuggestSupplyPrice 
-      FROM 
-        extCodeSearchForChainSupplier t,
-        json_each(json_extract(t.json, '$.skcList')) AS skcItem,
-        json_each(json_extract(skcItem.value, '$.supplierPriceReviewInfoList')) AS supplierPriceReviewInfo,
-        json_each(json_extract(supplierPriceReviewInfo.value, '$.priceReviewItem.skuInfoList')) AS skuInfo
-      WHERE 
-        json_extract(skcItem.value, '$.extCode') LIKE :pattern 
-        AND t.mallId = :mallId
-    `
+  const buildSqlInstance = new BuildSql({
+    table: 'extCodeSearchForChainSupplier',
+    selectModifier: 'DISTINCT',
+    query: body,
+    fields: [
+      {
+        prop: 'json:json.skcList[*].skuList[*].siteSupplierPriceList[*].supplierPriceValue',
+        name: 'minSuggestSupplyPrice',
+        valueFormatter(expr) {
+          return `MIN(${expr})`
+        }
+      }
+    ],
+    group: [
+      {
+        column: [
+          {
+            label: '店铺Id',
+            prop: 'mallId'
+          },
+          {
+            label: '款式',
+            prop: 'json:json.skcList[*].extCode[op:like]',
+            queryProp: 'extCodeLike',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return likeMatch('contains', item)
+            }
+          }
+        ]
+      }
+    ]
+  })
+  const sql = buildSqlInstance.generateSql()
   res.customResult = await customIpcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:query', {
-    sql,
-    replacements: {
-      mallId,
-      pattern: extCodeLike ? `%${extCodeLike}%` : '%'
-    }
+    sql
   })
   next()
 }

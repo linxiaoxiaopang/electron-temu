@@ -299,9 +299,12 @@ class BuildSql {
   formatFields() {
     let fields = this.fields
     fields = fields.map(field => {
-      const { prop, name } = field
+      const { prop, name, valueFormatter } = field
       if (this.isJsonField(prop)) {
-        const expr = this.analysisJsonField(prop)
+        let expr = this.analysisJsonField(prop)
+        if (valueFormatter) {
+          expr = valueFormatter(expr, field, this)
+        }
         return `${expr} AS "${name}"`
       }
       return field.name // 普通字段
