@@ -1,6 +1,9 @@
-const { createProxyToGetTemuData } = require('../../middleware/proxyMiddleware')
-const { getTemuTarget } = require('~store/user')
-
+const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
+const { getTemuTarget, MALL_SOLE } = require('~store/user')
+const {
+  GetGenSemiBatchReportingActivitiesTemplateData,
+  GetGenFullBatchReportingActivitiesTemplateData
+} = require('~express/controllers/batchReportingActivities/genBatchReportingActivitiesTemplate/utils/getGenBatchReportingActivitiesTemplateData')
 
 async function getGenBatchReportingActivitiesTemplateData(
   {
@@ -8,11 +11,17 @@ async function getGenBatchReportingActivitiesTemplateData(
     query
   }
 ) {
-  const relativeUrl0 = '/api/kiana/gamblers/marketing/enroll/semi/scroll/match'
-  const wholeUrl0 = `${getTemuTarget()}${relativeUrl0}`
-  const getData0 = createProxyToGetTemuData(req)
-  const response0 = await getData0(wholeUrl0, { data: query })
-  return response0
+  const managedType = req.customData.managedType
+  const list = {
+    [MALL_SOLE.semiSole]: {
+      classConstructor: GetGenSemiBatchReportingActivitiesTemplateData
+    },
+
+    [MALL_SOLE.fullSole]: {
+      classConstructor: GetGenFullBatchReportingActivitiesTemplateData
+    }
+  }
+  return new list[managedType].classConstructor({ req, query }).action()
 }
 
 async function getActivityList(mallId) {
