@@ -36,7 +36,7 @@ exports.getMall = function (mallId) {
 
 exports.getHeaders = function (mallId) {
   const mall = exports.getMall(mallId)
-  if(!mall) return  null
+  if (!mall) return null
   return mall.headers
 }
 
@@ -54,6 +54,11 @@ exports.getMallIds = function () {
 exports.getTemuTarget = function () {
   return exports.getIsProxy() ? 'http://192.168.10.81:3000/temu-agentseller' : 'https://agentseller.temu.com'
 }
+
+exports.getWholeUrl = function (relativeUrl) {
+  return `${exports.getTemuTarget()}${relativeUrl}`
+}
+
 
 let p = null //promise
 exports.getPort = async function () {
