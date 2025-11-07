@@ -198,7 +198,7 @@ async function list(req, res, next) {
           },
           {
             label: '最小日常申报价格',
-            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>=]',
             queryProp: 'dailyPriceRange',
             memberType: 'number',
             value(prop, query) {
@@ -220,7 +220,7 @@ async function list(req, res, next) {
           },
           {
             label: '最小参考申报价格',
-            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].suggestActivityPrice[op:>=]',
             queryProp: 'suggestActivityPriceRange',
             memberType: 'number',
             value(prop, query) {
@@ -242,7 +242,7 @@ async function list(req, res, next) {
           },
           {
             label: '最小日常申报价格减去参考申报价格的差值',
-            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>=]',
             queryProp: 'dailyPriceMinusSuggestActivityPrice',
             valueFormatter(value, { query }) {
               const item = query.dailyPriceMinusSuggestActivityPrice
@@ -272,7 +272,7 @@ async function list(req, res, next) {
           },
           {
             label: '最小日常申报价格减去成本的差值',
-            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>=]',
             queryProp: 'dailyPriceMinusCost',
             valueFormatter(value, { query }) {
               const item = query.dailyPriceMinusCost
@@ -332,7 +332,7 @@ async function list(req, res, next) {
           },
           {
             label: '最小成本',
-            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue[op:>]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].supplierPriceValue[op:>=]',
             queryProp: 'costPriceRange',
             value(prop, query) {
               const item = query[prop]
@@ -368,7 +368,7 @@ async function list(req, res, next) {
           },
           {
             label: '最小日常申报价格在参考申报价格的范围区间',
-            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>=]',
             queryProp: 'dailyPriceSuggestActivityPriceRatio',
             valueFormatter(value, { query }) {
               const item = query.dailyPriceSuggestActivityPriceRatio
@@ -398,7 +398,7 @@ async function list(req, res, next) {
           },
           {
             label: '最小日常申报价格在成本价格的范围区间',
-            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>]',
+            prop: 'json:json.skcList[*].skuList[*].sitePriceList[*].dailyPrice[op:>=]',
             queryProp: 'dailyPriceCostRatio',
             valueFormatter(value, { query }) {
               const item = query.dailyPriceCostRatio
@@ -464,7 +464,7 @@ async function list(req, res, next) {
           },
           {
             label: '最小上架时间',
-            prop: 'json:json.skcList[*].statusTime.addedToSiteTime[op:>]',
+            prop: 'json:json.skcList[*].statusTime.addedToSiteTime[op:>=]',
             queryProp: 'shelfDaysRange',
             value(prop, query) {
               const item = query[prop]
@@ -500,6 +500,26 @@ async function list(req, res, next) {
               const item = query[prop]
               if (item != EFFECTIVE) return
               return 0
+            }
+          },
+          {
+            label: '最小仓内可用库存数量',
+            prop: 'json:json.skcList[*].skuList[*].warehouseInventoryNum[op:>=]',
+            queryProp: 'inventoryNumRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (isNil(item)) return
+              return item?.min
+            }
+          },
+          {
+            label: '最大仓内可用库存数量',
+            prop: 'json:json.skcList[*].skuList[*].warehouseInventoryNum[op:<=]',
+            queryProp: 'inventoryNumRange',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return item?.max
             }
           }
         ]

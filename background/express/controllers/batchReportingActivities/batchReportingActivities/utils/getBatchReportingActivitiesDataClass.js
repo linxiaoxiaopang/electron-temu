@@ -1,5 +1,5 @@
 const { getData } = require('~express/utils/apiUtils')
-const { map, merge, isArray } = require('lodash')
+const { map, merge, isArray, max } = require('lodash')
 const { flatMapDeepByArray } = require('~utils/array')
 const { getUUID } = require('~utils/random')
 let traverseActivity = null
@@ -44,6 +44,10 @@ class GetSemiBatchReportingActivitiesDataClass {
     })
     return response?.data
   }
+
+  getListWarehouse() {}
+
+  mergeListWarehouse() {}
 
   async getSearchForSemiSupplier() {
     const { req, productIds } = this
@@ -101,8 +105,9 @@ class GetSemiBatchReportingActivitiesDataClass {
   async action() {
     const response = await this.getEnrollScrollMatch()
     this.matchList = response?.data?.matchList || []
-    const [sessionListData, searchForSemiSupplierData] = await Promise.all([this.getSessionList(), this.getSearchForSemiSupplier()])
+    const [sessionListData, searchForSemiSupplierData, listWarehouseData] = await Promise.all([this.getSessionList(), this.getSearchForSemiSupplier(), this.getListWarehouse()])
     this.mergeEnrollSessionList(sessionListData)
+    this.mergeListWarehouse(listWarehouseData)
     this.mergeSearchForSemiSupplier(searchForSemiSupplierData)
     return response
   }
@@ -125,6 +130,36 @@ class GetFullBatchReportingActivitiesDataClass extends GetSemiBatchReportingActi
         productCanEnrollSessionMap: {}
       }
     )
+  }
+
+  async getListWarehouse() {
+    const { req, productIds } = this
+    const response = await getData({
+      relativeUrl: '/mms/venom/api/supplier/sales/management/listWarehouse',
+      req,
+      query: {
+        isLack: 0,
+        priceAdjustRecentDays: 7,
+        pageNo: 1,
+        pageSize: productIds.length,
+        productIdList: productIds
+      }
+    })
+    return response?.data
+  }
+
+  mergeListWarehouse(listWarehouseData) {
+    const { matchList } = this
+    const flatData = flatMapDeepByArray(listWarehouseData, ['subOrderList', 'skuQuantityDetailList'])
+    traverseActivity({
+      data: matchList,
+      skuCallback(skuItem) {
+        const skuId = skuItem.skuId
+        const fItem = flatData.find(item => item.productSkuId == skuId)
+        if (!fItem) return
+        skuItem.warehouseInventoryNum = max(map(fItem.warehouseInfoList, 'inventoryNumInfo.warehouseInventoryNum'))
+      }
+    })
   }
 
   mergeSearchForSemiSupplier(searchForSemiSupplierData) {
