@@ -23,7 +23,12 @@ class UpdateSemiPricingStrategy {
   }
 
   async collectPricingStrategyHistory() {
-    return await throwPromiseError(ipcRendererInvokeAdd('db:temu:pricingStrategyHistory:add', this.strategyList))
+    return await throwPromiseError(ipcRendererInvokeAdd('db:temu:pricingStrategyHistory:add', this.strategyList.map(item => {
+          const { id, ...restItem } = item
+          return restItem
+        })
+      )
+    )
   }
 
   async collectPricingStrategy() {
@@ -198,9 +203,11 @@ class UpdateFullPricingStrategy extends UpdateSemiPricingStrategy {
       skuCallback: (skuItem, skcItem) => {
         const fItem = this.strategyList.find(sItem => sItem.skuId == skuItem.skuId)
         if (!fItem) return
+        const supplierPriceReviewInfoList = skcItem?.supplierPriceReviewInfoList || []
+        const success = supplierPriceReviewInfoList.some(item => item.status != 1)
         batchOperateResult[fItem.priceOrderId] = {
-          priceOrderId: fItem.priceOrderId,
-          success: skcItem.status != 1
+          success,
+          priceOrderId: fItem.priceOrderId
         }
       }
     })

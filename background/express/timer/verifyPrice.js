@@ -1,9 +1,10 @@
 const { emitter } = require('../../utils/event')
 const { updateCreatePricingStrategy } = require('../controllers/verifyPrice/updatePricingStrategy')
-const { getMallIds, getTemuTarget } = require('~store/user')
+const { getMallIds, getMall, MALL_SOLE } = require('~store/user')
 const { chunk, groupBy, isNil, map, merge } = require('lodash')
-const { createProxyMiddleware } = require('../middleware/proxyMiddleware')
 const { customIpcRenderer } = require('~/utils/event')
+const { GetSearchForSupplierByManagedType } = require('~express/controllers/verifyPrice/searchForChainSupplier/utils/getFullSearchForChainSupplierData')
+const { traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 
 class UpdateCreatePricingStrategyTimer {
   constructor(
@@ -18,6 +19,50 @@ class UpdateCreatePricingStrategyTimer {
     this.timerRecord = timerRecord
     this.strategyList = []
     this.updateRes = null
+    this.list = {
+      [MALL_SOLE.semiSole]: {
+        getFlatSkuList: (data) => {
+          const flatSkuList = []
+          traverseActivity({
+            data,
+            skuCallback: (skuItem, skcItem, productItem) => {
+              const { hasToConfirmPriceReviewOrder } = productItem
+              flatSkuList.push({
+                ...skuItem,
+                hasToConfirm: hasToConfirmPriceReviewOrder
+              })
+            }
+          })
+          return flatSkuList
+        }
+      },
+
+      [MALL_SOLE.fullSole]: {
+        getFlatSkuList: (data) => {
+          const flatSkuList = []
+          traverseActivity({
+            data,
+            skuCallback: (skuItem, skcItem) => {
+              const supplierPriceReviewInfoList = skcItem?.supplierPriceReviewInfoList || []
+              const hasToConfirm = supplierPriceReviewInfoList.every(item => item.status == 1)
+              flatSkuList.push({
+                ...skuItem,
+                hasToConfirm
+              })
+            }
+          })
+          return flatSkuList
+        }
+      }
+    }
+  }
+
+  get mall() {
+    return getMall(this.mallId)
+  }
+
+  get managedType() {
+    return this.mall?.userInfo?.mallList?.[0].managedType
   }
 
   get batchOperateResult() {
@@ -26,6 +71,10 @@ class UpdateCreatePricingStrategyTimer {
 
   get usedStrategyList() {
     return this.strategyList.filter(item => !item.isDelete && !item.isIgnore)
+  }
+
+  get option() {
+    return this.list[this.managedType]
   }
 
   validMallId() {
@@ -47,54 +96,27 @@ class UpdateCreatePricingStrategyTimer {
   async getAllDataByPriceOrderId() {
     const { strategyList } = this
     const productSkuIdList = map(strategyList, 'skuId')
-    const pageSize = 50
-    const chunkData = chunk(productSkuIdList, pageSize)
-    const allDataList = []
     const req = {
       body: {
-        pageSize,
-        mallId: this.mallId,
-        productSkuIdList,
-        supplierTodoTypeList: [],
-        pageNum: 1
+        mallId: this.mallId
+      },
+      customData: {
+        managedType: this.managedType
       },
       method: 'POST',
       baseUrl: '/temu-agentseller',
       url: '/api/kiana/mms/robin/searchForSemiSupplier'
     }
-    for (let item of chunkData) {
-      const res = {}
-      const proxyMiddlewareFn = createProxyMiddleware({
-        target: () => {
-          return getTemuTarget()
-        },
-        isReturnData: true
-      })
-      const response = await proxyMiddlewareFn(req, res)
-      const dataList = response?.dataList || []
-      allDataList.push(...dataList)
-    }
-    return allDataList
+    const instance = new GetSearchForSupplierByManagedType({
+      req
+    })
+    return await instance.getDataByProductSkuIdList(productSkuIdList)
   }
 
   async maskPassSearchForSemiSupplier() {
     const { strategyList } = this
     const dataList = await this.getAllDataByPriceOrderId()
-    const flatSkuList = []
-    dataList.map(item => {
-      const hasToConfirmPriceReviewOrder = item.hasToConfirmPriceReviewOrder
-      const skcList = item.skcList || []
-      skcList.map(sItem => {
-        let skuList = sItem.skuList || []
-        skuList = skuList.map(gItem => {
-          return {
-            ...gItem,
-            hasToConfirmPriceReviewOrder
-          }
-        })
-        flatSkuList.push(...skuList)
-      })
-    })
+    const flatSkuList = this.option.getFlatSkuList(dataList)
     strategyList.map(item => {
       const fItem = flatSkuList.find(sItem => sItem.skuId == item.skuId)
       if (!fItem) {
@@ -106,8 +128,8 @@ class UpdateCreatePricingStrategyTimer {
         return
       }
       //判断是否已经在核价中，在核价中就跳过
-      const { hasToConfirmPriceReviewOrder } = fItem
-      if (!hasToConfirmPriceReviewOrder) {
+      const { hasToConfirm } = fItem
+      if (!hasToConfirm) {
         item.isIgnore = true
       }
     })
@@ -141,6 +163,9 @@ class UpdateCreatePricingStrategyTimer {
       })
       const [err, res] = await updateCreatePricingStrategy({
         method: 'POST',
+        customData: {
+          managedType: this.managedType
+        },
         body: {
           mallId: this.mallId,
           strategyList: chunkStrategyList
