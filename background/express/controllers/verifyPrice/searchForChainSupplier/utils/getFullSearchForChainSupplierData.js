@@ -4,6 +4,7 @@ const { map, chunk } = require('lodash')
 const { traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { getUUID } = require('~utils/random')
 const { MALL_SOLE } = require('~store/user')
+const { accDiv } = require('~utils/calculate')
 
 
 class GetSemiSearchForChainSupplierData {
@@ -26,7 +27,7 @@ class GetSemiSearchForChainSupplierData {
     const orderIds = map(orderList, 'priceOrderId')
     const { req } = this
     const relativeUrl = '/api/kiana/magnus/mms/price/bargain-no-bom/batch/info/query'
-    const wholeUrl =  getWholeUrl(relativeUrl)
+    const wholeUrl = getWholeUrl(relativeUrl)
     const response = await createProxyToGetTemuData(req)(wholeUrl, {
       data: {
         orderIds
@@ -98,6 +99,11 @@ class GetFullSearchForChainSupplierData extends GetSemiSearchForChainSupplierDat
           const fItem = item.productSkuList.find(sItem => sItem.skuId == skuItem.skuId)
           if (!fItem) return
           siteItem.suggestSupplyPrice = item.suggestSupplyPrice
+          if (item.supplyPrice) {
+            const unit = siteItem.supplierPrice.substr(0, 1)
+            siteItem.supplierPriceValue = item.supplyPrice
+            siteItem.supplierPrice = `${unit}${accDiv(item.supplyPrice, 100)}`
+          }
         })
         skuItem.siteSupplierPriceList = [siteItem]
       }
