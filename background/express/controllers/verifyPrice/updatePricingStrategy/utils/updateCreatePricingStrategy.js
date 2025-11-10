@@ -1,9 +1,11 @@
 const { ipcRendererInvokeAdd } = require('~express/utils/dbDataUtils')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
+const { GetSearchForSupplierByManagedType } = require('~express/controllers/verifyPrice/searchForChainSupplier/utils/getFullSearchForChainSupplierData')
 const { customIpcRenderer } = require('~utils/event')
-const { map, groupBy, cloneDeep } = require('lodash')
+const { map, groupBy, cloneDeep, chunk } = require('lodash')
 const { getWholeUrl } = require('~store/user')
 const { throwPromiseError } = require('~utils/promise')
+const { traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 
 class UpdateSemiPricingStrategy {
   constructor(
@@ -146,6 +148,10 @@ class UpdateSemiPricingStrategy {
     }
   }
 
+  async handleResponse(response) {
+    return response
+  }
+
   async action() {
     try {
       this.strategyList = this.strategyListCalculateCost(this.body?.strategyList || [])
@@ -153,7 +159,8 @@ class UpdateSemiPricingStrategy {
       await this.deletePricingStrategy()
       await this.collectPricingStrategy()
       this.updateBody(this.getParams())
-      const response = await this.summit()
+      let response = await this.summit()
+      response = await this.handleResponse(response)
       await this.updateLatestPricingStrategy(response)
       return [false, response?.data]
     } catch (err) {
@@ -171,6 +178,33 @@ class UpdateFullPricingStrategy extends UpdateSemiPricingStrategy {
   updateBody(params) {
     this.body.items = params
     delete this.body.strategyList
+  }
+
+  async handleResponse(response) {
+    const instance = new GetSearchForSupplierByManagedType({
+      req: this.req
+    })
+    response = {
+      result: {
+        batchOperateResult: {}
+      },
+      success: true
+    }
+    response.data = response.result
+    const batchOperateResult = response.result.batchOperateResult
+    const data = await instance.getDataByProductSkuIdList(map(this.strategyList, 'skuId'))
+    traverseActivity({
+      data,
+      skuCallback: (skuItem, skcItem) => {
+        const fItem = this.strategyList.find(sItem => sItem.skuId == skuItem.skuId)
+        if (!fItem) return
+        batchOperateResult[fItem.priceOrderId] = {
+          priceOrderId: fItem.priceOrderId,
+          success: skcItem.status != 1
+        }
+      }
+    })
+    return response
   }
 }
 

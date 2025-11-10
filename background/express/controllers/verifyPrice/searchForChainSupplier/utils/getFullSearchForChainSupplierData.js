@@ -1,8 +1,9 @@
-const { getTemuTarget } = require('~store/user')
-const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
-const { map } = require('lodash')
+const { getWholeUrl } = require('~store/user')
+const { createProxyToGetTemuData, createProxyMiddleware } = require('~express/middleware/proxyMiddleware')
+const { map, chunk } = require('lodash')
 const { traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
 const { getUUID } = require('~utils/random')
+const { MALL_SOLE } = require('~store/user')
 
 
 class GetSemiSearchForChainSupplierData {
@@ -14,21 +15,18 @@ class GetSemiSearchForChainSupplierData {
   ) {
     this.req = req
     this.query = query
-    this.searchForSemiSupplierRelativeUrl = '/api/kiana/mms/robin/searchForSemiSupplier'
   }
 
   async getSearchForSemiSupplier() {
-    const { query, req } = this
-    const relativeUrl = this.searchForSemiSupplierRelativeUrl
-    const wholeUrl = `${getTemuTarget()}${relativeUrl}`
-    return await createProxyToGetTemuData(req)(wholeUrl, { data: query })
+    const { req, query } = this
+    return await new GetSearchForSupplierByManagedType({ req }).getData(query)
   }
 
   async getInfoQuery(orderList) {
     const orderIds = map(orderList, 'priceOrderId')
     const { req } = this
     const relativeUrl = '/api/kiana/magnus/mms/price/bargain-no-bom/batch/info/query'
-    const wholeUrl = `${getTemuTarget()}${relativeUrl}`
+    const wholeUrl =  getWholeUrl(relativeUrl)
     const response = await createProxyToGetTemuData(req)(wholeUrl, {
       data: {
         orderIds
@@ -80,7 +78,6 @@ class GetSemiSearchForChainSupplierData {
 class GetFullSearchForChainSupplierData extends GetSemiSearchForChainSupplierData {
   constructor(option) {
     super(option)
-    this.searchForSemiSupplierRelativeUrl = '/api/kiana/mms/robin/searchForChainSupplier'
   }
 
   handleResponse(response) {
@@ -109,7 +106,61 @@ class GetFullSearchForChainSupplierData extends GetSemiSearchForChainSupplierDat
   }
 }
 
+class GetSearchForSupplierByManagedType {
+  constructor(
+    {
+      req
+    }
+  ) {
+    this.req = req
+  }
+
+  get managedType() {
+    return this.req.customData.managedType
+  }
+
+  get option() {
+    const list = {
+      [MALL_SOLE.semiSole]: {
+        relativeUrl: '/api/kiana/mms/robin/searchForSemiSupplier'
+      },
+
+      [MALL_SOLE.fullSole]: {
+        relativeUrl: '/api/kiana/mms/robin/searchForChainSupplier'
+      }
+    }
+    return list[this.managedType]
+  }
+
+  async getData(query) {
+    const { req } = this
+    const relativeUrl = this.option.relativeUrl
+    const wholeUrl = getWholeUrl(relativeUrl)
+    return await createProxyToGetTemuData(req)(wholeUrl, { data: query })
+  }
+
+  async getDataByProductSkuIdList(productSkuIdList) {
+    const pageSize = 50
+    const chunkData = chunk(productSkuIdList, pageSize)
+    const allData = []
+    const query = {
+      pageSize,
+      productSkuIdList: [],
+      supplierTodoTypeList: [],
+      pageNum: 1
+    }
+    for (let productSkuIdList of chunkData) {
+      query.productSkuIdList = productSkuIdList
+      const response = await this.getData(query)
+      const dataList = response?.data?.dataList || []
+      allData.push(...dataList)
+    }
+    return allData
+  }
+}
+
 module.exports = {
   GetSemiSearchForChainSupplierData,
-  GetFullSearchForChainSupplierData
+  GetFullSearchForChainSupplierData,
+  GetSearchForSupplierByManagedType
 }
