@@ -35,18 +35,11 @@ function createProxyToGetTemuData(req) {
     let { method, body } = req
     method = method || 'POST'
     const { mallId, page, ...restBody } = body
-    const headers = getHeaders(mallId)
     const isProxy = getIsProxy()
-    const formatHeaderKeys = Object.keys(headers || {}).filter(key => {
-      const lowerCaseKey = key.toLowerCase()
-      return USED_HEADERS_KEYS.includes(lowerCaseKey)
-    })
-    const usedHeaders = formatHeaderKeys.reduce((acc, key) => {
-      if (headers[key]) acc[key] = headers[key]
-      return acc
-    }, {})
+    const usedHeaders = getUsedHeaders(mallId)
     let finalPage = {}
     if (page) {
+      finalPage.page = page.pageIndex
       finalPage.pageNum = page.pageIndex
       finalPage.pageSize = page.pageSize
     }
@@ -66,8 +59,13 @@ function createProxyToGetTemuData(req) {
     } else {
       defaultConfig.headers.mallid = mallId
     }
-    const response = await customIpcRenderer.invoke('proxyRequest', merge(defaultConfig, mergeConfig))
+    let response = await customIpcRenderer.invoke('proxyRequest', merge(defaultConfig, mergeConfig))
     if (isProxy) response.result = response.data
+    if (!response.result && !response.data) {
+      const rawResponse = response
+      response = {}
+      response.result = response.data = rawResponse
+    }
     if (page) {
       response.page = {
         ...page,
@@ -78,7 +76,22 @@ function createProxyToGetTemuData(req) {
   }
 }
 
+function getUsedHeaders(mallId) {
+  const headers = getHeaders(mallId)
+  const formatHeaderKeys = Object.keys(headers || {}).filter(key => {
+    const lowerCaseKey = key.toLowerCase()
+    return USED_HEADERS_KEYS.includes(lowerCaseKey)
+  })
+  const usedHeaders = formatHeaderKeys.reduce((acc, key) => {
+    if (headers[key]) acc[key] = headers[key]
+    return acc
+  }, {})
+  usedHeaders.mallid = mallId
+  return usedHeaders
+}
+
 module.exports = {
+  getUsedHeaders,
   createProxyMiddleware,
   createProxyToGetTemuData
 }
