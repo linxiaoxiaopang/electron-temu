@@ -1,5 +1,5 @@
 const { getWholeUrl } = require('~store/user')
-const { createProxyToGetTemuData, getUsedHeaders } = require('~express/middleware/proxyMiddleware')
+const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
 const axios = require('axios')
 const FormData = require('form-data')
 
@@ -7,7 +7,7 @@ async function list(req, res, next) {
   const relativeUrl = '/visage-agent-seller/product/skc/pageQuery'
   const wholeUrl = getWholeUrl(relativeUrl)
   const response = await createProxyToGetTemuData(req)(wholeUrl)
-  res.customResult = [false, response?.data?.pageItems || [], response.page]
+  res.customResult = [false, response?.data?.pageItems || [], { page: response.page }]
   next()
 }
 
