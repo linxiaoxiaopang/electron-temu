@@ -1,5 +1,5 @@
 const URL = require('url')
-const { uniq } = require('lodash')
+const { uniq, cloneDeep } = require('lodash')
 const { getUserInfo } = require('~express/controllers/user')
 const { emitter } = require('~utils/event')
 const { default: getPort } = require('get-port')
@@ -114,11 +114,15 @@ async function updateUserInfo(headers) {
   }
   if (!data) return
   const sameOriginMallList = sameOriginMall.list
-  const mallId = headers.mallid = data?.mallList?.[0]?.mallId
-  sameOriginMallList[mallId] = {
-    mallId,
-    headers,
-    origin,
-    userInfo: data
-  }
+  data?.mallList?.map(item => {
+    const { mallId } = item
+    const cloneHeader = cloneDeep(headers)
+    cloneHeader.mallid = mallId
+    sameOriginMallList[mallId] = {
+      mallId,
+      origin,
+      headers: cloneHeader,
+      userInfo: data
+    }
+  })
 }
