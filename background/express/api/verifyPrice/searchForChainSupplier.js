@@ -92,21 +92,49 @@ async function sync(req, res, next) {
 
 async function list(req, res, next) {
   const { body } = req
-  let { mallId, page, extCodeLike } = body
+  let { page, ...filter } = body
 
-  const sql = `SELECT DISTINCT t.* 
-FROM extCodeSearchForChainSupplier t,
-     json_each(json_extract(t.json, '$.skcList')) AS item
-WHERE json_extract(item.value, '$.extCode') like :pattern and t.mallId = :mallId`
-
+  const buildSqlInstance = new BuildSql({
+    table: 'extCodeSearchForChainSupplier',
+    selectModifier: 'DISTINCT',
+    query: filter,
+    group: [
+      {
+        column: [
+          {
+            label: '店铺Id',
+            prop: 'mallId'
+          },
+          {
+            label: '款式',
+            prop: 'json:json.skcList[*].extCode[op:like]',
+            queryProp: 'extCodeLike',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return likeMatch('contains', item)
+            }
+          },
+          {
+            label: 'SPU ID',
+            prop: 'json:json.productId[op:in]',
+            queryProp: 'spuId',
+            memberType: 'number',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item || !item.length) return
+              return item
+            }
+          }
+        ]
+      }
+    ]
+  })
+  const sql = buildSqlInstance.generateSql()
   res.customResult = await customIpcRenderer.invoke('db:temu:extCodeSearchForChainSupplier:query', {
     sql,
     page,
-    usedJsonProp: 'json',
-    replacements: {
-      mallId,
-      pattern: extCodeLike ? `%${extCodeLike}%` : '%'
-    }
+    usedJsonProp: 'json'
   })
   if (!res.customResult[0]) {
     res.customResult[1] = {
