@@ -45,9 +45,11 @@ class GetSemiBatchReportingActivitiesDataClass {
     return response?.data
   }
 
-  getListWarehouse() {}
+  getListWarehouse() {
+  }
 
-  mergeListWarehouse() {}
+  mergeListWarehouse() {
+  }
 
   async getSearchForSemiSupplier() {
     const { req, productIds } = this
@@ -105,10 +107,12 @@ class GetSemiBatchReportingActivitiesDataClass {
   async action() {
     const response = await this.getEnrollScrollMatch()
     this.matchList = response?.data?.matchList || []
-    const [sessionListData, searchForSemiSupplierData, listWarehouseData] = await Promise.all([this.getSessionList(), this.getSearchForSemiSupplier(), this.getListWarehouse()])
-    this.mergeEnrollSessionList(sessionListData)
-    this.mergeListWarehouse(listWarehouseData)
-    this.mergeSearchForSemiSupplier(searchForSemiSupplierData)
+    if (this.matchList.length) {
+      const [sessionListData, searchForSemiSupplierData, listWarehouseData] = await Promise.all([this.getSessionList(), this.getSearchForSemiSupplier(), this.getListWarehouse()])
+      this.mergeEnrollSessionList(sessionListData)
+      this.mergeListWarehouse(listWarehouseData)
+      this.mergeSearchForSemiSupplier(searchForSemiSupplierData)
+    }
     return response
   }
 }

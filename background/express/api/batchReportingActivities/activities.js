@@ -62,7 +62,9 @@ async function sync(req, res, next) {
     const matchList = data?.data?.matchList || []
     const tasks = matchList.length
     const syncData = matchList.map(item => {
-      item.suggestEnrollSessionIdList = []
+      if(!item.suggestEnrollSessionIdList) {
+        item.suggestEnrollSessionIdList = []
+      }
       return {
         mallId,
         activityType,
@@ -91,8 +93,9 @@ async function sync(req, res, next) {
         rowCount: 2
       }
     })
-
-    const total = (response?.data?.matchList?.length || 0) + (response?.data?.stillCount || 0)
+    const matchListLen = response?.data?.matchList?.length || 0
+    if(!matchListLen) return 0
+    const total = matchListLen + (response?.data?.stillCount || 0)
     return total
   }
 
