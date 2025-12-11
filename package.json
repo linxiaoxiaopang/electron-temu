@@ -16,6 +16,7 @@
     "make": "electron-forge make --platform=win32"
   },
   "dependencies": {
+    "ali-oss": "^6.23.0",
     "archiver": "^7.0.1",
     "axios": "^1.11.0",
     "big.js": "^7.0.1",

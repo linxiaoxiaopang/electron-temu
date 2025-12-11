@@ -1,4 +1,5 @@
 .DS_Store
+/background/utils/oss/const.js
 node_modules
 /dist
 /dbData
