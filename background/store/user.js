@@ -1,5 +1,5 @@
 const URL = require('url')
-const { uniq, cloneDeep } = require('lodash')
+const { uniq, cloneDeep, flatMap } = require('lodash')
 const { getUserInfo } = require('~express/controllers/user')
 const { emitter } = require('~utils/event')
 const { default: getPort } = require('get-port')
@@ -9,6 +9,9 @@ const user = {
   mallList: {},
   port: ''
 }
+
+
+exports.kuangjingmaihuo = 'kuangjingmaihuo'
 
 exports.MALL_SOLE = {
   semiSole: 1,
@@ -24,9 +27,11 @@ exports.getIsProxy = function () {
   return exports.getApiMode() === 'proxy'
 }
 
-exports.getMall = function (mallId) {
+exports.getMall = function (mallId, origin) {
   const { mallList } = user
   for (let key in mallList) {
+    if (origin && origin != key) continue
+    if (!origin && !/agentseller/i.test(key)) continue
     const item = mallList[key]
     if (!item.list[mallId]) continue
     return item.list[mallId]
@@ -34,8 +39,8 @@ exports.getMall = function (mallId) {
   return null
 }
 
-exports.getHeaders = function (mallId) {
-  const mall = exports.getMall(mallId)
+exports.getHeaders = function (mallId, origin) {
+  const mall = exports.getMall(mallId, origin)
   if (!mall) return null
   return mall.headers
 }
@@ -51,12 +56,17 @@ exports.getMallIds = function () {
   return uniq(tmpData)
 }
 
-exports.getTemuTarget = function () {
-  return exports.getIsProxy() ? 'http://192.168.10.81:3000/temu-agentseller' : 'https://agentseller.temu.com'
+const targetList = {
+  [exports.kuangjingmaihuo]: 'https://seller.kuajingmaihuo.com',
+  default: 'https://agentseller.temu.com'
 }
 
-exports.getWholeUrl = function (relativeUrl) {
-  return `${exports.getTemuTarget()}${relativeUrl}`
+exports.getTemuTarget = function (target = 'default') {
+  return targetList[target] || targetList.default
+}
+
+exports.getWholeUrl = function (relativeUrl, target = 'default') {
+  return `${exports.getTemuTarget(target)}${relativeUrl}`
 }
 
 
@@ -114,7 +124,8 @@ async function updateUserInfo(headers) {
   }
   if (!data) return
   const sameOriginMallList = sameOriginMall.list
-  data?.mallList?.map(item => {
+  const mallList = data?.mallList || flatMap(data.companyList, item => item.malInfoList)
+  mallList?.map(item => {
     const { mallId } = item
     const cloneHeader = cloneDeep(headers)
     cloneHeader.mallid = mallId

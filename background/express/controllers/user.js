@@ -6,7 +6,9 @@ async function getUserInfo(headers) {
   if (getIsProxy()) {
     origin = getTemuTarget()
   }
-  const wholeUrl = `${origin}/api/seller/auth/userInfo`
+  let relativeUrl = '/api/seller/auth/userInfo'
+  if(/seller.kuajingmaihuo.com/i.test(origin)) relativeUrl = '/bg/quiet/api/mms/userInfo'
+  const wholeUrl = `${origin}${relativeUrl}`
   const response = await customIpcRenderer.invoke('proxyRequest', {
     url: wholeUrl,
     method: 'POST',

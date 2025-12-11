@@ -13,6 +13,7 @@ const userRouter = require('./api/user')
 const batchReportingActivitiesRouter  = require('./api/batchReportingActivities')
 const goodsRouter = require('./api/goods')
 const verifyPriceRouter = require('./api/verifyPrice')
+const shippingRouter = require('./api/shipping')
 const app = express()
 // 使用cors中间件，允许所有来源的请求
 app.use(cors())
@@ -37,6 +38,7 @@ app.use('/temu-agentseller/api/user', userRouter)
 app.use('/temu-agentseller/api/batchReportingActivities', batchReportingActivitiesRouter)
 app.use('/temu-agentseller/api/goods',goodsRouter)
 app.use('/temu-agentseller/api/verifyPrice', verifyPriceRouter)
+app.use('/temu-agentseller/api/shipping', shippingRouter)
 
 app.use('/temu-agentseller/proxy', createProxyMiddleware({
   target: () => {
