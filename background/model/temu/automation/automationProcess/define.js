@@ -47,6 +47,61 @@ module.exports = sequelize.define(
       allowNull: true,
       defaultValue: {},
       comment: '流程扩展数据（JSON格式）：包含图片信息、上一次结果图片、流程附属数据等'
+    },
+    // 新增：Temu平台原始图片URL
+    temuImageUrlDisplay: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+      defaultValue: '',
+      comment: 'Temu平台原始展示图片URL（如订单截图、商品图片等）'
+    },
+    // 新增：OSS存储的图片URL（系统内展示用）
+    ossImageUrlDisplay: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+      defaultValue: '',
+      comment: '阿里云OSS存储的展示图片URL（Temu图片转存后地址）'
+    },
+    // 自定义预览项数组（核心字段）
+    labelCustomizedPreviewItems: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [], // 默认空数组，避免null/undefined
+      comment: '自定义预览项数组',
+      // 验证：确保存入的是数组（可选）
+      validate: {
+        isArray(value) {
+          if (value !== undefined && !Array.isArray(value)) {
+            throw new Error('CustomizedPreviewItems 必须是数组格式')
+          }
+        }
+      }
+    },
+    // 新增：purchaseTime 时间戳字段（核心）
+    purchaseTime: {
+      type: DataTypes.BIGINT, // 用BIGINT存储13位毫秒级时间戳（兼容前端/后端）
+      allowNull: true,
+      defaultValue: null,
+      comment: '采购/下单时间戳（毫秒级，如1750000000000）',
+      // 验证：确保是合法的数字型时间戳
+      validate: {
+        isInt: { msg: 'purchaseTime 必须是整数型时间戳' },
+        min: { args: [1000000000000], msg: 'purchaseTime 必须是13位有效毫秒时间戳（≥2001年）' }
+      }
+    },
+    // 新增：错误信息字段（核心）
+    errorMsg: {
+      type: DataTypes.TEXT, // 用TEXT存储，适配超长错误信息（如堆栈、详细日志）
+      allowNull: true,
+      defaultValue: '',
+      comment: '流程执行错误信息：存储失败原因、异常堆栈、错误详情等',
+      // 可选：长度限制（避免无意义的超长文本）
+      validate: {
+        len: {
+          args: [0, 4096], // 最大4096字符，可根据业务调整
+          msg: '错误信息长度不能超过4096个字符'
+        }
+      }
     }
   },
   {

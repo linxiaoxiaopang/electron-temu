@@ -28,7 +28,7 @@ class GetTemuProductData {
     const finalQuery = {
       mallId,
       isCustomGoods: true,
-      statusList: [1],
+      // statusList: [1],
       oneDimensionSort: {
         firstOrderByParam: 'expectLatestDeliverTime',
         firstOrderByDesc: 0
@@ -70,60 +70,53 @@ class GetTemuProductData {
     return differenceBy(productData, dbData, 'uId')
   }
 
-  formatData(newSubOrderList, productData) {
-    return newSubOrderList.map(item => {
-      const { productId, uId } = item
-      const fItem = productData.find(sItem => sItem.productId == productId)
-      if (!fItem) return
-      const productSkuCustomization = fItem?.productSkuCustomization
-      item.productData = fItem
-      return {
+  async uploadToOss(url) {
+    if (!url) return ''
+    const res = await uploadToOssUseUrl(url)
+    return res?.url
+  }
+
+  async formatData(newSubOrderList, productData) {
+    const pArr = newSubOrderList.map(async item => {
+      const { productId, uId, purchaseTime } = item
+      const row = {
         uId,
-        processList: ['替换数据'],
+        purchaseTime,
+        // processList: ['product:产品:替换数据, picture:定制区域1:抠图?w=2000&h=2000', 'picture:定制区域1:psd模板?name=爱心&w=100,'],
+        processList: ['product:产品:替换数据'],
         currentProcess: '替换数据',
         temuData: item,
         systemExchangeData: null,
-        processData: {
-          productSkuCustomization
-        }
+        temuImageUrlDisplay: null,
+        ossImageUrlDisplay: null,
+        processData: {},
+        labelCustomizedPreviewItems: []
       }
-    })
-  }
-
-  async uploadCustomizedPicture(item) {
-    const pArr = []
-    const productSkuCustomization = item.processData?.productSkuCustomization
-    const customizationTmplSurfaces = productSkuCustomization?.customizationTmplSurfaces || []
-    const pictureCustomizedPreviewItems = productSkuCustomization?.customizedPreviewItems?.filter(item => item.previewType == 1) || []
-    customizationTmplSurfaces.map(sItem => {
-      sItem.regions?.map((gItem, index) => {
-        const { position: { x, y }, dimension: { width, height } } = gItem
-        const pictureCustomizedPreviewItem = pictureCustomizedPreviewItems[index]
-        const { imageUrlDisplay } = pictureCustomizedPreviewItem
-        const originalPicture = `${imageUrlDisplay}&imageMogr2/cut/${width}x${height}x${x}x${y}`
-        pictureCustomizedPreviewItem.originalPicture = originalPicture
-        const p1 = uploadToOssUseUrl(imageUrlDisplay).then(res => {
-          pictureCustomizedPreviewItem.ossImageUrlDisplay = res?.url
-          return res?.url
+      const fItem = productData.find(sItem => sItem.productId == productId)
+      if (!fItem) return
+      item.productData = fItem
+      const customizedPreviewItems = fItem?.productSkuCustomization?.customizedPreviewItems || []
+      const fPreviewItem = customizedPreviewItems?.find(item => item.previewType == 1) || []
+      row.labelCustomizedPreviewItems = customizedPreviewItems.filter(item => item.previewType != 1)
+      row.temuImageUrlDisplay = fPreviewItem?.imageUrlDisplay || ''
+      const pArr = []
+      const p1 = this.uploadToOss(row.temuImageUrlDisplay).then(res => row.ossImageUrlDisplay = res)
+      pArr.push(p1)
+      row.labelCustomizedPreviewItems.map(item => {
+        if (!item.imageUrlDisplay) return
+        const p = this.uploadToOss(item.imageUrlDisplay).then(res => {
+          item.ossImageUrlDisplay = res
         })
-        const p2 = uploadToOssUseUrl(originalPicture).then(res => {
-          pictureCustomizedPreviewItem.ossOriginalPicture = res?.url
-          return res?.url
-        })
-        pArr.push(p1)
-        pArr.push(p2)
+        pArr.push(p)
       })
+      await Promise.all(pArr)
+      return row
     })
     return await Promise.all(pArr)
   }
 
-  async submitDbData(newSubOrderForSupplierList, productData) {
+  async collectToDb(data) {
     const { protocol, host } = this.req
-    const data = this.formatData(newSubOrderForSupplierList, productData)
-    const pArr = data.map(async item => {
-      await this.uploadCustomizedPicture(item)
-    })
-    await Promise.all(pArr)
     const relativeUrl = '/temu-agentseller/api/automation/process/add'
     const wholeUrl = `${protocol}://${host}${relativeUrl}`
     const response = await axios({
@@ -133,7 +126,13 @@ class GetTemuProductData {
         data
       }
     })
-    return response?.data
+    return response
+  }
+
+  async submitDbData(newSubOrderForSupplierList, productData) {
+    const data = await this.formatData(newSubOrderForSupplierList, productData)
+    const response = await this.collectToDb(data)
+    return [false, response?.data?.length || 0]
   }
 
   fillUid(data) {
