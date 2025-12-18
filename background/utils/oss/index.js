@@ -9,7 +9,6 @@ async function uploadToOssUseUrl(url) {
   const randomFileName = getRandom() + fileName
   const options = {}
   const result = await client.put(randomFileName, responseStream, options)
-  console.log('result', result)
   return result
 }
 

@@ -77,14 +77,16 @@ class GetTemuProductData {
   }
 
   async formatData(newSubOrderList, productData) {
+    const { mallId } = this
     const pArr = newSubOrderList.map(async item => {
       const { productId, uId, purchaseTime } = item
       const row = {
         uId,
+        mallId,
         purchaseTime,
         // processList: ['product:产品:替换数据, picture:定制区域1:抠图?w=2000&h=2000', 'picture:定制区域1:psd模板?name=爱心&w=100,'],
-        processList: ['product:产品:替换数据'],
-        currentProcess: '替换数据',
+        processList: ['product:产品:替换数据', 'picture:抠图:生成'],
+        currentProcess: 'product:产品:替换数据',
         temuData: item,
         systemExchangeData: null,
         temuImageUrlDisplay: null,
@@ -131,6 +133,7 @@ class GetTemuProductData {
 
   async submitDbData(newSubOrderForSupplierList, productData) {
     const data = await this.formatData(newSubOrderForSupplierList, productData)
+    if (!data.length) return [false, 0]
     const response = await this.collectToDb(data)
     return [false, response?.data?.length || 0]
   }

@@ -16,6 +16,11 @@ module.exports = sequelize.define(
       unique: true,
       comment: '业务唯一标识（如Temu订单号/流程单号）'
     },
+    mallId: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      comment: '店铺ID'
+    },
     completeFlag: {
       type: DataTypes.TINYINT,
       allowNull: false,
@@ -25,17 +30,34 @@ module.exports = sequelize.define(
     processList: {
       type: DataTypes.JSON,
       allowNull: false,
-      comment: '流程数组（存储各流程节点信息）'
+      comment: '流程数组（存储各流程节点信息）',
+      set(value) {
+        console.log('[Setter] processList 被设置:', value)
+        this.setDataValue('processList', value)
+        recalculateRemaining(this)
+      }
+    },
+    currentProcess: {
+      type: DataTypes.STRING(32),
+      allowNull: false,
+      comment: '当前流程节点（如：下单/审核/兑换/完成）',
+      set(value) {
+        console.log('[Setter] currentProcess 被设置:', value)
+        this.setDataValue('currentProcess', value)
+        recalculateRemaining(this)
+      }
+    },
+    // 新增：存储型字段（需同步到数据库表结构）
+    remainingProcessList: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: [],
+      comment: '自动生成：currentProcess之后的剩余流程节点（存储型）'
     },
     temuData: {
       type: DataTypes.JSON,
       allowNull: false,
       comment: 'Temu平台原始数据（JSON格式）'
-    },
-    currentProcess: {
-      type: DataTypes.STRING(32),
-      allowNull: false,
-      comment: '当前流程节点（如：下单/审核/兑换/完成）'
     },
     systemExchangeData: {
       type: DataTypes.JSON,
@@ -111,3 +133,35 @@ module.exports = sequelize.define(
     comment: '自动化流程表'
   }
 )
+
+
+function extractRemainingProcess(processList, currentProcess) {
+  if (!Array.isArray(processList) || processList.length === 0) {
+    return []
+  }
+  if (typeof currentProcess !== 'string' || !currentProcess) {
+    return []
+  }
+
+  const currentIndex = processList.findIndex(item => {
+    if (typeof item === 'string') return item === currentProcess
+    return item?.step === currentProcess || item?.name === currentProcess
+  })
+
+  if (currentIndex === -1) {
+    return []
+  }
+
+  return processList.slice(currentIndex + 1)
+}
+
+// 统一计算方法
+function recalculateRemaining(instance) {
+  const processList = instance.getDataValue('processList')
+  const currentProcess = instance.getDataValue('currentProcess')
+
+  if (processList && currentProcess) {
+    const remaining = extractRemainingProcess(processList, currentProcess)
+    instance.setDataValue('remainingProcessList', remaining)
+  }
+}
