@@ -32,7 +32,6 @@ module.exports = sequelize.define(
       allowNull: false,
       comment: '流程数组（存储各流程节点信息）',
       set(value) {
-        console.log('[Setter] processList 被设置:', value)
         this.setDataValue('processList', value)
         recalculateRemaining(this)
       }
@@ -42,7 +41,6 @@ module.exports = sequelize.define(
       allowNull: false,
       comment: '当前流程节点（如：下单/审核/兑换/完成）',
       set(value) {
-        console.log('[Setter] currentProcess 被设置:', value)
         this.setDataValue('currentProcess', value)
         recalculateRemaining(this)
       }

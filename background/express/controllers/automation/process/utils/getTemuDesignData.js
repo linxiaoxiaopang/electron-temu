@@ -76,6 +76,19 @@ class GetTemuProductData {
     return res?.url
   }
 
+  // processList
+  // product:all:下载Temu图片
+  // product:all:temu更换系统数据
+  // label?name=定制区域1:picture:抠图
+  // label?name=定制区域1:picture:轮廓?w=10
+  // label?name=定制区域1:picture:psd模板?name=人头替换&w=2000&h=2000
+  // label?name=定制区域2:text:轮廓?w=10
+  // product:all:上传文字校验
+  // product:all:上传原图
+  // product:all:上传预览图
+  // product:all:导入微定制订单
+  // product:all:创建产品
+
   async formatData(newSubOrderList, productData) {
     const { mallId } = this
     const pArr = newSubOrderList.map(async item => {
@@ -84,9 +97,8 @@ class GetTemuProductData {
         uId,
         mallId,
         purchaseTime,
-        // processList: ['product:产品:替换数据, picture:定制区域1:抠图?w=2000&h=2000', 'picture:定制区域1:psd模板?name=爱心&w=100,'],
-        processList: ['product:产品:替换数据', 'picture:抠图:生成'],
-        currentProcess: 'product:产品:替换数据',
+        processList: ['product:all:下载Temu图片', 'product:all:temu更换系统数据'],
+        currentProcess: 'label?name=定制区域1:picture:抠图',
         temuData: item,
         systemExchangeData: null,
         temuImageUrlDisplay: null,
