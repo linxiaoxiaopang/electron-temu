@@ -24,7 +24,15 @@ async function list(req, res, next) {
   })
   const sql = buildSqlInstance.generateSql()
   res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:query', {
-    sql
+    sql,
+    jsonToObjectProps: [
+      'processList',
+      'remainingProcessList',
+      'temuData',
+      'systemExchangeData',
+      'processData',
+      'labelCustomizedPreviewItems'
+    ]
   })
   next()
 }
@@ -33,6 +41,13 @@ async function add(req, res, next) {
   const { data } = req.body
   if (!data.length) return [false, data]
   res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:add', data)
+  next()
+}
+
+async function update(req, res, next) {
+  const { data } = req.body
+  if (!data.length) return [false, data]
+  res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:batchUpdate', data)
   next()
 }
 
@@ -54,5 +69,6 @@ async function sync(req, res, next) {
 module.exports = {
   list,
   add,
+  update,
   sync
 }
