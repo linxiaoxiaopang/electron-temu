@@ -1,7 +1,7 @@
 const model = require('./define')
-const { InitTimerSheet } = require('../../../utils/initSheetUtils')
+const { InitSheet } = require('~model/utils/initSheetUtils')
 
-module.exports = new InitTimerSheet({
+module.exports = new InitSheet({
   model,
   eventPath: 'temu.automationProcess'
 })

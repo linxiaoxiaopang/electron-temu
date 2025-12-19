@@ -79,6 +79,11 @@ exports.getPort = async function () {
   return user.port
 }
 
+exports.getBaseUrl = async function () {
+  const port = await exports.getPort()
+  return `http://localhost:${port}`
+}
+
 exports.user = user
 
 
