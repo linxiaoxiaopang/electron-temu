@@ -1,5 +1,5 @@
 const { customIpcRenderer } = require('~utils/event')
-const { GetTemuProductData } = require('~express/controllers/automation/process')
+const { LoopGetTemuProductData } = require('~express/controllers/automation/process')
 const { BuildSql } = require('~express/utils/sqlUtils')
 
 async function list(req, res, next) {
@@ -52,12 +52,7 @@ async function update(req, res, next) {
 }
 
 async function sync(req, res, next) {
-  req.body.page = {
-    pageIndex: 1,
-    pageSize: 20
-  }
-
-  const instance = new GetTemuProductData({
+  const instance = new LoopGetTemuProductData({
     req,
     res
   })

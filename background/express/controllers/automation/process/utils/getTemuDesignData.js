@@ -1,7 +1,10 @@
 const { getWholeUrl } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
+const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
 const { map, differenceBy } = require('lodash')
+const { LoopRequest } = require('~express/utils/loopUtils')
+
 const axios = require('axios')
 
 class GetTemuProductData {
@@ -21,6 +24,11 @@ class GetTemuProductData {
     return `${item.purchaseTime}_${item.productId}`
   }
 
+  async getTotal() {
+    const response = await this.getSubOrderList()
+    return response?.total
+  }
+
   async getSubOrderList() {
     const { req, mallId } = this
     const relativeUrl = '/mms/venom/api/supplier/purchase/manager/querySubOrderList'
@@ -34,7 +42,7 @@ class GetTemuProductData {
         firstOrderByDesc: 0
       }
     }
-    const response = await createProxyToGetTemuData(req)(wholeUrl, { data: finalQuery })
+    const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: finalQuery }))
     return response.data
   }
 
@@ -46,8 +54,8 @@ class GetTemuProductData {
       mallId,
       subPurchaseOrderSns: map(data, 'subPurchaseOrderSn')
     }
-    const response = await createProxyToGetTemuData(req)(wholeUrl, { data: query })
-    return response?.data?.pageItems
+    const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: query }))
+    return  response?.data?.pageItems
   }
 
   async getDbData(data) {
@@ -55,13 +63,13 @@ class GetTemuProductData {
     const uIdList = data.map(item => item.uId)
     const relativeUrl = '/temu-agentseller/api/automation/process/list'
     const wWholeUrl = `${protocol}://${host}${relativeUrl}`
-    const response = await axios({
+    const response = await throwPromiseError(axios({
       method: 'post',
       url: wWholeUrl,
       data: {
         uIdList
       }
-    })
+    }))
     return response?.data?.data
   }
 
@@ -73,6 +81,7 @@ class GetTemuProductData {
   async uploadToOss(url) {
     if (!url) return ''
     const res = await uploadToOssUseUrl(url)
+    if (!res?.url) throw '上传图片到oss失败'
     return res?.url
   }
 
@@ -133,21 +142,20 @@ class GetTemuProductData {
     const { protocol, host } = this.req
     const relativeUrl = '/temu-agentseller/api/automation/process/add'
     const wholeUrl = `${protocol}://${host}${relativeUrl}`
-    const response = await axios({
+    const response = await throwPromiseError(axios({
       method: 'post',
       url: wholeUrl,
       data: {
         data
       }
-    })
+    }))
     return response
   }
 
   async submitDbData(newSubOrderForSupplierList, productData) {
     const data = await this.formatData(newSubOrderForSupplierList, productData)
-    if (!data.length) return [false, 0]
-    const response = await this.collectToDb(data)
-    return [false, response?.data?.length || 0]
+    if (!data.length) return
+    return await this.collectToDb(data)
   }
 
   fillUid(data) {
@@ -158,12 +166,75 @@ class GetTemuProductData {
   }
 
   async action() {
+    const response = await this.getSubOrderList()
+    const subOrderForSupplierList = response?.subOrderForSupplierList || []
+    const newSubOrderForSupplierList = await this.getNewData(this.fillUid(subOrderForSupplierList))
+    const productData = await this.getProductData(newSubOrderForSupplierList)
+    await this.submitDbData(newSubOrderForSupplierList, productData)
+    return subOrderForSupplierList
+  }
+}
+
+class LoopGetTemuProductData {
+  constructor(
+    {
+      req,
+      res
+    }
+  ) {
+    this.req = req
+    this.res = res
+    this.body.page = {
+      pageIndex: 1,
+      pageSize: 20
+    }
+    this.loopRequestInstance = new LoopRequest({
+      req,
+      res,
+      cacheKey: `automationProcessSync_${this.body.mallId}`
+    })
+    this.getTemuProductDataInstance = new GetTemuProductData({ req })
+  }
+
+  get body() {
+    return this.req.body || {}
+  }
+
+  async getTotal() {
+    return await this.getTemuProductDataInstance.getTotal()
+  }
+
+  async getMoreData() {
+    return await this.getTemuProductDataInstance.action()
+  }
+
+  async loopRequest() {
+    const { loopRequestInstance: instance, req } = this
+    let totalTasks = 0
+    instance.requestCallback = async () => {
+      if (instance.summary.totalTasks == 0) {
+        totalTasks = await this.getTotal()
+        return [false, {
+          totalTasks,
+          requestUuid: instance.uuid,
+          tasks: 0,
+          completedTasks: 0
+        }]
+      }
+      const data = await this.getMoreData()
+      const tasks = data.length
+      req.body.page.pageIndex++
+      return [false, {
+        totalTasks,
+        tasks
+      }]
+    }
+    return await instance.action()
+  }
+
+  async action() {
     try {
-      const response = await this.getSubOrderList()
-      const subOrderForSupplierList = response?.subOrderForSupplierList || []
-      const newSubOrderForSupplierList = await this.getNewData(this.fillUid(subOrderForSupplierList))
-      const productData = await this.getProductData(newSubOrderForSupplierList)
-      return await this.submitDbData(newSubOrderForSupplierList, productData)
+      return await this.loopRequest()
     } catch (err) {
       return [true, err]
     }
@@ -172,5 +243,5 @@ class GetTemuProductData {
 
 
 module.exports = {
-  GetTemuProductData
+  LoopGetTemuProductData
 }
