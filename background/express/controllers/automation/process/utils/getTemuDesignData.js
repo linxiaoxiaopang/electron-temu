@@ -2,7 +2,7 @@ const { getWholeUrl } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
 const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
-const { map, differenceBy } = require('lodash')
+const { map, differenceBy, cloneDeep } = require('lodash')
 const { LoopRequest } = require('~express/utils/loopUtils')
 
 const axios = require('axios')
@@ -21,7 +21,7 @@ class GetTemuProductData {
   }
 
   createUId(item) {
-    return `${item.purchaseTime}_${item.productId}`
+    return `${item.subOrder.subPurchaseOrderSn}_${item.fulfilmentProductSkuId}`
   }
 
   async getTotal() {
@@ -50,12 +50,17 @@ class GetTemuProductData {
     const { req, mallId } = this
     const relativeUrl = '/bg-luna-agent-seller/product/customizeSku/pageQuery'
     const wholeUrl = getWholeUrl(relativeUrl)
+    const personalProductSkuIds = map(data, 'fulfilmentProductSkuId')
     const query = {
       mallId,
-      subPurchaseOrderSns: map(data, 'subPurchaseOrderSn')
+      personalProductSkuIds,
+      page: {
+        pageSize: personalProductSkuIds.length,
+        pageIndex: 1
+      }
     }
     const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: query }))
-    return  response?.data?.pageItems
+    return response?.data?.pageItems
   }
 
   async getDbData(data) {
@@ -98,10 +103,11 @@ class GetTemuProductData {
   // product:all:导入微定制订单
   // product:all:创建产品
 
-  async formatData(newSubOrderList, productData) {
+  async formatData(skuQuantityDetailList, productData) {
     const { mallId } = this
-    const pArr = newSubOrderList.map(async item => {
-      const { productId, uId, purchaseTime } = item
+    const pArr = skuQuantityDetailList.map(async item => {
+      const { uId, fulfilmentProductSkuId } = item
+      const { purchaseTime } = item.subOrder
       const row = {
         uId,
         mallId,
@@ -115,7 +121,7 @@ class GetTemuProductData {
         processData: {},
         labelCustomizedPreviewItems: []
       }
-      const fItem = productData.find(sItem => sItem.productId == productId)
+      const fItem = productData.find(sItem => sItem.personalProductSkuId == fulfilmentProductSkuId)
       if (!fItem) return
       item.productData = fItem
       const customizedPreviewItems = fItem?.productSkuCustomization?.customizedPreviewItems || []
@@ -152,25 +158,39 @@ class GetTemuProductData {
     return response
   }
 
-  async submitDbData(newSubOrderForSupplierList, productData) {
-    const data = await this.formatData(newSubOrderForSupplierList, productData)
+  async submitDbData(skuQuantityDetailList, productData) {
+    const data = await this.formatData(skuQuantityDetailList, productData)
     if (!data.length) return
     return await this.collectToDb(data)
   }
 
-  fillUid(data) {
-    return data?.map(item => {
-      item.uId = this.createUId(item)
-      return item
+
+  handleSubOrderForSupplierList(data) {
+    const tmpArr = []
+    data.map(item => {
+      const skuQuantityDetailList = item.skuQuantityDetailList || []
+      if(!skuQuantityDetailList.length) {
+        console.log('skuQuantityDetailList', skuQuantityDetailList)
+      }
+      skuQuantityDetailList.map(sItem => {
+        const tmpItem = sItem
+        tmpItem.subOrder = cloneDeep(item)
+        tmpItem.uId = this.createUId(tmpItem)
+        tmpArr.push(tmpItem)
+      })
     })
+    return tmpArr
   }
 
   async action() {
     const response = await this.getSubOrderList()
     const subOrderForSupplierList = response?.subOrderForSupplierList || []
-    const newSubOrderForSupplierList = await this.getNewData(this.fillUid(subOrderForSupplierList))
-    const productData = await this.getProductData(newSubOrderForSupplierList)
-    await this.submitDbData(newSubOrderForSupplierList, productData)
+    // const newSubOrderForSupplierList = await this.getNewData(this.fillUid(subOrderForSupplierList))
+    const newSkuQuantityDetailList = await this.getNewData(this.handleSubOrderForSupplierList(subOrderForSupplierList))
+    if (newSkuQuantityDetailList.length) {
+      const productData = await this.getProductData(newSkuQuantityDetailList)
+      await this.submitDbData(newSkuQuantityDetailList, productData)
+    }
     return subOrderForSupplierList
   }
 }

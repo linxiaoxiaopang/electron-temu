@@ -13,7 +13,7 @@ module.exports = sequelize.define(
     autoplay: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: true,
+      defaultValue: false,
       comment: '是否启用同步价功能'
     },
     // 循环时间（毫秒）

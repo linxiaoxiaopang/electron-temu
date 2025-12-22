@@ -3,6 +3,7 @@ const { LoopGetTemuProductData } = require('~express/controllers/automation/proc
 const { BuildSql } = require('~express/utils/sqlUtils')
 
 async function list(req, res, next) {
+  const { body: { page } } = req
   const buildSqlInstance = new BuildSql({
     table: 'automationProcess',
     selectModifier: 'DISTINCT',
@@ -22,6 +23,16 @@ async function list(req, res, next) {
             label: '完成标识',
             prop: 'completeFlag',
             memberType: 'number'
+          },
+          {
+            label: '完成标识',
+            prop: 'completeFlag',
+            memberType: 'number'
+          },
+          {
+            label: '完成标识',
+            prop: 'uId[op:in]',
+            queryProp: 'uIdList'
           }
         ]
       }
@@ -30,6 +41,7 @@ async function list(req, res, next) {
   const sql = buildSqlInstance.generateSql()
   res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:query', {
     sql,
+    page,
     jsonToObjectProps: [
       'processList',
       'remainingProcessList',

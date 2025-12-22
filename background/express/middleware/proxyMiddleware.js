@@ -1,4 +1,4 @@
-const { merge, isFunction } = require('lodash')
+const { merge, isFunction, cloneDeep } = require('lodash')
 const { getIsProxy, getHeaders } = require('~store/user')
 const { customIpcRenderer } = require('~/utils/event')
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
@@ -34,9 +34,15 @@ function createProxyToGetTemuData(req) {
   return async function (wholeUrl, mergeConfig = {}) {
     let { method, body, customOrigin } = req
     method = method || 'POST'
-    const { mallId, page, ...restBody } = body
+    let { mallId, page, ...restBody } = body
+    mergeConfig = cloneDeep(mergeConfig)
     const isProxy = getIsProxy()
     const usedHeaders = getUsedHeaders(mallId, customOrigin)
+    const mergePage = mergeConfig?.data?.page
+    if (mergePage) {
+      delete mergeConfig.data.page
+      page = merge({}, page, mergePage)
+    }
     let finalPage = {}
     if (page) {
       finalPage.page = page.pageIndex
