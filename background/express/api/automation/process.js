@@ -17,6 +17,11 @@ async function list(req, res, next) {
           {
             label: '当前流程节点',
             prop: 'currentProcess'
+          },
+          {
+            label: '完成标识',
+            prop: 'completeFlag',
+            memberType: 'number'
           }
         ]
       }

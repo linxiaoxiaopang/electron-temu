@@ -85,7 +85,7 @@ class BuildSql {
           return
         }
         if (!queryProp || !query || !isUndefined(sItem.value)) return
-        sItem.value = query[queryProp] || sItem.value
+        sItem.value = isUndefined(query[queryProp]) ? sItem.value : query[queryProp]
       })
       item.column.map(item => {
         item.value = this.formatFiledValue(item.value)

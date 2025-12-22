@@ -1,5 +1,6 @@
 const sequelize = require('../../db')
 const { DataTypes } = require('sequelize')
+const { last, isArray, isString } = require('lodash')
 
 module.exports = sequelize.define(
   'automationProcess',
@@ -43,6 +44,7 @@ module.exports = sequelize.define(
       set(value) {
         this.setDataValue('currentProcess', value)
         recalculateRemaining(this)
+        updateCompleteFlag(this)
       }
     },
     // 新增：存储型字段（需同步到数据库表结构）
@@ -121,6 +123,10 @@ module.exports = sequelize.define(
           args: [0, 4096], // 最大4096字符，可根据业务调整
           msg: '错误信息长度不能超过4096个字符'
         }
+      },
+      set(value) {
+        this.setDataValue('errorMsg', value)
+        updateCompleteFlag(this)
       }
     }
   },
@@ -134,23 +140,12 @@ module.exports = sequelize.define(
 
 
 function extractRemainingProcess(processList, currentProcess) {
-  if (!Array.isArray(processList) || processList.length === 0) {
-    return []
-  }
-  if (typeof currentProcess !== 'string' || !currentProcess) {
-    return []
-  }
+  if (!isArray(processList) || !processList.length) return []
+  if (!isString(currentProcess) || !currentProcess) return []
 
-  const currentIndex = processList.findIndex(item => {
-    if (typeof item === 'string') return item === currentProcess
-    return item?.step === currentProcess || item?.name === currentProcess
-  })
-
-  if (currentIndex === -1) {
-    return []
-  }
-
-  return processList.slice(currentIndex + 1)
+  const fIndex = processList.findIndex(item => item === currentProcess)
+  if (fIndex === -1) return []
+  return processList.slice(fIndex + 1)
 }
 
 // 统一计算方法
@@ -161,5 +156,18 @@ function recalculateRemaining(instance) {
   if (processList && currentProcess) {
     const remaining = extractRemainingProcess(processList, currentProcess)
     instance.setDataValue('remainingProcessList', remaining)
+  }
+}
+
+function updateCompleteFlag(instance) {
+  const processList = instance.getDataValue('processList')
+  const currentProcess = instance.getDataValue('currentProcess')
+  const errorMsg = instance.getDataValue('errorMsg')
+  if (errorMsg) {
+    instance.setDataValue('completeFlag', 2)
+    return
+  }
+  if (processList && currentProcess && last(processList) == currentProcess) {
+    instance.setDataValue('completeFlag', 1)
   }
 }
