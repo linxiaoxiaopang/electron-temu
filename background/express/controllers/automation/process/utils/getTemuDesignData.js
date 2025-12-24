@@ -112,8 +112,8 @@ class GetTemuProductData {
         uId,
         mallId,
         purchaseTime,
-        processList: ['product:all:下载Temu图片', 'product:all:temu更换系统数据'],
-        currentProcess: 'label?name=定制区域1:picture:抠图',
+        processList: ['product:all:下载Temu效果图', 'product:all:下载Temu原图', 'product:all:temu更换系统数据'],
+        currentProcess: '',
         temuData: item,
         systemExchangeData: null,
         temuImageUrlDisplay: null,
@@ -129,16 +129,27 @@ class GetTemuProductData {
       row.labelCustomizedPreviewItems = customizedPreviewItems.filter(item => item.previewType != 1)
       row.temuImageUrlDisplay = fPreviewItem?.imageUrlDisplay || ''
       const pArr = []
-      const p1 = this.uploadToOss(row.temuImageUrlDisplay).then(res => row.ossImageUrlDisplay = res)
+      const p1 = this.uploadToOss(row.temuImageUrlDisplay).then(res => row.ossImageUrlDisplay = res).catch(err => {
+        row.errMsg = err
+      })
       pArr.push(p1)
       row.labelCustomizedPreviewItems.map(item => {
         if (!item.imageUrlDisplay) return
         const p = this.uploadToOss(item.imageUrlDisplay).then(res => {
           item.ossImageUrlDisplay = res
+        }).catch(err => {
+          row.errMsg = err
         })
         pArr.push(p)
       })
       await Promise.all(pArr)
+      if (!row.temuImageUrlDisplay) {
+        row.currentProcess = row.processList[0]
+      } else if (row.errMsg) {
+        row.currentProcess = row.processList[1]
+      } else {
+        row.currentProcess = row.processList[2]
+      }
       return row
     })
     return await Promise.all(pArr)
@@ -169,7 +180,7 @@ class GetTemuProductData {
     const tmpArr = []
     data.map(item => {
       const skuQuantityDetailList = item.skuQuantityDetailList || []
-      if(!skuQuantityDetailList.length) {
+      if (!skuQuantityDetailList.length) {
         console.log('skuQuantityDetailList', skuQuantityDetailList)
       }
       skuQuantityDetailList.map(sItem => {

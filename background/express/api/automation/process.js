@@ -25,12 +25,7 @@ async function list(req, res, next) {
             memberType: 'number'
           },
           {
-            label: '完成标识',
-            prop: 'completeFlag',
-            memberType: 'number'
-          },
-          {
-            label: '完成标识',
+            label: 'uId列表',
             prop: 'uId[op:in]',
             queryProp: 'uIdList'
           }
