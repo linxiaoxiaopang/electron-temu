@@ -130,7 +130,7 @@ class GetTemuProductData {
       row.temuImageUrlDisplay = fPreviewItem?.imageUrlDisplay || ''
       const pArr = []
       const p1 = this.uploadToOss(row.temuImageUrlDisplay).then(res => row.ossImageUrlDisplay = res).catch(err => {
-        row.errMsg = err
+        row.errorMsg = err
       })
       pArr.push(p1)
       row.labelCustomizedPreviewItems.map(item => {
@@ -138,14 +138,14 @@ class GetTemuProductData {
         const p = this.uploadToOss(item.imageUrlDisplay).then(res => {
           item.ossImageUrlDisplay = res
         }).catch(err => {
-          row.errMsg = err
+          row.errorMsg = err
         })
         pArr.push(p)
       })
       await Promise.all(pArr)
       if (!row.temuImageUrlDisplay) {
         row.currentProcess = row.processList[0]
-      } else if (row.errMsg) {
+      } else if (row.errorMsg) {
         row.currentProcess = row.processList[1]
       } else {
         row.currentProcess = row.processList[2]
