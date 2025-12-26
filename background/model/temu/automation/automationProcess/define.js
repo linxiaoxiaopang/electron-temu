@@ -167,7 +167,7 @@ function updateCompleteFlag(instance) {
     instance.setDataValue('completeFlag', 2)
     return
   }
-  if (processList && currentProcess && last(processList) == currentProcess) {
+  if (processList && !currentProcess) {
     instance.setDataValue('completeFlag', 1)
   }
 }

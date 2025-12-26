@@ -28,6 +28,26 @@ async function list(req, res, next) {
             label: 'uId列表',
             prop: 'uId[op:in]',
             queryProp: 'uIdList'
+          },
+          {
+            label: '备货单创建开始时间',
+            prop: 'purchaseTime[op:>=]',
+            queryProp: 'purchaseStartTime',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return +new Date(item)
+            }
+          },
+          {
+            label: '备货单创建开始时间',
+            prop: 'purchaseTime[op:<=]',
+            queryProp: 'purchaseEndTime',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return +new Date(item)
+            }
           }
         ]
       }
