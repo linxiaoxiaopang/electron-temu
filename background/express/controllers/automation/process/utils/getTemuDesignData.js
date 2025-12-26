@@ -36,7 +36,7 @@ class GetTemuProductData {
     const finalQuery = {
       mallId,
       isCustomGoods: true,
-      // statusList: [1],
+      statusList: [1],
       oneDimensionSort: {
         firstOrderByParam: 'expectLatestDeliverTime',
         firstOrderByDesc: 0

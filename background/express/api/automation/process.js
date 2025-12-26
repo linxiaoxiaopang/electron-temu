@@ -84,6 +84,10 @@ async function update(req, res, next) {
 }
 
 async function sync(req, res, next) {
+  if (req.body?.purchaseStartTime && req.body?.purchaseEndTime) {
+    req.body.purchaseTimeFrom = +new Date(req.body.purchaseStartTime)
+    req.body.purchaseTimeTo = +new Date(req.body.purchaseEndTime)
+  }
   const instance = new LoopGetTemuProductData({
     req,
     res
