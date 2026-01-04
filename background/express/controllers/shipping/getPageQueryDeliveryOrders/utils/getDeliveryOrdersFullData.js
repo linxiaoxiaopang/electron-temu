@@ -39,6 +39,33 @@ class GetDeliveryOrdersFullData {
     return await createProxyToGetTemuData(req)(wholeUrl, { data: query })
   }
 
+  async getPageQueryDeliveryBatch(deliveryOrdersData) {
+    const { req } = this
+    const relativeUrl = '/bgSongbird-api/supplier/deliverGoods/management/pageQueryDeliveryBatch'
+    const subPurchaseOrderSnList = deliveryOrdersData.map(item => item.subPurchaseOrderSn)
+    const query = {
+      subPurchaseOrderSnList,
+      pageNo: 1,
+      pageSize: 100,
+      status: 1,
+      productLabelCodeStyle: 0,
+      onlyTaxWarehouseWaitApply: false,
+      onlyCanceledExpress: false
+    }
+    const wholeUrl = getWholeUrl(relativeUrl, kuangjingmaihuo)
+    const res = await createProxyToGetTemuData(req)(wholeUrl, { data: query })
+    return res?.data?.list
+  }
+
+  async fillDeliveryOrdersData(deliveryOrdersData) {
+    const pageQueryDeliveryBatch = await this.getPageQueryDeliveryBatch(deliveryOrdersData)
+    pageQueryDeliveryBatch.map(item => {
+      const fItem = deliveryOrdersData.find(sItem => sItem.deliveryOrderSn == item.deliveryOrderSn)
+      if (!fItem) return
+      fItem.deliveryOrderInfo = item
+    })
+    return deliveryOrdersData
+  }
 
   createFeedbackRecordInfoFn(item, resolve) {
     return async () => {
@@ -54,6 +81,7 @@ class GetDeliveryOrdersFullData {
   markDeliveryOrdersData(data) {
     data.map(item => {
       item._getReedbackRecordInfo = false
+      item.deliveryOrderInfo = null
       return item
     })
     return () => {
@@ -86,6 +114,7 @@ class GetDeliveryOrdersFullData {
     const response = await this.getDeliveryOrdersData()
     this.deliveryOrdersData = response?.data?.list || []
     const clearMark = this.markDeliveryOrdersData(this.deliveryOrdersData)
+    await this.fillDeliveryOrdersData(this.deliveryOrdersData)
     await this.loopGetAllFeedbackRecordInfo()
     console.log('this.count', this.count)
     clearMark()
