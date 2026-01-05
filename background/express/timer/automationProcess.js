@@ -48,9 +48,12 @@ class BatchSyncAutomationProcess {
 }
 
 emitter.on('automationConfig:timer:update', async (timerRecord) => {
+  const { mallIds } = timerRecord
+  const collectMallIds = getMallIds()
+  const filterMallIds = collectMallIds.filter(item => mallIds.find(mallId => mallId == item))
   const instance = new BatchSyncAutomationProcess({
     timerRecord,
-    mallIds: getMallIds()
+    mallIds: filterMallIds
   })
   await instance.action()
 })

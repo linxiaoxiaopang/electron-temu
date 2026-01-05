@@ -10,6 +10,12 @@ module.exports = sequelize.define(
       autoIncrement: true,
       comment: '配置记录ID'
     },
+    mallIds: {
+      type: DataTypes.JSON, // 存储数组格式，如 [1001, 1002]
+      allowNull: false,
+      defaultValue: [], // 默认空数组
+      comment: '适用的店铺ID列表'
+    },
     autoplay: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

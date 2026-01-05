@@ -1,5 +1,5 @@
 const URL = require('url')
-const { uniq, cloneDeep, flatMap } = require('lodash')
+const { uniq, cloneDeep, flatMap, intersection } = require('lodash')
 const { getUserInfo } = require('~express/controllers/user')
 const { emitter } = require('~utils/event')
 const { default: getPort } = require('get-port')
@@ -48,12 +48,13 @@ exports.getHeaders = function (mallId, origin) {
 exports.getMallIds = function () {
   const { mallList } = user
   const tmpData = []
-  Object.values(mallList).map(item => {
+  Object.values(mallList).map((item, index) => {
+    tmpData[index] = []
     Object.values(item.list).map(sItem => {
-      tmpData.push(sItem.mallId)
+      tmpData[index].push(sItem.mallId)
     })
   })
-  return uniq(tmpData)
+  return uniq(intersection.apply(null, tmpData))
 }
 
 const targetList = {

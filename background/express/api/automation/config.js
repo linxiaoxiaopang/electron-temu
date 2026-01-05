@@ -7,7 +7,10 @@ async function list(req, res, next) {
     }
   })
   response = response?.[0]
-  if (response) response.currentServeTimestamp = Date.now()
+  if (response) {
+    response.currentServeTimestamp = Date.now()
+    response.mallIds = JSON.parse(response.mallIds || '[]')
+  }
   res.customResult = [err, response]
   next()
 }
