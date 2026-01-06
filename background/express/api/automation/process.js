@@ -1,6 +1,6 @@
 const { customIpcRenderer } = require('~utils/event')
 const { LoopGetTemuProductData } = require('~express/controllers/automation/process')
-const { BuildSql } = require('~express/utils/sqlUtils')
+const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 
 async function list(req, res, next) {
   const { body: { page } } = req
@@ -17,7 +17,12 @@ async function list(req, res, next) {
           },
           {
             label: '当前流程节点',
-            prop: 'currentProcess'
+            prop: 'currentProcess[op:like]',
+            value(prop, query) {
+              const item = query.currentProcess
+              if (!item) return
+              return likeMatch('prefix', item)
+            }
           },
           {
             label: '完成标识',
