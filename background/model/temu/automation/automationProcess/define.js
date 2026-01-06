@@ -99,6 +99,13 @@ module.exports = sequelize.define(
         }
       }
     },
+    // 新增：子采购订单编号字段
+    subPurchaseOrderSn: {
+      type: DataTypes.STRING(128), // 长度128适配各类平台子订单号长度
+      allowNull: true, // 非必填（部分流程可能无子订单）
+      defaultValue: '', // 默认空字符串，避免null
+      comment: '子采购订单编号（如Temu拆分子订单号、多商品子订单标识）'
+    },
     // 新增：purchaseTime 时间戳字段（核心）
     purchaseTime: {
       type: DataTypes.BIGINT, // 用BIGINT存储13位毫秒级时间戳（兼容前端/后端）

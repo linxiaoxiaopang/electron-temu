@@ -25,6 +25,10 @@ async function list(req, res, next) {
             memberType: 'number'
           },
           {
+            label: '备货单',
+            prop: 'subPurchaseOrderSn'
+          },
+          {
             label: 'uId列表',
             prop: 'uId[op:in]',
             queryProp: 'uIdList'

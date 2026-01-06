@@ -107,11 +107,12 @@ class GetTemuProductData {
     const { mallId } = this
     const pArr = skuQuantityDetailList.map(async item => {
       const { uId, fulfilmentProductSkuId } = item
-      const { purchaseTime } = item.subOrder
+      const { purchaseTime, subPurchaseOrderSn } = item.subOrder
       const row = {
         uId,
         mallId,
         purchaseTime,
+        subPurchaseOrderSn,
         processList: ['product:all:下载Temu效果图', 'product:all:下载Temu原图', 'product:all:temu更换系统数据'],
         currentProcess: '',
         temuData: item,
