@@ -151,6 +151,7 @@ class GetTemuProductData {
       } else {
         row.currentProcess = row.processList[2]
       }
+      row.processData[row.currentProcess] = row.labelCustomizedPreviewItems
       return row
     })
     return await Promise.all(pArr)
