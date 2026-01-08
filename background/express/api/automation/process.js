@@ -78,6 +78,27 @@ async function list(req, res, next) {
   next()
 }
 
+const allProcessList = [
+  'product:all:下载Temu效果图',
+  'product:all:下载Temu原图',
+  'product:all:temu更换系统数据',
+  'product:all:导入微定制订单',
+  'label:picture:模板图像处理',
+  'label:picture:抠图',
+  'label:picture:轮廓',
+  'label:picture:高清放大',
+  'label:picture:定制模板替换',
+  'product:all:上传原图',
+  'product:all:创建产品',
+  'product:all:上传文字校验',
+  'product:all:上传预览图'
+]
+
+async function nodes(req, res, next) {
+  res.customResult = [false, allProcessList]
+  next()
+}
+
 async function add(req, res, next) {
   const { data } = req.body
   if (!data.length) return [false, data]
@@ -110,5 +131,6 @@ module.exports = {
   list,
   add,
   update,
-  sync
+  sync,
+  nodes
 }
