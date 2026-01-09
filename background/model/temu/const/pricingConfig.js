@@ -12,7 +12,7 @@ const commonDefine =  {
     autoplay: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: true,
+      defaultValue: false,
       comment: '是否启用自动定价功能'
     },
     // 是否对已发布商品定价

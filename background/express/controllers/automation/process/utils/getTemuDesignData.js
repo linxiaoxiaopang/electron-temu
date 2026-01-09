@@ -244,6 +244,7 @@ class LoopGetTemuProductData {
   async loopRequest() {
     const { loopRequestInstance: instance, req } = this
     let totalTasks = 0
+    await instance.abandonCacheInstanceRequest()
     instance.requestCallback = async () => {
       if (instance.summary.totalTasks == 0) {
         totalTasks = await this.getTotal()

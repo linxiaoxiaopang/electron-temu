@@ -2,15 +2,19 @@ const { emitter } = require('../../utils/event')
 const { getMallIds, getBaseUrl } = require('~store/user')
 const axios = require('axios')
 
+let runUid = 0
+
 class BatchSyncAutomationProcess {
   constructor(
     {
       timerRecord,
-      mallIds = []
+      mallIds = [],
+      runUid
     }
   ) {
     this.timerRecord = timerRecord
     this.mallIds = mallIds
+    this.runUid = runUid
   }
 
   async syncByMall(mallId) {
@@ -42,7 +46,9 @@ class BatchSyncAutomationProcess {
     } catch (err) {
       console.log('err', err)
     } finally {
-      emitter.emit('automationConfig:timer:update:done')
+      if (this.runUid == runUid) {
+        emitter.emit('automationConfig:timer:update:done')
+      }
     }
   }
 }
@@ -53,7 +59,8 @@ emitter.on('automationConfig:timer:update', async (timerRecord) => {
   const filterMallIds = collectMallIds.filter(item => mallIds.find(mallId => mallId == item))
   const instance = new BatchSyncAutomationProcess({
     timerRecord,
-    mallIds: filterMallIds
+    mallIds: filterMallIds,
+    runUid: ++runUid
   })
   await instance.action()
 })

@@ -38,6 +38,7 @@ class InitTimerSheet extends InitSheet {
     super((option))
     this.record = null
     this.timer = null
+    this.immediate = option.immediate || false
   }
 
   get interval() {
@@ -72,7 +73,11 @@ class InitTimerSheet extends InitSheet {
       this.prevAutoplay = this.autoplay
       this.record = res
       if (this.prevAutoplay == this.autoplay) return
-      this.setInterval()
+      if(this.immediate && this.autoplay) {
+        this.sendMessage()
+      } else {
+        this.setInterval()
+      }
     })
     emitter.on(`${this.model.name}:timer:update:done`, async () => {
       await this.setInterval()
