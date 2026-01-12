@@ -103,6 +103,45 @@ class GetTemuProductData {
   // product:all:导入微定制订单
   // product:all:创建产品
 
+  handleProduct(product) {
+    const fItem = product
+    const customizedPreviewItems = fItem?.productSkuCustomization?.customizedPreviewItems || []
+    const customizedData = JSON.parse(fItem?.productSkuCustomization?.customizedData || '{}')
+    const regions = customizedData?.surfaces[0]?.regions || []
+    const noUploadImageUrlRegions = regions.filter(item => {
+      const element = item?.elements[0] || {}
+      return element?.type == 1 && !element?.imageUrl
+    })
+    noUploadImageUrlRegions.map(item => {
+      regions.find(sItem => {
+        const element0 = sItem?.elements[0] || {}
+        const element1 = item?.elements[0] || {}
+        const isFind = element0.type == element1.type && element0.imageUrl
+        if (isFind) {
+          element1.userPlacementData = element0.userPlacementData
+          element1.imageUrl = element0.imageUrl
+          element1.isClone = true
+          item.isClone = true
+        }
+        return isFind
+      })
+    })
+    if (noUploadImageUrlRegions.length) {
+      fItem.productSkuCustomization.customizedData = JSON.stringify(customizedData)
+      regions.map((item, index) => {
+        if (item.isClone) {
+          const fItem = customizedPreviewItems.find(sItem => sItem.previewType == 3)
+          if (fItem) {
+            const cloneItem = cloneDeep(fItem)
+            cloneItem.regionId = `${item?.elements[0]?.rIndex}`
+            customizedPreviewItems.splice(index + 1, 0, cloneItem)
+          }
+        }
+      })
+    }
+    return product
+  }
+
   async formatData(skuQuantityDetailList, productData) {
     const { mallId } = this
     const pArr = skuQuantityDetailList.map(async item => {
@@ -125,6 +164,7 @@ class GetTemuProductData {
       const fItem = productData.find(sItem => sItem.personalProductSkuId == fulfilmentProductSkuId)
       if (!fItem) return
       item.productData = fItem
+      this.handleProduct(fItem)
       const customizedPreviewItems = fItem?.productSkuCustomization?.customizedPreviewItems || []
       const fPreviewItem = customizedPreviewItems?.find(item => item.previewType == 1) || []
       row.labelCustomizedPreviewItems = customizedPreviewItems.filter(item => item.previewType != 1)
