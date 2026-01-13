@@ -1,5 +1,7 @@
 const { getWholeUrl, kuangjingmaihuo } = require('~store/user')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
+const { chunk } = require('lodash')
+
 const LimitQueue = require('~utils/limitQueue')
 
 class GetDeliveryOrdersFullData {
@@ -57,8 +59,18 @@ class GetDeliveryOrdersFullData {
     return res?.data?.list
   }
 
+  async getChunkPageQueryDeliveryBatch(deliveryOrdersData) {
+    const chunkData = chunk(deliveryOrdersData, 20)
+    const result = []
+    for (let chunkDeliveryOrdersData of chunkData) {
+      const res = await this.getPageQueryDeliveryBatch(chunkDeliveryOrdersData)
+      result.push(...res)
+    }
+    return result
+  }
+
   async fillDeliveryOrdersData(deliveryOrdersData) {
-    const pageQueryDeliveryBatch = await this.getPageQueryDeliveryBatch(deliveryOrdersData)
+    const pageQueryDeliveryBatch = await this.getChunkPageQueryDeliveryBatch(deliveryOrdersData)
     pageQueryDeliveryBatch.map(item => {
       const fItem = deliveryOrdersData.find(sItem => sItem.deliveryOrderSn == item.deliveryOrderSn)
       if (!fItem) return
