@@ -126,10 +126,17 @@ async function sync(req, res, next) {
   next()
 }
 
+async function del(req, res, next) {
+  res.customResult =   await customIpcRenderer.invoke('db:temu:automationProcess:delete', {
+    where: {}
+  })
+  next()
+}
 
 module.exports = {
   list,
   add,
+  del,
   update,
   sync,
   nodes
