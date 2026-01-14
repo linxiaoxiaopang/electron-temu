@@ -1,6 +1,7 @@
 const { customIpcRenderer } = require('~utils/event')
 const { LoopGetTemuProductData } = require('~express/controllers/automation/process')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
+const { allRequestCache } = require('~express/utils/loopUtils')
 
 async function list(req, res, next) {
   const { body: { page } } = req
@@ -31,7 +32,8 @@ async function list(req, res, next) {
           },
           {
             label: '备货单',
-            prop: 'subPurchaseOrderSn'
+            prop: 'subPurchaseOrderSn[op:in]',
+            queryProp: 'subPurchaseOrderSn'
           },
           {
             label: 'uId列表',
@@ -126,8 +128,18 @@ async function sync(req, res, next) {
   next()
 }
 
+async function progress(req, res, next) {
+  const { mallId } = req.body
+  if(!mallId) throw '请选择店铺'
+  const cacheKey = `automationProcessSync_${mallId}`
+  const cacheData = allRequestCache[cacheKey]
+  Object
+  res.customResult = [false, cacheData?.allSummary || []]
+  next()
+}
+
 async function del(req, res, next) {
-  res.customResult =   await customIpcRenderer.invoke('db:temu:automationProcess:delete', {
+  res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:delete', {
     where: {}
   })
   next()
@@ -139,5 +151,6 @@ module.exports = {
   del,
   update,
   sync,
-  nodes
+  nodes,
+  progress
 }

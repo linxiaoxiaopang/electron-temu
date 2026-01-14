@@ -20,6 +20,10 @@ class GetTemuProductData {
     return this.req?.body?.mallId
   }
 
+  get subPurchaseOrderSn() {
+    return this.req?.body?.subPurchaseOrderSn
+  }
+
   createUId(item) {
     return `${item.subOrder.subPurchaseOrderSn}_${item.fulfilmentProductSkuId}`
   }
@@ -41,6 +45,9 @@ class GetTemuProductData {
         firstOrderByParam: 'expectLatestDeliverTime',
         firstOrderByDesc: 0
       }
+    }
+    if (this.subPurchaseOrderSn) {
+      finalQuery.subPurchaseOrderSnList = this.subPurchaseOrderSn
     }
     const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: finalQuery }))
     return response.data

@@ -150,5 +150,6 @@ class LoopRequest {
 }
 
 module.exports = {
+  allRequestCache,
   LoopRequest
 }
