@@ -2,7 +2,7 @@ const { getWholeUrl } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
 const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
-const { map, differenceBy, cloneDeep } = require('lodash')
+const { map, differenceBy, cloneDeep, chunk } = require('lodash')
 const { LoopRequest } = require('~express/utils/loopUtils')
 
 const axios = require('axios')
@@ -67,7 +67,17 @@ class GetTemuProductData {
       }
     }
     const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: query }))
-    return response?.data?.pageItems
+    return response?.data?.pageItems || []
+  }
+
+  async getProductDataByChunk(data) {
+    const tmpData = []
+    const chunkData = chunk(data, 50)
+    for (let item of chunkData) {
+      const res = await this.getProductData(item)
+      tmpData.push(...res)
+    }
+    return tmpData
   }
 
   async getDbData(data) {
@@ -248,7 +258,7 @@ class GetTemuProductData {
     // const newSubOrderForSupplierList = await this.getNewData(this.fillUid(subOrderForSupplierList))
     const newSkuQuantityDetailList = await this.getNewData(this.handleSubOrderForSupplierList(subOrderForSupplierList))
     if (newSkuQuantityDetailList.length) {
-      const productData = await this.getProductData(newSkuQuantityDetailList)
+      const productData = await this.getProductDataByChunk(newSkuQuantityDetailList)
       await this.submitDbData(newSkuQuantityDetailList, productData)
     }
     return subOrderForSupplierList

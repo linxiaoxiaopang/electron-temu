@@ -133,7 +133,6 @@ async function progress(req, res, next) {
   if(!mallId) throw '请选择店铺'
   const cacheKey = `automationProcessSync_${mallId}`
   const cacheData = allRequestCache[cacheKey]
-  Object
   res.customResult = [false, cacheData?.allSummary || []]
   next()
 }
