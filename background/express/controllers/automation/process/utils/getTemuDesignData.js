@@ -4,7 +4,7 @@ const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
 const { map, differenceBy, cloneDeep, chunk } = require('lodash')
 const { LoopRequest } = require('~express/utils/loopUtils')
-
+const { waitTimeByNum } = require('~utils/sleep')
 const axios = require('axios')
 
 class GetTemuProductData {
@@ -229,14 +229,24 @@ class GetTemuProductData {
   }
 
   async collectToDbByChunk(data) {
-    const tmpData = []
-    const chunkData = chunk(data, 1)
-    for (let item of chunkData) {
-      const res = await this.collectToDb(item)
-      const resData = res?.data || []
-      tmpData.push(...resData)
+    await this.loopCollectToDbByCount(data)
+  }
+
+  async loopCollectToDbByCount(data) {
+    let count = 5
+    let errMsg = ''
+    while (count--) {
+      try {
+        await this.collectToDb(data)
+        break
+      } catch (err) {
+        errMsg = err
+        await waitTimeByNum(2000)
+      }
     }
-    return tmpData
+    if (errMsg) {
+      throw errMsg
+    }
   }
 
   async submitDbData(skuQuantityDetailList, productData) {
@@ -285,7 +295,7 @@ class LoopGetTemuProductData {
     this.res = res
     this.body.page = {
       pageIndex: 1,
-      pageSize: 20
+      pageSize: 5
     }
     this.loopRequestInstance = new LoopRequest({
       req,

@@ -104,7 +104,7 @@ async function nodes(req, res, next) {
 async function add(req, res, next) {
   const { data } = req.body
   if (!data.length) return [false, data]
-  res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:add', data)
+  res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:add', data, false)
   next()
 }
 

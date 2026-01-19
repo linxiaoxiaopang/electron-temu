@@ -18,13 +18,14 @@ class CreateServer {
     }
   }
 
-  async add(os) {
+  async add(os, returnData = true) {
     const chain = new ServerWare()
     chain
       .use(async (ctx, next) => {
         const { res } = ctx
         if (!isArray(os)) os = [os]
-        const data = await this.model.bulkCreate(os)
+        let data = await this.model.bulkCreate(os)
+        if(isArray(data) && !returnData) data = data.length
         res.data = data
         next()
       })
