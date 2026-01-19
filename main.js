@@ -14,6 +14,8 @@ const path = require('path')
 const axios = require('axios')
 app.commandLine.appendSwitch('disable-content-security-policy')
 app.commandLine.appendSwitch('disable-web-security')
+app.commandLine.appendSwitch('ignore-certificate-errors') // 忽略证书错误
+app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors') // 关闭跨域限制
 if (require('electron-squirrel-startup')) {
   app.quit() // 若为安装/更新相关启动，则自动退出
 }

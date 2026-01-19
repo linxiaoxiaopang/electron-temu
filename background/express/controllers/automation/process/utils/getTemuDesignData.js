@@ -225,26 +225,35 @@ class GetTemuProductData {
         data
       }
     }))
-    return response
+    return response?.data
+  }
+
+  async collectToDbByChunk(data) {
+    const tmpData = []
+    const chunkData = chunk(data, 1)
+    for (let item of chunkData) {
+      const res = await this.collectToDb(item)
+      const resData = res?.data || []
+      tmpData.push(...resData)
+    }
+    return tmpData
   }
 
   async submitDbData(skuQuantityDetailList, productData) {
     const data = await this.formatData(skuQuantityDetailList, productData)
     if (!data.length) return
-    return await this.collectToDb(data)
+    return await this.collectToDbByChunk(data)
   }
 
 
   handleSubOrderForSupplierList(data) {
     const tmpArr = []
     data.map(item => {
+      const subOrder = cloneDeep(item)
       const skuQuantityDetailList = item.skuQuantityDetailList || []
-      if (!skuQuantityDetailList.length) {
-        console.log('skuQuantityDetailList', skuQuantityDetailList)
-      }
       skuQuantityDetailList.map(sItem => {
         const tmpItem = sItem
-        tmpItem.subOrder = cloneDeep(item)
+        tmpItem.subOrder = subOrder
         tmpItem.uId = this.createUId(tmpItem)
         tmpArr.push(tmpItem)
       })
