@@ -1,5 +1,5 @@
 const { customIpcRenderer } = require('~utils/event')
-const { LoopGetTemuProductData } = require('~express/controllers/automation/process')
+const { LoopGetTemuProductData, GetTemuProductData } = require('~express/controllers/automation/process')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { allRequestCache } = require('~express/utils/loopUtils')
 
@@ -86,6 +86,7 @@ const allProcessList = [
   'product:all:temu更换系统数据',
   'product:all:导入微定制订单',
   'label:picture:模板图像处理',
+  'label:picture:切图',
   'label:picture:抠图',
   'label:picture:轮廓',
   'label:picture:高清放大',
@@ -130,7 +131,7 @@ async function sync(req, res, next) {
 
 async function progress(req, res, next) {
   const { mallId } = req.body
-  if(!mallId) throw '请选择店铺'
+  if (!mallId) throw '请选择店铺'
   const cacheKey = `automationProcessSync_${mallId}`
   const cacheData = allRequestCache[cacheKey]
   res.customResult = [false, cacheData?.allSummary || []]
@@ -144,6 +145,76 @@ async function del(req, res, next) {
   next()
 }
 
+async function compare(req, res, next) {
+  const { body } = req
+  const buildSqlInstance = new BuildSql({
+    table: 'automationProcess',
+    selectModifier: 'DISTINCT',
+    query: body,
+    fields: [
+      {
+        prop: 'subPurchaseOrderSn',
+        name: 'total',
+        valueFormatter(expr) {
+          return `count(DISTINCT ${expr})`
+        }
+      }
+    ],
+    group: [
+      {
+        column: [
+          {
+            label: '店铺Id',
+            prop: 'mallId'
+          },
+          {
+            label: '备货单创建开始时间',
+            prop: 'purchaseTime[op:>=]',
+            queryProp: 'purchaseStartTime',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return +new Date(item)
+            }
+          },
+          {
+            label: '备货单创建开始时间',
+            prop: 'purchaseTime[op:<=]',
+            queryProp: 'purchaseEndTime',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return +new Date(item)
+            }
+          }
+        ]
+      }
+    ]
+  })
+  const sql = buildSqlInstance.generateSql()
+  const dbRes = await customIpcRenderer.invoke('db:temu:automationProcess:query', {
+    sql
+  })
+  if (dbRes[0]) {
+    res.customResult = dbRes
+    return next()
+  }
+  req.body.page = {
+    pageIndex: 1,
+    pageSize: 1
+  }
+  const getTemuProductDataInstance = new GetTemuProductData({ req })
+  const totalTasks = await getTemuProductDataInstance.getTotal()
+  res.customResult = [
+    false,
+    {
+      dbTotal: dbRes[1]?.[0]?.total,
+      temuTotal: totalTasks
+    }
+  ]
+  next()
+}
+
 module.exports = {
   list,
   add,
@@ -151,5 +222,6 @@ module.exports = {
   update,
   sync,
   nodes,
-  progress
+  progress,
+  compare
 }

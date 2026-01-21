@@ -1,3 +1,4 @@
+const axios = require('axios')
 const { getWholeUrl } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
 const { throwPromiseError } = require('~utils/promise')
@@ -5,7 +6,7 @@ const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddlewar
 const { map, differenceBy, cloneDeep, chunk } = require('lodash')
 const { LoopRequest } = require('~express/utils/loopUtils')
 const { waitTimeByNum } = require('~utils/sleep')
-const axios = require('axios')
+const automationProcessModel = require('~model/temu/automation/automationProcess/define')
 
 class GetTemuProductData {
   constructor(
@@ -194,6 +195,7 @@ class GetTemuProductData {
       row.labelCustomizedPreviewItems.map(item => {
         if (!item.imageUrlDisplay) return
         const p = this.uploadToOss(item.imageUrlDisplay).then(res => {
+          item.originOssImageUrlDisplay = res
           item.ossImageUrlDisplay = res
         }).catch(err => {
           row.errorMsg = err
@@ -215,17 +217,7 @@ class GetTemuProductData {
   }
 
   async collectToDb(data) {
-    const { protocol, host } = this.req
-    const relativeUrl = '/temu-agentseller/api/automation/process/add'
-    const wholeUrl = `${protocol}://${host}${relativeUrl}`
-    const response = await throwPromiseError(axios({
-      method: 'post',
-      url: wholeUrl,
-      data: {
-        data
-      }
-    }))
-    return response?.data
+    return await automationProcessModel.bulkCreate(data)
   }
 
   async collectToDbByChunk(data) {
@@ -295,7 +287,7 @@ class LoopGetTemuProductData {
     this.res = res
     this.body.page = {
       pageIndex: 1,
-      pageSize: 5
+      pageSize: 10
     }
     this.loopRequestInstance = new LoopRequest({
       req,
@@ -353,5 +345,6 @@ class LoopGetTemuProductData {
 
 
 module.exports = {
-  LoopGetTemuProductData
+  LoopGetTemuProductData,
+  GetTemuProductData
 }

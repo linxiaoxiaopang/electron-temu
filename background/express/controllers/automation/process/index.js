@@ -1,5 +1,6 @@
-const { LoopGetTemuProductData } = require('./utils/getTemuDesignData')
+const { LoopGetTemuProductData, GetTemuProductData } = require('./utils/getTemuDesignData')
 
 module.exports = {
-  LoopGetTemuProductData
+  LoopGetTemuProductData,
+  GetTemuProductData
 }

@@ -306,6 +306,8 @@ class BuildSql {
           expr = valueFormatter(expr, field, this)
         }
         return `${expr} AS "${name}"`
+      } else if(valueFormatter) {
+        return `${valueFormatter(prop, field, this)} AS "${name}"`
       }
       return field.name // 普通字段
     })
