@@ -17,6 +17,11 @@ async function list(req, res, next) {
             prop: 'mallId'
           },
           {
+            label: '店铺Id列表',
+            prop: 'mallId[op:in]',
+            queryProp: 'mallIdList'
+          },
+          {
             label: '当前流程节点',
             prop: 'currentProcess[op:like]',
             value(prop, query) {

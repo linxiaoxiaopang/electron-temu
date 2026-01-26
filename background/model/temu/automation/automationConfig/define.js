@@ -41,6 +41,14 @@ module.exports = sequelize.define(
       comment: '上次成功执行定价的时间（毫秒级时间戳，1970-01-01 UTC起算）'
     },
 
+    // 新增：刷新Web页面的时间戳
+    lastRefreshWebTimestamp: {
+      type: DataTypes.BIGINT, // 统一用BIGINT存储毫秒级时间戳（避免溢出）
+      allowNull: true,
+      defaultValue: null,
+      comment: '上次刷新Web页面的时间（毫秒级时间戳，1970-01-01 UTC起算）'
+    },
+
     // 备货单创建开始时间
     purchaseTimeFrom: {
       type: DataTypes.BIGINT, // 毫秒级时间戳（整数）

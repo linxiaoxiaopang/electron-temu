@@ -15,6 +15,7 @@ const goodsRouter = require('./api/goods')
 const verifyPriceRouter = require('./api/verifyPrice')
 const shippingRouter = require('./api/shipping')
 const automationRouter = require('./api/automation')
+const { getUserInfo } = require('~express/controllers/user')
 const app = express()
 // 使用cors中间件，允许所有来源的请求
 app.use(cors())
@@ -28,7 +29,8 @@ app.use('/temu-agentseller', mergeDataMiddleware)
 app.post('/setHeaders', async (req, res, next) => {
   const { headers } = req.body
   emitter.emit('getRequestHeaders', headers)
-  res.customResult = [false, true]
+  const userInfo = await getUserInfo(headers)
+  res.customResult = [!userInfo, userInfo]
   next()
 })
 

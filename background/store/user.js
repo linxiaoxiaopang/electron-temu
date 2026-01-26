@@ -45,10 +45,16 @@ exports.getHeaders = function (mallId, origin) {
   return mall.headers
 }
 
-exports.getMallIds = function () {
+exports.getMallIds = function (origin) {
   const { mallList } = user
   const tmpData = []
-  Object.values(mallList).map((item, index) => {
+  const tmpObj = Object.keys(mallList).reduce((prev, cur) => {
+    if (origin && origin != cur) return prev
+    if (!origin && !/agentseller/i.test(cur)) return prev
+    prev[cur] = mallList[cur]
+    return prev
+  }, {})
+  Object.values(tmpObj).map((item, index) => {
     tmpData[index] = []
     Object.values(item.list).map(sItem => {
       tmpData[index].push(sItem.mallId)
