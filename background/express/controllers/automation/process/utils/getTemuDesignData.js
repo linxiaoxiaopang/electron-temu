@@ -3,9 +3,10 @@ const { getWholeUrl } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
 const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
-const { map, differenceBy, cloneDeep, chunk } = require('lodash')
+const { map, differenceBy, cloneDeep, chunk, isUndefined } = require('lodash')
 const { LoopRequest } = require('~express/utils/loopUtils')
 const { waitTimeByNum } = require('~utils/sleep')
+const { deepCamelCaseKeys } = require('~utils/convert')
 const automationProcessModel = require('~model/temu/automation/automationProcess/define')
 
 class GetTemuProductData {
@@ -125,7 +126,10 @@ class GetTemuProductData {
     const fItem = product
     const customizedPreviewItems = fItem?.productSkuCustomization?.customizedPreviewItems || []
     const customizedData = JSON.parse(fItem?.productSkuCustomization?.customizedData || '{}')
-    const regions = customizedData?.surfaces[0]?.regions || []
+    let regions = customizedData?.surfaces[0]?.regions || []
+    if (customizedData?.surfaces[0]?.regions) {
+      customizedData.surfaces[0].regions = regions = deepCamelCaseKeys(regions)
+    }
     const noUploadImageUrlRegions = regions.filter(item => {
       const element = item?.elements[0] || {}
       return element?.type == 1 && !element?.imageUrl
@@ -144,6 +148,38 @@ class GetTemuProductData {
         return isFind
       })
     })
+    const addTextRegions = regions.filter(item => {
+      const element = item?.elements[0] || {}
+      return element?.type == 2 && !element?.text
+    })
+
+    // {
+    //   "previewType": 4,
+    //   "imageUrl": null,
+    //   "imageUrlDisplay": null,
+    //   "customizedText": "DON'TE",
+    //   "regionId": "1"
+    // }
+    //temu平台添加了空文本
+    if (addTextRegions.length) {
+      regions.map((item, index) => {
+        const element = item?.elements[0] || {}
+        const isEmptyText = element?.type == 2 && !element?.text
+        if (isEmptyText) {
+          let rIndex = item?.elements[0]?.rIndex
+          if (isUndefined(rIndex)) rIndex = index
+          const textItem = {
+            previewType: 4,
+            imageUrl: null,
+            imageUrlDisplay: null,
+            customizedText: ' ',
+            regionId: `${rIndex}`
+          }
+          customizedPreviewItems.splice(index + 1, 0, textItem)
+        }
+      })
+    }
+
     if (noUploadImageUrlRegions.length) {
       fItem.productSkuCustomization.customizedData = JSON.stringify(customizedData)
       regions.map((item, index) => {
@@ -151,7 +187,9 @@ class GetTemuProductData {
           const fItem = customizedPreviewItems.find(sItem => sItem.previewType == 3)
           if (fItem) {
             const cloneItem = cloneDeep(fItem)
-            cloneItem.regionId = `${item?.elements[0]?.rIndex}`
+            let rIndex = item?.elements[0]?.rIndex
+            if (isUndefined(rIndex)) rIndex = index
+            cloneItem.regionId = `${rIndex}`
             customizedPreviewItems.splice(index + 1, 0, cloneItem)
           }
         }
