@@ -15,7 +15,6 @@ module.exports = {
     //   return false
     // },
     extraResource: [
-      'mock', // 开发环境中的资源目录路径
       'dbData',
       'extension',
       'static'

@@ -16,6 +16,13 @@ module.exports = sequelize.define(
       defaultValue: [], // 默认空数组
       comment: '适用的店铺ID列表'
     },
+    // 调整：browserMode 改为数字类型，并添加验证规则
+    browserMode: {
+      type: DataTypes.TINYINT, // 使用TINYINT（微整型），更节省存储空间
+      allowNull: false,
+      defaultValue: 1, // 默认值为3（处理配置店铺）
+      comment: '浏览器处理店铺的模式：1-一个浏览器处理一个店铺；2-一个浏览器处理所有店铺；3-一个浏览器处理配置店铺'
+    },
     autoplay: {
       type: DataTypes.BOOLEAN,
       allowNull: false,
