@@ -1,13 +1,5 @@
 <template>
   <div>
-    <ZdRadioGroup
-      style="margin-bottom: 20px;"
-      v-model="mode"
-    >
-      <ZdRadio :value="mode" label="proxy">使用本地电脑代理真实数据</ZdRadio>
-      <ZdRadio :value="mode" label="temu">直接连接真实数据</ZdRadio>
-    </ZdRadioGroup>
-
     <div class="headers" style="margin-bottom: 10px">
      <span v-if="!existMall">
       未获取temu店铺，请刷新temu页面。
@@ -24,24 +16,15 @@
             </div>
           </div>
         </div>
-
       </template>
-
     </div>
   </div>
 </template>
 
 <script>
 import { mapState, mapActions } from 'vuex'
-import ZdRadioGroup from './module/zdRadioGroup'
-import ZdRadio from './module/zdRadio'
 
 export default {
-  components: {
-    ZdRadioGroup,
-    ZdRadio
-  },
-
   computed: {
     ...mapState('background', ['user']),
 

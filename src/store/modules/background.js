@@ -14,10 +14,16 @@ const background = {
   }
 }
 
-window.electronAPI.invoke('data:get:store').then(res => {
+const fn = async () => {
+  const res = await window.electronAPI.invoke('data:get:store')
   Object.keys(res).map(key => {
     background.state[key] = res[key]
   })
-})
+  setTimeout(() => {
+    fn()
+  }, 3000)
+}
+
+fn()
 
 export default background

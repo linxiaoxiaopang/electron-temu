@@ -2,6 +2,7 @@ const { customIpcRenderer } = require('~utils/event')
 const { LoopGetTemuProductData, GetTemuProductData } = require('~express/controllers/automation/process')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { allRequestCache } = require('~express/utils/loopUtils')
+const { waitTimeByNum } = require('~utils/sleep')
 
 async function list(req, res, next) {
   const { body: { page } } = req
@@ -129,6 +130,12 @@ async function sync(req, res, next) {
     req.body.purchaseTimeFrom = +new Date(req.body.purchaseStartTime)
     req.body.purchaseTimeTo = +new Date(req.body.purchaseEndTime)
   }
+  let validateIsSync = false
+  do {
+    validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
+    if (!validateIsSync) await waitTimeByNum(1000)
+  } while (!validateIsSync)
+
   const instance = new LoopGetTemuProductData({
     req,
     res
@@ -142,7 +149,16 @@ async function progress(req, res, next) {
   if (!mallId) throw '请选择店铺'
   const cacheKey = `automationProcessSync_${mallId}`
   const cacheData = allRequestCache[cacheKey]
-  res.customResult = [false, cacheData?.allSummary || []]
+  const keys = Object.keys(cacheData?.allSummary  || {})
+  let resItem = null
+  for(let key of keys) {
+    const item = cacheData.allSummary[key]
+    if(!resItem) resItem = item
+    if(resItem.dateStamp <= item.dateStamp) {
+      resItem = item
+    }
+  }
+  res.customResult = [false, resItem]
   next()
 }
 

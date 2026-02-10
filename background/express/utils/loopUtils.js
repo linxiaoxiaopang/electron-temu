@@ -32,6 +32,7 @@ class LoopRequest {
     this.cacheKey = cacheKey
     this.cache = this.initCache()
     this.instanceList.push(this)
+    this.dateStamp = Date.now()
     this.beforeLoopCallback = beforeLoopCallback
     this.requestCallback = requestCallback
   }
@@ -89,6 +90,7 @@ class LoopRequest {
 
   async loop() {
     const { summary } = this
+    summary.dateStamp = Date.now()
     this.allSummary[this.uuid] = summary
     do {
       let [err, taskRes] = await this.requestCallback(summary)

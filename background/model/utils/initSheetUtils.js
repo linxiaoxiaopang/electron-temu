@@ -29,6 +29,8 @@ class InitSheet {
     this.bindEvent()
     await this.syncModel().catch(err => {
       console.log('err', err)
+    }).finally(() => {
+      this.server.isSync = true
     })
   }
 }

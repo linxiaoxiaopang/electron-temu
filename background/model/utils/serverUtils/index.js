@@ -13,6 +13,7 @@ class CreateServer {
   constructor(model) {
     this.model = model
     this.emitter = new EventEmitter()
+    this.isSync = false
     this.emitter.createEventName = function (prop, value) {
       return `${prop}:${value}`
     }
@@ -191,6 +192,10 @@ class CreateServer {
       req,
       server: this
     })
+  }
+
+  validateIsSync() {
+    return this.isSync
   }
 
   getAllMethods() {
