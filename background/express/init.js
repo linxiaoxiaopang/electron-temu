@@ -7,7 +7,7 @@ const responseMiddleware = require('./middleware/responseMiddleware')
 const errorMiddleware = require('./middleware/errorMiddleware')
 const validHeadersMiddleware = require('./middleware/validHeadersMiddleware')
 const mergeDataMiddleware = require('./middleware/mergeDataMiddleware')
-const { getTemuTarget, getPort } = require('~store/user')
+const { getTemuTarget, getPort, kuangjingmaihuo } = require('~store/user')
 const mallRouter = require('./api/mall')
 const userRouter = require('./api/user')
 const batchReportingActivitiesRouter  = require('./api/batchReportingActivities')
@@ -47,6 +47,12 @@ app.use('/temu-agentseller/api/automation', automationRouter)
 app.use('/temu-agentseller/proxy', createProxyMiddleware({
   target: () => {
     return getTemuTarget()
+  }
+}))
+
+app.use('/temu-agentseller/proxy1', createProxyMiddleware({
+  target: () => {
+    return getTemuTarget(kuangjingmaihuo)
   }
 }))
 

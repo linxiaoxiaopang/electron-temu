@@ -63,13 +63,13 @@ exports.getMallIds = function (origin) {
   return uniq(intersection.apply(null, tmpData))
 }
 
-const targetList = {
+exports.targetList = {
   [exports.kuangjingmaihuo]: 'https://seller.kuajingmaihuo.com',
   default: 'https://agentseller.temu.com'
 }
 
 exports.getTemuTarget = function (target = 'default') {
-  return targetList[target] || targetList.default
+  return exports.targetList[target] || exports.targetList.default
 }
 
 exports.getWholeUrl = function (relativeUrl, target = 'default') {

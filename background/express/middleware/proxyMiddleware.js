@@ -1,5 +1,5 @@
 const { merge, isFunction, cloneDeep } = require('lodash')
-const { getIsProxy, getHeaders } = require('~store/user')
+const { getIsProxy, getHeaders, targetList, kuangjingmaihuo } = require('~store/user')
 const { customIpcRenderer } = require('~/utils/event')
 const USED_HEADERS_KEYS = ['cookie', 'referer', 'mallid', 'origin', 'content-type']
 
@@ -14,6 +14,9 @@ function createProxyMiddleware(option) {
     if (res?.noUseProxy) return next()
     if (isFunction(target)) {
       target = target()
+      if (target === targetList[kuangjingmaihuo]) {
+        req.customOrigin = target
+      }
     }
     const { url } = handleReq(req)
     const response = await getTemuData()
