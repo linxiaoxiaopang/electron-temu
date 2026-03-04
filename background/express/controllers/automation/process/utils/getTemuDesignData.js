@@ -3,13 +3,16 @@ const { getWholeUrl } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
 const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
+const { customIpcRenderer } = require('~utils/event')
 const { map, differenceBy, cloneDeep, chunk, isUndefined } = require('lodash')
 const { LoopRequest } = require('~express/utils/loopUtils')
-const { waitTimeByNum } = require('~utils/sleep')
 const { deepCamelCaseKeys } = require('~utils/convert')
-const automationProcessModel = require('~model/temu/automation/automationProcess/define')
+const automationProcessInitSheet = require('~model/temu/automation/automationProcess/init')
+const personalProductInitSheet = require('~model/temu/automation/personalProduct/init')
 
-class GetTemuProductData {
+const PROCESS_LIST = ['product:all:下载Temu效果图', 'product:all:下载Temu原图', 'product:all:temu更换系统数据']
+
+class TemuProductProcessor {
   constructor(
     {
       req
@@ -22,37 +25,11 @@ class GetTemuProductData {
     return this.req?.body?.mallId
   }
 
-  get subPurchaseOrderSn() {
-    return this.req?.body?.subPurchaseOrderSn
-  }
-
-  createUId(item) {
-    return `${item.subOrder.subPurchaseOrderSn}_${item.fulfilmentProductSkuId}`
-  }
-
-  async getTotal() {
-    const response = await this.getSubOrderList()
-    return response?.total
-  }
-
-  async getSubOrderList() {
-    const { req, mallId } = this
-    const relativeUrl = '/mms/venom/api/supplier/purchase/manager/querySubOrderList'
-    const wholeUrl = getWholeUrl(relativeUrl)
-    const finalQuery = {
-      mallId,
-      isCustomGoods: true,
-      statusList: [1],
-      oneDimensionSort: {
-        firstOrderByParam: 'expectLatestDeliverTime',
-        firstOrderByDesc: 0
-      }
-    }
-    if (this.subPurchaseOrderSn) {
-      finalQuery.subPurchaseOrderSnList = this.subPurchaseOrderSn
-    }
-    const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: finalQuery }))
-    return response.data
+  async uploadToOss(url) {
+    if (!url) return ''
+    const res = await uploadToOssUseUrl(url)
+    if (!res?.url) throw '上传图片到oss失败'
+    return res?.url
   }
 
   async getProductData(data) {
@@ -81,46 +58,6 @@ class GetTemuProductData {
     }
     return tmpData
   }
-
-  async getDbData(data) {
-    const { protocol, host } = this.req
-    const uIdList = data.map(item => item.uId)
-    const relativeUrl = '/temu-agentseller/api/automation/process/list'
-    const wWholeUrl = `${protocol}://${host}${relativeUrl}`
-    const response = await throwPromiseError(axios({
-      method: 'post',
-      url: wWholeUrl,
-      data: {
-        uIdList
-      }
-    }))
-    return response?.data?.data
-  }
-
-  async getNewData(productData) {
-    const dbData = await this.getDbData(productData)
-    return differenceBy(productData, dbData, 'uId')
-  }
-
-  async uploadToOss(url) {
-    if (!url) return ''
-    const res = await uploadToOssUseUrl(url)
-    if (!res?.url) throw '上传图片到oss失败'
-    return res?.url
-  }
-
-  // processList
-  // product:all:下载Temu图片
-  // product:all:temu更换系统数据
-  // label?name=定制区域1:picture:抠图
-  // label?name=定制区域1:picture:轮廓?w=10
-  // label?name=定制区域1:picture:psd模板?name=人头替换&w=2000&h=2000
-  // label?name=定制区域2:text:轮廓?w=10
-  // product:all:上传文字校验
-  // product:all:上传原图
-  // product:all:上传预览图
-  // product:all:导入微定制订单
-  // product:all:创建产品
 
   handleProduct(product) {
     const fItem = product
@@ -198,91 +135,143 @@ class GetTemuProductData {
     return product
   }
 
-  async formatData(skuQuantityDetailList, productData) {
-    const { mallId } = this
-    const pArr = skuQuantityDetailList.map(async item => {
-      const { uId, fulfilmentProductSkuId } = item
-      const { purchaseTime, subPurchaseOrderSn } = item.subOrder
-      const row = {
-        uId,
-        mallId,
-        purchaseTime,
-        subPurchaseOrderSn,
-        processList: ['product:all:下载Temu效果图', 'product:all:下载Temu原图', 'product:all:temu更换系统数据'],
-        currentProcess: '',
-        temuData: item,
-        systemExchangeData: null,
-        temuImageUrlDisplay: null,
-        ossImageUrlDisplay: null,
-        processData: {},
-        labelCustomizedPreviewItems: []
-      }
-      const fItem = productData.find(sItem => sItem.personalProductSkuId == fulfilmentProductSkuId)
-      if (!fItem) return
-      item.productData = fItem
-      this.handleProduct(fItem)
-      const customizedPreviewItems = fItem?.productSkuCustomization?.customizedPreviewItems || []
+  async getDbPersonalProductData(productData) {
+    const personalProductSkuId = map(productData, 'personalProductSkuId')
+    const res = await customIpcRenderer.invoke('db:temu:personalProduct:find', {
+      where: {
+        personalProductSkuId
+      },
+      jsonToObjectProps: ['json', 'processData', 'labelCustomizedPreviewItems']
+    })
+    return await throwPromiseError(res)
+  }
+
+  async formatProductData(productData) {
+    const existingSkuIdsData = await this.getDbPersonalProductData(productData)
+    const existingSkuIdSet = new Set(existingSkuIdsData.map(item => item.personalProductSkuId))
+    let newProductData = productData.filter(item => !existingSkuIdSet.has(item.personalProductSkuId))
+    const pArr = newProductData.map(async product => {
+      const { personalProductSkuId } = product
+      this.handleProduct(product)
+      const customizedPreviewItems = product?.productSkuCustomization?.customizedPreviewItems || []
       const fPreviewItem = customizedPreviewItems?.find(item => item.previewType == 1) || []
-      row.labelCustomizedPreviewItems = customizedPreviewItems.filter(item => item.previewType != 1)
-      row.temuImageUrlDisplay = fPreviewItem?.imageUrlDisplay || ''
-      const pArr = []
-      const p1 = this.uploadToOss(row.temuImageUrlDisplay).then(res => row.ossImageUrlDisplay = res).catch(err => {
-        row.errorMsg = err
+      const temuImageUrlDisplay = fPreviewItem?.imageUrlDisplay || ''
+      const labelCustomizedPreviewItems = customizedPreviewItems.filter(item => item.previewType != 1)
+      let ossImageUrlDisplay = ''
+      let errorMsg = null
+      const uploadPromises = []
+      const p1 = this.uploadToOss(temuImageUrlDisplay).then(res => {
+        ossImageUrlDisplay = res
+      }).catch(err => {
+        errorMsg = err
       })
-      pArr.push(p1)
-      row.labelCustomizedPreviewItems.map(item => {
+      uploadPromises.push(p1)
+      labelCustomizedPreviewItems.map(item => {
         if (!item.imageUrlDisplay) return
         const p = this.uploadToOss(item.imageUrlDisplay).then(res => {
           item.originOssImageUrlDisplay = res
           item.ossImageUrlDisplay = res
         }).catch(err => {
-          row.errorMsg = err
+          errorMsg = err
         })
-        pArr.push(p)
+        uploadPromises.push(p)
       })
-      await Promise.all(pArr)
-      if (!row.temuImageUrlDisplay) {
-        row.currentProcess = row.processList[0]
-      } else if (row.errorMsg) {
-        row.currentProcess = row.processList[1]
-      } else {
-        row.currentProcess = row.processList[2]
+      await Promise.all(uploadPromises)
+      const processData = {}
+      processData[PROCESS_LIST[0]] = labelCustomizedPreviewItems
+      if (temuImageUrlDisplay) {
+        processData[PROCESS_LIST[1]] = labelCustomizedPreviewItems
+        if (!errorMsg) {
+          processData[PROCESS_LIST[2]] = labelCustomizedPreviewItems
+        }
       }
-      row.processData[row.currentProcess] = row.labelCustomizedPreviewItems
-      return row
+      return {
+        temuImageUrlDisplay,
+        ossImageUrlDisplay,
+        labelCustomizedPreviewItems,
+        processData,
+        personalProductSkuId,
+        json: product
+      }
     })
     return await Promise.all(pArr)
   }
 
-  async collectToDb(data) {
-    return await automationProcessModel.bulkCreate(data)
+  async action(data) {
+    const productData = await this.getProductDataByChunk(data)
+    const newProductData = await this.formatProductData(productData)
+    if (newProductData.length) await personalProductInitSheet.server.add(newProductData)
+    return await this.getDbPersonalProductData(productData)
+  }
+}
+
+class GetTemuProductData {
+  constructor(
+    {
+      req
+    }
+  ) {
+    this.req = req
+    this.productProcessor = new TemuProductProcessor({
+      req
+    })
   }
 
-  async collectToDbByChunk(data) {
-    await this.loopCollectToDbByCount(data)
+  get mallId() {
+    return this.req?.body?.mallId
   }
 
-  async loopCollectToDbByCount(data) {
-    let count = 5
-    let errMsg = ''
-    while (count--) {
-      try {
-        await this.collectToDb(data)
-        break
-      } catch (err) {
-        errMsg = err
-        await waitTimeByNum(2000)
+  get subPurchaseOrderSn() {
+    return this.req?.body?.subPurchaseOrderSn
+  }
+
+  createUId(item) {
+    return `${item.subOrder.subPurchaseOrderSn}_${item.fulfilmentProductSkuId}`
+  }
+
+  async getTotal() {
+    const response = await this.getSubOrderList()
+    return response?.total
+  }
+
+  async getSubOrderList() {
+    const { req, mallId } = this
+    const relativeUrl = '/mms/venom/api/supplier/purchase/manager/querySubOrderList'
+    const wholeUrl = getWholeUrl(relativeUrl)
+    const finalQuery = {
+      mallId,
+      isCustomGoods: true,
+      statusList: [1],
+      oneDimensionSort: {
+        firstOrderByParam: 'expectLatestDeliverTime',
+        firstOrderByDesc: 0
       }
     }
-    if (errMsg) {
-      throw errMsg
+    if (this.subPurchaseOrderSn) {
+      finalQuery.subPurchaseOrderSnList = this.subPurchaseOrderSn
     }
+    const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: finalQuery }))
+    return response.data
   }
 
-  async submitDbData(skuQuantityDetailList, productData) {
-    const data = await this.formatData(skuQuantityDetailList, productData)
-    if (!data.length) return
-    return await this.collectToDbByChunk(data)
+  async getDbData(data) {
+    const { protocol, host } = this.req
+    const uIdList = data.map(item => item.uId)
+    const relativeUrl = '/temu-agentseller/api/automation/process/list'
+    const wWholeUrl = `${protocol}://${host}${relativeUrl}`
+    const response = await throwPromiseError(axios({
+      method: 'post',
+      url: wWholeUrl,
+      data: {
+        uIdList
+      }
+    }))
+    return response?.data?.data
+  }
+
+  async getNewData(productData) {
+    const dbData = await this.getDbData(productData)
+    return differenceBy(productData, dbData, 'uId')
   }
 
 
@@ -301,14 +290,58 @@ class GetTemuProductData {
     return tmpArr
   }
 
+  async formatProcessData(skuQuantityDetailList, productData) {
+    const processList = PROCESS_LIST
+    return skuQuantityDetailList.map(item => {
+      const { uId, fulfilmentProductSkuId } = item
+      const { purchaseTime, subPurchaseOrderSn } = item.subOrder
+      const productResult = productData.find(sItem => sItem.personalProductSkuId == fulfilmentProductSkuId)
+      if (!productResult) throw `没有找到商品数据: ${fulfilmentProductSkuId}`
+      const {
+        temuImageUrlDisplay = '',
+        ossImageUrlDisplay = '',
+        labelCustomizedPreviewItems = [],
+        processData: productProcessData
+      } = productResult
+      const row = {
+        uId,
+        mallId: this.mallId,
+        purchaseTime,
+        subPurchaseOrderSn,
+        processList,
+        currentProcess: '',
+        temuData: item,
+        systemExchangeData: null,
+        temuImageUrlDisplay,
+        ossImageUrlDisplay,
+        processData: {},
+        labelCustomizedPreviewItems
+      }
+      processList.map(key => {
+        const sItem = productProcessData[key]
+        if (!sItem) return
+        row.currentProcess = key
+        row.processData[key] = sItem
+      })
+      return row
+    })
+  }
+
+  async saveProcessData(processData) {
+    if (!processData.length) return
+    return await automationProcessInitSheet.server.add(processData)
+  }
+
   async action() {
     const response = await this.getSubOrderList()
     const subOrderForSupplierList = response?.subOrderForSupplierList || []
-    // const newSubOrderForSupplierList = await this.getNewData(this.fillUid(subOrderForSupplierList))
     const newSkuQuantityDetailList = await this.getNewData(this.handleSubOrderForSupplierList(subOrderForSupplierList))
     if (newSkuQuantityDetailList.length) {
-      const productData = await this.getProductDataByChunk(newSkuQuantityDetailList)
-      await this.submitDbData(newSkuQuantityDetailList, productData)
+      // 先处理产品数据
+      const productData = await this.productProcessor.action(newSkuQuantityDetailList)
+      // 再处理流程数据
+      const processData = await this.formatProcessData(newSkuQuantityDetailList, productData)
+      await this.saveProcessData(processData)
     }
     return subOrderForSupplierList
   }

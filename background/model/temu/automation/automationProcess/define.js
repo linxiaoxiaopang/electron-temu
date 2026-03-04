@@ -22,6 +22,11 @@ module.exports = sequelize.define(
       allowNull: false,
       comment: '店铺ID'
     },
+    personalProductSkuId: {
+      type: DataTypes.STRING(128),
+      allowNull: false,
+      comment: '定制 SKU'
+    },
     completeFlag: {
       type: DataTypes.TINYINT,
       allowNull: false,
