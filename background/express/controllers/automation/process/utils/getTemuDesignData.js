@@ -1,11 +1,10 @@
-const axios = require('axios')
 const { getWholeUrl } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
 const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
-const { customIpcRenderer } = require('~utils/event')
 const { map, differenceBy, cloneDeep, chunk, isUndefined } = require('lodash')
 const { LoopRequest } = require('~express/utils/loopUtils')
+const { localRequest } = require('~express/utils/apiUtils')
 const { deepCamelCaseKeys } = require('~utils/convert')
 const automationProcessInitSheet = require('~model/temu/automation/automationProcess/init')
 const personalProductInitSheet = require('~model/temu/automation/personalProduct/init')
@@ -136,14 +135,14 @@ class TemuProductProcessor {
   }
 
   async getDbPersonalProductData(productData) {
-    const personalProductSkuId = map(productData, 'personalProductSkuId')
-    const res = await customIpcRenderer.invoke('db:temu:personalProduct:find', {
-      where: {
-        personalProductSkuId
-      },
-      jsonToObjectProps: ['json', 'processData', 'labelCustomizedPreviewItems']
-    })
-    return await throwPromiseError(res)
+    const personalProductSkuIdList = map(productData, 'personalProductSkuId')
+    const relativeUrl = '/temu-agentseller/api/automation/personalProduct/list'
+    const response = await throwPromiseError(localRequest(relativeUrl, {
+      data: {
+        personalProductSkuIdList
+      }
+    }))
+    return response?.data || []
   }
 
   async formatProductData(productData) {
@@ -186,6 +185,7 @@ class TemuProductProcessor {
         }
       }
       return {
+        mallId: this.mallId,
         temuImageUrlDisplay,
         ossImageUrlDisplay,
         labelCustomizedPreviewItems,
@@ -255,25 +255,21 @@ class GetTemuProductData {
   }
 
   async getDbData(data) {
-    const { protocol, host } = this.req
     const uIdList = data.map(item => item.uId)
     const relativeUrl = '/temu-agentseller/api/automation/process/list'
-    const wWholeUrl = `${protocol}://${host}${relativeUrl}`
-    const response = await throwPromiseError(axios({
-      method: 'post',
-      url: wWholeUrl,
-      data: {
-        uIdList
-      }
-    }))
-    return response?.data?.data
+    const response = await throwPromiseError(
+      localRequest(relativeUrl, {
+        data: {
+          uIdList
+        }
+      }))
+    return response?.data
   }
 
   async getNewData(productData) {
     const dbData = await this.getDbData(productData)
     return differenceBy(productData, dbData, 'uId')
   }
-
 
   handleSubOrderForSupplierList(data) {
     const tmpArr = []
@@ -298,6 +294,7 @@ class GetTemuProductData {
       const productResult = productData.find(sItem => sItem.personalProductSkuId == fulfilmentProductSkuId)
       if (!productResult) throw `没有找到商品数据: ${fulfilmentProductSkuId}`
       const {
+        personalProductSkuId,
         temuImageUrlDisplay = '',
         ossImageUrlDisplay = '',
         labelCustomizedPreviewItems = [],
@@ -308,6 +305,7 @@ class GetTemuProductData {
         mallId: this.mallId,
         purchaseTime,
         subPurchaseOrderSn,
+        personalProductSkuId,
         processList,
         currentProcess: '',
         temuData: item,
@@ -328,7 +326,7 @@ class GetTemuProductData {
   }
 
   async saveProcessData(processData) {
-    if (!processData.length) return
+    if (!processData.length) return [false, true]
     return await automationProcessInitSheet.server.add(processData)
   }
 
@@ -341,7 +339,7 @@ class GetTemuProductData {
       const productData = await this.productProcessor.action(newSkuQuantityDetailList)
       // 再处理流程数据
       const processData = await this.formatProcessData(newSkuQuantityDetailList, productData)
-      await this.saveProcessData(processData)
+      await throwPromiseError(this.saveProcessData(processData))
     }
     return subOrderForSupplierList
   }

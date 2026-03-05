@@ -23,7 +23,7 @@ module.exports = sequelize.define(
       comment: '店铺ID'
     },
     personalProductSkuId: {
-      type: DataTypes.STRING(128),
+      type: DataTypes.BIGINT,
       allowNull: false,
       comment: '定制 SKU'
     },

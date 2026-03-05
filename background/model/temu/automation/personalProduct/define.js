@@ -10,9 +10,15 @@ module.exports = sequelize.define(
       autoIncrement: true,
       comment: '主键唯一标识'
     },
-    personalProductSkuId: {
-      type: DataTypes.STRING(128),
+    mallId: {
+      type: DataTypes.BIGINT,
       allowNull: false,
+      comment: '店铺ID'
+    },
+    personalProductSkuId: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      unique: true,
       comment: '定制 SKU'
     },
     json: {

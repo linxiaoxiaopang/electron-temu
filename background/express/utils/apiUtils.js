@@ -36,12 +36,13 @@ const localRequest = async (relativePath, options = {}) => {
   const baseUrl = `http://localhost:${port}`
   const url = new URL(relativePath, baseUrl).href
 
-  return axios({
+  const response = await axios({
     url,
     method: options.method || 'POST',
     data: options.data,
     params: options.params
   })
+  return response?.data
 }
 
 module.exports = {

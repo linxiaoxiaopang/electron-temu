@@ -3,6 +3,9 @@ const { LoopGetTemuProductData, GetTemuProductData } = require('~express/control
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { allRequestCache } = require('~express/utils/loopUtils')
 const { waitTimeByNum } = require('~utils/sleep')
+const { throwPromiseError } = require('~utils/promise')
+const { map } = require('lodash')
+const { localRequest } = require('~express/utils/apiUtils')
 
 async function list(req, res, next) {
   const { body: { page } } = req
@@ -71,7 +74,7 @@ async function list(req, res, next) {
     ]
   })
   const sql = buildSqlInstance.generateSql()
-  res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:query', {
+  const res1 = await throwPromiseError(customIpcRenderer.invoke('db:temu:automationProcess:query', {
     sql,
     page,
     jsonToObjectProps: [
@@ -82,7 +85,21 @@ async function list(req, res, next) {
       'processData',
       'labelCustomizedPreviewItems'
     ]
+  }))
+  const relativeUrl = '/temu-agentseller/api/automation/personalProduct/list'
+  const res2 = await throwPromiseError(localRequest(relativeUrl, {
+    data: {
+      mallId: req?.body?.mallId,
+      personalProductSkuIdList: map(res1, 'personalProductSkuId')
+    }
+  }))
+  res1.map(item => {
+    const fItem = res2?.data?.find(sItem => sItem.personalProductSkuId === item.personalProductSkuId)
+    item.dbProductId = fItem?.id
+    item.temuData.productData = fItem?.json || null
+    item.productProcessData = fItem?.processData || {}
   })
+  res.customResult = [false, res1]
   next()
 }
 
@@ -121,6 +138,11 @@ async function add(req, res, next) {
 async function update(req, res, next) {
   const { data } = req.body
   if (!data.length) return [false, data]
+  await localRequest('/temu-agentseller/api/automation/personalProduct/updateProcessData', {
+    data: {
+      data
+    }
+  })
   res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:batchUpdate', data)
   next()
 }
@@ -149,12 +171,12 @@ async function progress(req, res, next) {
   if (!mallId) throw '请选择店铺'
   const cacheKey = `automationProcessSync_${mallId}`
   const cacheData = allRequestCache[cacheKey]
-  const keys = Object.keys(cacheData?.allSummary  || {})
+  const keys = Object.keys(cacheData?.allSummary || {})
   let resItem = null
-  for(let key of keys) {
+  for (let key of keys) {
     const item = cacheData.allSummary[key]
-    if(!resItem) resItem = item
-    if(resItem.dateStamp <= item.dateStamp) {
+    if (!resItem) resItem = item
+    if (resItem.dateStamp <= item.dateStamp) {
       resItem = item
     }
   }
