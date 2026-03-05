@@ -142,6 +142,8 @@ async function update(req, res, next) {
     data: {
       data
     }
+  }).catch(err => {
+    console.log('err', err)
   })
   res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:batchUpdate', data)
   next()

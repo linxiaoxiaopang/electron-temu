@@ -36,13 +36,22 @@ async function updateProcessData(req, res, next) {
   const { data } = req.body
   const filterData = data.filter(item => !item.errorMsg)
   const updateData = filterData.map(item => {
-    const { dbProductId: id, productProcessData: processData, currentProcess, labelCustomizedPreviewItems } = item
+    const {
+      dbProductId: id,
+      productProcessData: processData,
+      currentProcess: nextProcess,
+      labelCustomizedPreviewItems,
+      processList
+    } = item
+    const nextProcessIndex = processList.findIndex(item => item == nextProcess)
+    const currentProcess = processList[nextProcessIndex - 1]
+    if (!currentProcess) return
     processData[currentProcess] = labelCustomizedPreviewItems
     return {
       id,
       processData
     }
-  })
+  }).filter(Boolean)
   if (!updateData.length) {
     res.customResult = [false, []]
   } else {
