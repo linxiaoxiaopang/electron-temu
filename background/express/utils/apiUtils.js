@@ -1,4 +1,5 @@
-const { getTemuTarget } = require('~store/user')
+const axios = require('axios')
+const { getTemuTarget, getPort } = require('~store/user')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
 
 function createApiFactory(router) {
@@ -16,7 +17,7 @@ function createApiFactory(router) {
   }
 }
 
-async function getData(
+async function proxyRequest(
   {
     req,
     query,
@@ -28,7 +29,23 @@ async function getData(
   return await getData(wholeUrl, { data: query })
 }
 
+// 1. 封装本地请求工具（自动补全域名，使用相对路径）
+const localRequest = async (relativePath, options = {}) => {
+  // 补全本地域名+端口，relativePath为相对路径（如/api/user/1001）
+  const port = await getPort()
+  const baseUrl = `http://localhost:${port}`
+  const url = new URL(relativePath, baseUrl).href
+
+  return axios({
+    url,
+    method: options.method || 'POST',
+    data: options.data,
+    params: options.params
+  })
+}
+
 module.exports = {
   createApiFactory,
-  getData
+  proxyRequest,
+  localRequest
 }

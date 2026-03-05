@@ -1,4 +1,4 @@
-const { getData } = require('~express/utils/apiUtils')
+const { proxyRequest } = require('~express/utils/apiUtils')
 const { map, merge, isArray, max } = require('lodash')
 const { flatMapDeepByArray } = require('~utils/array')
 const { getUUID } = require('~utils/random')
@@ -25,7 +25,7 @@ class GetSemiBatchReportingActivitiesDataClass {
 
   async getEnrollScrollMatch() {
     const { req, query } = this
-    const response = await getData({
+    const response = await proxyRequest({
       relativeUrl: '/api/kiana/gamblers/marketing/enroll/scroll/match',
       req,
       query
@@ -35,7 +35,7 @@ class GetSemiBatchReportingActivitiesDataClass {
 
   async getSessionList() {
     const { req, productIds } = this
-    const response = await getData({
+    const response = await proxyRequest({
       relativeUrl: '/api/kiana/gamblers/marketing/enroll/session/list',
       req,
       query: {
@@ -53,7 +53,7 @@ class GetSemiBatchReportingActivitiesDataClass {
 
   async getSearchForSemiSupplier() {
     const { req, productIds } = this
-    const response = await getData({
+    const response = await proxyRequest({
       relativeUrl: '/api/kiana/mms/robin/searchForSemiSupplier',
       req,
       query: {
@@ -138,7 +138,7 @@ class GetFullBatchReportingActivitiesDataClass extends GetSemiBatchReportingActi
 
   async getListWarehouse() {
     const { req, productIds } = this
-    const response = await getData({
+    const response = await proxyRequest({
       relativeUrl: '/mms/venom/api/supplier/sales/management/listWarehouse',
       req,
       query: {
