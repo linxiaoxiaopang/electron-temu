@@ -27,6 +27,12 @@ module.exports = sequelize.define(
       allowNull: false,
       comment: '定制 SKU'
     },
+    orderType: {
+      type: DataTypes.TINYINT,
+      allowNull: false,
+      defaultValue: 1, // 默认值为1（可根据业务调整）
+      comment: '订单类型 1-普通订单 2-图片处理订单 3-虚拟订单'
+    },
     completeFlag: {
       type: DataTypes.TINYINT,
       allowNull: false,
@@ -104,19 +110,38 @@ module.exports = sequelize.define(
         }
       }
     },
-    // 新增：子采购订单编号字段
+    //子采购订单编号字段
     subPurchaseOrderSn: {
       type: DataTypes.STRING(128), // 长度128适配各类平台子订单号长度
       allowNull: true, // 非必填（部分流程可能无子订单）
       defaultValue: '', // 默认空字符串，避免null
       comment: '子采购订单编号（如Temu拆分子订单号、多商品子订单标识）'
     },
-    // 新增：purchaseTime 时间戳字段（核心）
+    // 虚拟子采购订单编号字段
+    virtualSubPurchaseOrderSn: {
+      type: DataTypes.STRING(128), // 长度128适配各类平台子订单号长度
+      allowNull: true, // 非必填（部分流程可能无子订单）
+      defaultValue: '', // 默认空字符串，避免null
+      comment: '虚拟子采购订单编号（如Temu拆分子订单号、多商品子订单标识）'
+    },
+    // purchaseTime 时间戳字段（核心）
     purchaseTime: {
       type: DataTypes.BIGINT, // 用BIGINT存储13位毫秒级时间戳（兼容前端/后端）
       allowNull: true,
       defaultValue: null,
       comment: '采购/下单时间戳（毫秒级，如1750000000000）',
+      // 验证：确保是合法的数字型时间戳
+      validate: {
+        isInt: { msg: 'purchaseTime 必须是整数型时间戳' },
+        min: { args: [1000000000000], msg: 'purchaseTime 必须是13位有效毫秒时间戳（≥2001年）' }
+      }
+    },
+    // createTime 时间戳字段（核心）
+    createTime: {
+      type: DataTypes.BIGINT, // 用BIGINT存储13位毫秒级时间戳（兼容前端/后端）
+      allowNull: true,
+      defaultValue: null,
+      comment: '创建订单时间戳（毫秒级，如1750000000000）',
       // 验证：确保是合法的数字型时间戳
       validate: {
         isInt: { msg: 'purchaseTime 必须是整数型时间戳' },

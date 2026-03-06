@@ -1,10 +1,15 @@
 const { customIpcRenderer } = require('~utils/event')
-const { LoopGetTemuProductData, GetTemuProductData } = require('~express/controllers/automation/process')
+const {
+  LoopGetTemuProductData,
+  GetTemuProductData,
+  LoopGetTemuProductDataForImage
+} = require('~express/controllers/automation/process')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { allRequestCache } = require('~express/utils/loopUtils')
 const { waitTimeByNum } = require('~utils/sleep')
 const { throwPromiseError } = require('~utils/promise')
-const { map } = require('lodash')
+const dayjs = require('dayjs')
+const { map, isUndefined } = require('lodash')
 const { localRequest } = require('~express/utils/apiUtils')
 
 async function list(req, res, next) {
@@ -26,6 +31,11 @@ async function list(req, res, next) {
             queryProp: 'mallIdList'
           },
           {
+            label: '订单类型',
+            prop: 'orderType[op:in]',
+            queryProp: 'orderTypeList'
+          },
+          {
             label: '当前流程节点',
             prop: 'currentProcess[op:like]',
             value(prop, query) {
@@ -43,6 +53,16 @@ async function list(req, res, next) {
             label: '备货单',
             prop: 'subPurchaseOrderSn[op:in]',
             queryProp: 'subPurchaseOrderSn'
+          },
+          {
+            label: '备货单',
+            prop: 'subPurchaseOrderSn[op:not]',
+            queryProp: 'hasSubPurchaseOrderSn',
+            value(prop, query) {
+              const item = query.hasSubPurchaseOrderSn
+              if (isUndefined(item)) return
+              return null
+            }
           },
           {
             label: 'uId列表',
@@ -168,10 +188,45 @@ async function sync(req, res, next) {
   next()
 }
 
+async function syncForImage(req, res, next) {
+  if (!req.body.createStartTime) req.body.createStartTime = dayjs().subtract(3, 'days')
+  req.body.createStartFrom = +new Date(req.body.createStartTime)
+  let validateIsSync = false
+  do {
+    validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
+    if (!validateIsSync) await waitTimeByNum(1000)
+  } while (!validateIsSync)
+
+  const instance = new LoopGetTemuProductDataForImage({
+    req,
+    res
+  })
+  res.customResult = await instance.action()
+  next()
+}
+
 async function progress(req, res, next) {
   const { mallId } = req.body
   if (!mallId) throw '请选择店铺'
   const cacheKey = `automationProcessSync_${mallId}`
+  const cacheData = allRequestCache[cacheKey]
+  const keys = Object.keys(cacheData?.allSummary || {})
+  let resItem = null
+  for (let key of keys) {
+    const item = cacheData.allSummary[key]
+    if (!resItem) resItem = item
+    if (resItem.dateStamp <= item.dateStamp) {
+      resItem = item
+    }
+  }
+  res.customResult = [false, resItem]
+  next()
+}
+
+async function progressForImage(req, res, next) {
+  const { mallId } = req.body
+  if (!mallId) throw '请选择店铺'
+  const cacheKey = `automationProcessSyncForImage_${mallId}`
   const cacheData = allRequestCache[cacheKey]
   const keys = Object.keys(cacheData?.allSummary || {})
   let resItem = null
@@ -269,7 +324,9 @@ module.exports = {
   del,
   update,
   sync,
+  syncForImage,
   nodes,
   progress,
+  progressForImage,
   compare
 }

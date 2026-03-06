@@ -2,7 +2,8 @@ const { getWholeUrl } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
 const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
-const { map, differenceBy, cloneDeep, chunk, isUndefined } = require('lodash')
+const { map, differenceBy, cloneDeep, chunk, isUndefined, merge, last } = require('lodash')
+const dayjs = require('dayjs')
 const { LoopRequest } = require('~express/utils/loopUtils')
 const { localRequest } = require('~express/utils/apiUtils')
 const { deepCamelCaseKeys } = require('~utils/convert')
@@ -10,6 +11,11 @@ const automationProcessInitSheet = require('~model/temu/automation/automationPro
 const personalProductInitSheet = require('~model/temu/automation/personalProduct/init')
 
 const PROCESS_LIST = ['product:all:下载Temu效果图', 'product:all:下载Temu原图', 'product:all:temu更换系统数据']
+const orderTypeList = {
+  normal: 1,
+  image: 2,
+  virtual: 3
+}
 
 class TemuProductProcessor {
   constructor(
@@ -35,7 +41,7 @@ class TemuProductProcessor {
     const { req, mallId } = this
     const relativeUrl = '/bg-luna-agent-seller/product/customizeSku/pageQuery'
     const wholeUrl = getWholeUrl(relativeUrl)
-    const personalProductSkuIds = map(data, 'fulfilmentProductSkuId')
+    const personalProductSkuIds = map(data, 'personalProductSkuId')
     const query = {
       mallId,
       personalProductSkuIds,
@@ -217,6 +223,10 @@ class GetTemuProductData {
     })
   }
 
+  get orderType() {
+    return orderTypeList.normal
+  }
+
   get mallId() {
     return this.req?.body?.mallId
   }
@@ -230,11 +240,11 @@ class GetTemuProductData {
   }
 
   async getTotal() {
-    const response = await this.getSubOrderList()
+    const response = await this.getTemuData()
     return response?.total
   }
 
-  async getSubOrderList() {
+  async getTemuData() {
     const { req, mallId } = this
     const relativeUrl = '/mms/venom/api/supplier/purchase/manager/querySubOrderList'
     const wholeUrl = getWholeUrl(relativeUrl)
@@ -271,7 +281,7 @@ class GetTemuProductData {
     return differenceBy(productData, dbData, 'uId')
   }
 
-  handleSubOrderForSupplierList(data) {
+  handlePageItems(data) {
     const tmpArr = []
     data.map(item => {
       const subOrder = cloneDeep(item)
@@ -280,47 +290,57 @@ class GetTemuProductData {
         const tmpItem = sItem
         tmpItem.subOrder = subOrder
         tmpItem.uId = this.createUId(tmpItem)
+        tmpItem.personalProductSkuId = sItem.fulfilmentProductSkuId
         tmpArr.push(tmpItem)
       })
     })
     return tmpArr
   }
 
-  async formatProcessData(skuQuantityDetailList, productData) {
+  formatProcessItem(item, productData) {
     const processList = PROCESS_LIST
-    return skuQuantityDetailList.map(item => {
-      const { uId, fulfilmentProductSkuId } = item
+    const { uId, personalProductSkuId } = item
+    const productResult = productData.find(sItem => sItem.personalProductSkuId == personalProductSkuId)
+    if (!productResult) throw `没有找到商品数据: ${personalProductSkuId}`
+    const {
+      temuImageUrlDisplay = '',
+      ossImageUrlDisplay = '',
+      labelCustomizedPreviewItems = [],
+      processData: productProcessData
+    } = productResult
+    const row = {
+      uId,
+      processList,
+      temuImageUrlDisplay,
+      ossImageUrlDisplay,
+      labelCustomizedPreviewItems,
+      mallId: this.mallId,
+      orderType: this.orderType,
+      purchaseTime: null,
+      createTime: null,
+      subPurchaseOrderSn: null,
+      virtualSubPurchaseOrderSn: null,
+      personalProductSkuId,
+      currentProcess: '',
+      temuData: item,
+      systemExchangeData: null,
+      processData: {}
+    }
+    processList.map(key => {
+      const sItem = productProcessData[key]
+      if (!sItem) return
+      row.currentProcess = key
+      row.processData[key] = sItem
+    })
+    return row
+  }
+
+  async formatProcessData(newPageItems, productData) {
+    return newPageItems.map(item => {
       const { purchaseTime, subPurchaseOrderSn } = item.subOrder
-      const productResult = productData.find(sItem => sItem.personalProductSkuId == fulfilmentProductSkuId)
-      if (!productResult) throw `没有找到商品数据: ${fulfilmentProductSkuId}`
-      const {
-        personalProductSkuId,
-        temuImageUrlDisplay = '',
-        ossImageUrlDisplay = '',
-        labelCustomizedPreviewItems = [],
-        processData: productProcessData
-      } = productResult
-      const row = {
-        uId,
-        mallId: this.mallId,
-        purchaseTime,
-        subPurchaseOrderSn,
-        personalProductSkuId,
-        processList,
-        currentProcess: '',
-        temuData: item,
-        systemExchangeData: null,
-        temuImageUrlDisplay,
-        ossImageUrlDisplay,
-        processData: {},
-        labelCustomizedPreviewItems
-      }
-      processList.map(key => {
-        const sItem = productProcessData[key]
-        if (!sItem) return
-        row.currentProcess = key
-        row.processData[key] = sItem
-      })
+      const row = this.formatProcessItem(item, productData)
+      row.purchaseTime = purchaseTime
+      row.subPurchaseOrderSn = subPurchaseOrderSn
       return row
     })
   }
@@ -330,22 +350,101 @@ class GetTemuProductData {
     return await automationProcessInitSheet.server.add(processData)
   }
 
+  getTemuDataPageItems(response) {
+    return response?.subOrderForSupplierList || []
+  }
+
   async action() {
-    const response = await this.getSubOrderList()
-    const subOrderForSupplierList = response?.subOrderForSupplierList || []
-    const newSkuQuantityDetailList = await this.getNewData(this.handleSubOrderForSupplierList(subOrderForSupplierList))
-    if (newSkuQuantityDetailList.length) {
+    const response = await this.getTemuData()
+    const pageItems = this.getTemuDataPageItems(response)
+    const newPageItems = await this.getNewData(this.handlePageItems(pageItems))
+    if (newPageItems.length) {
       // 先处理产品数据
-      const productData = await this.productProcessor.action(newSkuQuantityDetailList)
+      const productData = await this.productProcessor.action(newPageItems)
       // 再处理流程数据
-      const processData = await this.formatProcessData(newSkuQuantityDetailList, productData)
+      const processData = await this.formatProcessData(newPageItems, productData)
       await throwPromiseError(this.saveProcessData(processData))
     }
-    return subOrderForSupplierList
+    return pageItems
   }
 }
 
-class LoopGetTemuProductData {
+class GetTemuProductDataForImage extends GetTemuProductData {
+  constructor(option) {
+    super(option)
+  }
+
+  get orderType() {
+    return orderTypeList.image
+  }
+
+  createUId(item) {
+    return `temu-image_${item?.labelCodeVO?.personalProductSkuId}`
+  }
+
+  createVirtualSubPurchaseOrderSn(item) {
+    return `temu-image-virtual_${item?.labelCodeVO?.personalProductSkuId}`
+  }
+
+  getDays(date) {
+    const targetDate = dayjs(date)
+    const now = dayjs()
+    return Math.ceil(now.diff(targetDate, 'day'))
+  }
+
+  async getTotal() {
+    return this.getDays(this.req.body.createStartFrom)
+  }
+
+  async getTemuData() {
+    const { req, mallId } = this
+    const relativeUrl = '/visage-agent-seller/labelcode/personalSku/pageQuery'
+    const wholeUrl = getWholeUrl(relativeUrl)
+    const finalQuery = {
+      mallId
+    }
+    const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: finalQuery }))
+    return response.data
+  }
+
+  handlePageItems(data) {
+    const tmpArr = []
+    data.map(item => {
+      const tmpItem = item
+      tmpItem.subOrder = null
+      tmpItem.uId = this.createUId(tmpItem)
+      tmpItem.virtualSubPurchaseOrderSn = this.createVirtualSubPurchaseOrderSn(tmpItem)
+      // labelCodeVO = {
+      //   "supplierId": 634418219933178,
+      //   "productId": 5275349203,
+      //   "productSkcId": 33662163416,
+      //   "productSkuId": 81634126655,
+      //   "personalProductSkuId": 33006257719203,
+      //   "labelCode": 79275529911,
+      //   "skcExtCode": "BZ13",
+      //   "skuExtCode": "DZAINP213BZ13-17",
+      //   "createTime": 1772735060000
+      // }
+      merge(tmpItem, item?.labelCodeVO)
+      tmpArr.push(tmpItem)
+    })
+    return tmpArr
+  }
+
+  async formatProcessData(newPageItems, productData) {
+    return newPageItems.map(item => {
+      const row = this.formatProcessItem(item, productData)
+      row.createTime = item.createTime
+      return row
+    })
+  }
+
+  getTemuDataPageItems(response) {
+    return response?.pageItems || []
+  }
+}
+
+class baseLoopGetTemuProductData {
   constructor(
     {
       req,
@@ -358,12 +457,8 @@ class LoopGetTemuProductData {
       pageIndex: 1,
       pageSize: 10
     }
-    this.loopRequestInstance = new LoopRequest({
-      req,
-      res,
-      cacheKey: `automationProcessSync_${this.body.mallId}`
-    })
-    this.getTemuProductDataInstance = new GetTemuProductData({ req })
+    this.loopRequestInstance = null
+    this.getTemuProductDataInstance = null
   }
 
   get body() {
@@ -412,8 +507,69 @@ class LoopGetTemuProductData {
   }
 }
 
+class LoopGetTemuProductData extends baseLoopGetTemuProductData {
+  constructor(option) {
+    super(option)
+    const { req, res } = option
+    this.loopRequestInstance = new LoopRequest({
+      req,
+      res,
+      cacheKey: `automationProcessSync_${this.body.mallId}`
+    })
+    this.getTemuProductDataInstance = new GetTemuProductData({ req })
+  }
+}
+
+class LoopGetTemuProductDataForImage extends LoopGetTemuProductData {
+  constructor(option) {
+    super(option)
+    const { req, res } = option
+    this.loopRequestInstance = new LoopRequest({
+      req,
+      res,
+      cacheKey: `automationProcessSyncForImage_${this.body.mallId}`
+    })
+    this.getTemuProductDataInstance = new GetTemuProductDataForImage(option)
+  }
+
+  async loopRequest() {
+    const { min, max } = Math
+    const { loopRequestInstance: instance, req } = this
+    let totalTasks = 0
+    await instance.abandonCacheInstanceRequest()
+    instance.requestCallback = async () => {
+      if (instance.summary.totalTasks == 0) {
+        totalTasks = await this.getTotal()
+        return [false, {
+          totalTasks,
+          requestUuid: instance.uuid,
+          tasks: 0,
+          completedTasks: 0
+        }]
+      }
+      const data = await this.getMoreData()
+      const lastItem = last(data)
+      if (!lastItem) {
+        return [false, {
+          totalTasks,
+          completedTasks: totalTasks
+        }]
+      }
+      const completedTasks = this.getTemuProductDataInstance.getDays(lastItem?.labelCodeVO?.createTime)
+      req.body.page.pageIndex++
+      return [false, {
+        totalTasks,
+        completedTasks: max(min(completedTasks, totalTasks), totalTasks)
+      }]
+    }
+    return await instance.action()
+  }
+}
+
 
 module.exports = {
   LoopGetTemuProductData,
-  GetTemuProductData
+  LoopGetTemuProductDataForImage,
+  GetTemuProductData,
+  GetTemuProductDataForImage
 }

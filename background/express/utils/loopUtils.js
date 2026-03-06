@@ -106,7 +106,7 @@ class LoopRequest {
       const { totalTasks, tasks, ...restRes } = taskRes
       merge(summary, restRes)
       summary.totalTasks = totalTasks
-      summary.completedTasks = summary.completedTasks + tasks
+      summary.completedTasks = summary.completedTasks + (tasks || 0)
     } while (summary.totalTasks > summary.completedTasks)
   }
 
