@@ -11,6 +11,7 @@ const { throwPromiseError } = require('~utils/promise')
 const dayjs = require('dayjs')
 const { map, isUndefined } = require('lodash')
 const { localRequest } = require('~express/utils/apiUtils')
+const { automationOrderTypeDic } = require('~express/api/automation/const')
 
 async function list(req, res, next) {
   const { body: { page } } = req
@@ -142,6 +143,11 @@ const allProcessList = [
   'product:all:上传文字校验',
   'product:all:上传预览图'
 ]
+
+async function orderTypeList(req, res, next) {
+  res.customResult = [false, automationOrderTypeDic]
+  next()
+}
 
 async function nodes(req, res, next) {
   res.customResult = [false, allProcessList]
@@ -326,6 +332,7 @@ module.exports = {
   sync,
   syncForImage,
   nodes,
+  orderTypeList,
   progress,
   progressForImage,
   compare

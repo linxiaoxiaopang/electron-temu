@@ -1,5 +1,6 @@
 const sequelize = require('../../db')
 const { DataTypes } = require('sequelize')
+const { automationOrderTypeList } = require('~express/api/automation/const')
 
 module.exports = sequelize.define(
   'automationConfig',
@@ -56,12 +57,20 @@ module.exports = sequelize.define(
       comment: '上次刷新Web页面的时间（毫秒级时间戳，1970-01-01 UTC起算）'
     },
 
+    // 订单创建开始时间
+    createTimeFrom: {
+      type: DataTypes.BIGINT, // 毫秒级时间戳（整数）
+      allowNull: true,
+      defaultValue: null,
+      comment: '订单创建开始时间'
+    },
+
     // 备货单创建开始时间
     purchaseTimeFrom: {
       type: DataTypes.BIGINT, // 毫秒级时间戳（整数）
       allowNull: true,
       defaultValue: null,
-      comment: '备货单创建结束时间'
+      comment: '备货单创建开始时间'
     },
 
     // 备货单创建结束时间
@@ -78,6 +87,13 @@ module.exports = sequelize.define(
       allowNull: false,
       defaultValue: false,
       comment: '整体处于执行中状态'
+    },
+
+    selectedOrderTypeList: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: [automationOrderTypeList.normal], // 默认空数组（无默认处理类型）
+      comment: '要处理的订单类型列表'
     }
   },
   {

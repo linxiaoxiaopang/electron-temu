@@ -1,7 +1,9 @@
 const { emitter } = require('../../utils/event')
-const { getMallIds, getBaseUrl } = require('~store/user')
-const axios = require('axios')
+const { getMallIds } = require('~store/user')
 const { customIpcRenderer } = require('~utils/event')
+const { localRequest } = require('~express/utils/apiUtils')
+const { throwPromiseError } = require('~utils/promise')
+const { automationOrderTypeList } = require('~express/api/automation/const')
 
 let runUid = 0
 
@@ -18,20 +20,33 @@ class BatchSyncAutomationProcess {
     this.runUid = runUid
   }
 
-  async syncByMall(mallId) {
-    const baseUrl = await getBaseUrl()
-    const wWholeUrl = `${baseUrl}/temu-agentseller/api/automation/process/sync`
+  get selectedOrderTypeList() {
+    return this.timerRecord.selectedOrderTypeList || []
+  }
+
+  async syncProcessByMall(mallId) {
+    const relativeUrl = `/temu-agentseller/api/automation/process/sync`
     const { purchaseTimeFrom, purchaseTimeTo } = this.timerRecord
-    const response = await axios({
-      method: 'post',
-      url: wWholeUrl,
+    const response = await throwPromiseError(localRequest(relativeUrl, {
       data: {
         mallId,
         purchaseTimeFrom,
         purchaseTimeTo
       }
-    })
-    return response?.data?.data
+    }))
+    return response?.data
+  }
+
+  async syncProcessForImageByMall(mallId) {
+    const relativeUrl = `/temu-agentseller/api/automation/process/syncForImage`
+    const { createTimeFrom } = this.timerRecord
+    const response = await throwPromiseError(localRequest(relativeUrl, {
+      data: {
+        mallId,
+        createTimeFrom
+      }
+    }))
+    return response?.data
   }
 
   async updateConfig(obj) {
@@ -46,7 +61,12 @@ class BatchSyncAutomationProcess {
 
   async syncAllMall() {
     const pArr = this.mallIds.map(async (mallId) => {
-      return await this.syncByMall(mallId)
+      const { selectedOrderTypeList } = this
+      let isFind = selectedOrderTypeList.find(orderType => orderType == automationOrderTypeList.normal)
+      if (isFind) await this.syncProcessByMall(mallId)
+      isFind = selectedOrderTypeList.find(orderType => orderType == automationOrderTypeList.image)
+      if (isFind) await this.syncProcessForImageByMall(mallId)
+      return true
     })
     return await Promise.all(pArr)
   }

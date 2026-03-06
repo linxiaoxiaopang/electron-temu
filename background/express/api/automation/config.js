@@ -4,12 +4,12 @@ async function list(req, res, next) {
   let [err, response] = await customIpcRenderer.invoke('db:temu:automationConfig:find', {
     where: {
       id: 1
-    }
+    },
+    jsonToObjectProps: ['selectedOrderTypeList', 'mallIds']
   })
   response = response?.[0]
   if (response) {
     response.currentServeTimestamp = Date.now()
-    response.mallIds = JSON.parse(response.mallIds || '[]')
   }
   res.customResult = [err, response]
   next()

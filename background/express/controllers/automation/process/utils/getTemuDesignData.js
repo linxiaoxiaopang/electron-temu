@@ -9,13 +9,8 @@ const { localRequest } = require('~express/utils/apiUtils')
 const { deepCamelCaseKeys } = require('~utils/convert')
 const automationProcessInitSheet = require('~model/temu/automation/automationProcess/init')
 const personalProductInitSheet = require('~model/temu/automation/personalProduct/init')
-
+const { automationOrderTypeList } = require('~express/api/automation/const')
 const PROCESS_LIST = ['product:all:下载Temu效果图', 'product:all:下载Temu原图', 'product:all:temu更换系统数据']
-const orderTypeList = {
-  normal: 1,
-  image: 2,
-  virtual: 3
-}
 
 class TemuProductProcessor {
   constructor(
@@ -224,7 +219,7 @@ class GetTemuProductData {
   }
 
   get orderType() {
-    return orderTypeList.normal
+    return automationOrderTypeList.normal
   }
 
   get mallId() {
@@ -375,7 +370,7 @@ class GetTemuProductDataForImage extends GetTemuProductData {
   }
 
   get orderType() {
-    return orderTypeList.image
+    return automationOrderTypeList.image
   }
 
   createUId(item) {
