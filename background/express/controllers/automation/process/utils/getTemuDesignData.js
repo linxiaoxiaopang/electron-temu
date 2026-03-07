@@ -388,7 +388,7 @@ class GetTemuProductDataForImage extends GetTemuProductData {
   }
 
   async getTotal() {
-    return this.getDays(this.req.body.createTimeFrom)
+    return this.getDays(this.req.body.labelCreateTimeFrom)
   }
 
   async getTemuData() {
@@ -409,6 +409,7 @@ class GetTemuProductDataForImage extends GetTemuProductData {
       tmpItem.subOrder = null
       tmpItem.uId = this.createUId(tmpItem)
       tmpItem.virtualSubPurchaseOrderSn = this.createVirtualSubPurchaseOrderSn(tmpItem)
+      const { createTime: labelCreateTime, ...restLabelCodeVO } = item?.labelCodeVO || {}
       // labelCodeVO = {
       //   "supplierId": 634418219933178,
       //   "productId": 5275349203,
@@ -420,7 +421,8 @@ class GetTemuProductDataForImage extends GetTemuProductData {
       //   "skuExtCode": "DZAINP213BZ13-17",
       //   "createTime": 1772735060000
       // }
-      merge(tmpItem, item?.labelCodeVO)
+      merge(tmpItem, restLabelCodeVO)
+      tmpItem.labelCreateTime = labelCreateTime
       tmpArr.push(tmpItem)
     })
     return tmpArr
@@ -528,7 +530,6 @@ class LoopGetTemuProductDataForImage extends LoopGetTemuProductData {
   }
 
   async loopRequest() {
-    const { min, max } = Math
     const { loopRequestInstance: instance, req } = this
     let totalTasks = 0
     await instance.abandonCacheInstanceRequest()
@@ -550,11 +551,12 @@ class LoopGetTemuProductDataForImage extends LoopGetTemuProductData {
           completedTasks: totalTasks
         }]
       }
-      const completedTasks = this.getTemuProductDataInstance.getDays(lastItem?.labelCodeVO?.createTime)
+      let completedTasks = this.getTemuProductDataInstance.getDays(lastItem?.labelCodeVO?.createTime)
+      if (completedTasks > totalTasks) completedTasks = totalTasks
       req.body.page.pageIndex++
       return [false, {
         totalTasks,
-        completedTasks: max(min(completedTasks, totalTasks), totalTasks)
+        completedTasks
       }]
     }
     return await instance.action()

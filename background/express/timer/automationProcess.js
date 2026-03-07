@@ -39,11 +39,11 @@ class BatchSyncAutomationProcess {
 
   async syncProcessForImageByMall(mallId) {
     const relativeUrl = `/temu-agentseller/api/automation/process/syncForImage`
-    const { createTimeFrom } = this.timerRecord
+    const { labelCreateTimeFrom } = this.timerRecord
     const response = await throwPromiseError(localRequest(relativeUrl, {
       data: {
         mallId,
-        createTimeFrom
+        labelCreateTimeFrom
       }
     }))
     return response?.data

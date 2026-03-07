@@ -129,24 +129,14 @@ module.exports = sequelize.define(
       type: DataTypes.BIGINT, // 用BIGINT存储13位毫秒级时间戳（兼容前端/后端）
       allowNull: true,
       defaultValue: null,
-      comment: '采购/下单时间戳（毫秒级，如1750000000000）',
-      // 验证：确保是合法的数字型时间戳
-      validate: {
-        isInt: { msg: 'purchaseTime 必须是整数型时间戳' },
-        min: { args: [1000000000000], msg: 'purchaseTime 必须是13位有效毫秒时间戳（≥2001年）' }
-      }
+      comment: '采购/下单时间戳（毫秒级，如1750000000000）'
     },
-    // createTime 时间戳字段（核心）
-    createTime: {
+    // labelCreateTime 时间戳字段（核心）
+    labelCreateTime: {
       type: DataTypes.BIGINT, // 用BIGINT存储13位毫秒级时间戳（兼容前端/后端）
       allowNull: true,
       defaultValue: null,
-      comment: '创建订单时间戳（毫秒级，如1750000000000）',
-      // 验证：确保是合法的数字型时间戳
-      validate: {
-        isInt: { msg: 'purchaseTime 必须是整数型时间戳' },
-        min: { args: [1000000000000], msg: 'purchaseTime 必须是13位有效毫秒时间戳（≥2001年）' }
-      }
+      comment: '创建订单时间戳（毫秒级，如1750000000000）'
     },
     // 新增：错误信息字段（核心）
     errorMsg: {

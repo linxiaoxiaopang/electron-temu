@@ -58,7 +58,7 @@ module.exports = sequelize.define(
     },
 
     // 订单创建开始时间
-    createTimeFrom: {
+    labelCreateTimeFrom: {
       type: DataTypes.BIGINT, // 毫秒级时间戳（整数）
       allowNull: true,
       defaultValue: null,
