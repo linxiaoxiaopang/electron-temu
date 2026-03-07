@@ -388,7 +388,7 @@ class GetTemuProductDataForImage extends GetTemuProductData {
   }
 
   async getTotal() {
-    return this.getDays(this.req.body.createStartFrom)
+    return this.getDays(this.req.body.createTimeFrom)
   }
 
   async getTemuData() {

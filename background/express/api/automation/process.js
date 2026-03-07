@@ -95,32 +95,40 @@ async function list(req, res, next) {
     ]
   })
   const sql = buildSqlInstance.generateSql()
-  const res1 = await throwPromiseError(customIpcRenderer.invoke('db:temu:automationProcess:query', {
-    sql,
-    page,
-    jsonToObjectProps: [
-      'processList',
-      'remainingProcessList',
-      'temuData',
-      'systemExchangeData',
-      'processData',
-      'labelCustomizedPreviewItems'
-    ]
-  }))
+  let pageResponse = undefined
+  const res1 = await throwPromiseError(
+    customIpcRenderer.invoke('db:temu:automationProcess:query', {
+      sql,
+      page,
+      jsonToObjectProps: [
+        'processList',
+        'remainingProcessList',
+        'temuData',
+        'systemExchangeData',
+        'processData',
+        'labelCustomizedPreviewItems'
+      ]
+    }).then(response => {
+      pageResponse = response?.[2]
+      return response
+    })
+  )
   const relativeUrl = '/temu-agentseller/api/automation/personalProduct/list'
-  const res2 = await throwPromiseError(localRequest(relativeUrl, {
-    data: {
-      mallId: req?.body?.mallId,
-      personalProductSkuIdList: map(res1, 'personalProductSkuId')
-    }
-  }))
+  const res2 = await throwPromiseError(
+    localRequest(relativeUrl, {
+      data: {
+        mallId: req?.body?.mallId,
+        personalProductSkuIdList: map(res1, 'personalProductSkuId')
+      }
+    })
+  )
   res1.map(item => {
     const fItem = res2?.data?.find(sItem => sItem.personalProductSkuId === item.personalProductSkuId)
     item.dbProductId = fItem?.id
     item.temuData.productData = fItem?.json || null
     item.productProcessData = fItem?.processData || {}
   })
-  res.customResult = [false, res1]
+  res.customResult = [false, res1, pageResponse]
   next()
 }
 
@@ -195,8 +203,8 @@ async function sync(req, res, next) {
 }
 
 async function syncForImage(req, res, next) {
-  if (!req.body.createStartTime) req.body.createStartTime = dayjs().subtract(3, 'days')
-  req.body.createStartFrom = +new Date(req.body.createStartTime)
+  if (!req.body.createTimeFrom) req.body.createTimeFrom = dayjs().subtract(3, 'days')
+  req.body.createTimeFrom = +new Date(req.body.createTimeFrom)
   let validateIsSync = false
   do {
     validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
