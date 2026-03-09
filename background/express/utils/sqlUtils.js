@@ -44,6 +44,10 @@ class BuildSql {
     return this.option?.query
   }
 
+  get orderItems() {
+    return this.query?.orderItems || []
+  }
+
   get selectModifier() {
     return this.option?.selectModifier || ''
   }
@@ -58,7 +62,13 @@ class BuildSql {
         whereSql,
         selectModifier
       }) {
-      return `SELECT ${selectModifier} ${selectFields} FROM ${table} ${joinSql} ${whereSql}`
+      let sql = `SELECT ${selectModifier} ${selectFields} FROM ${table} ${joinSql} ${whereSql}`
+      if (isArray(this.orderItems) && this.orderItems.length) {
+        sql += ` ORDER BY ${this.orderItems.map(item => {
+          return `${item.column} ${item.asc ? 'ASC' : 'DESC'}`
+        }).join(',')}`
+      }
+      return sql
     }
   }
 
@@ -306,7 +316,7 @@ class BuildSql {
           expr = valueFormatter(expr, field, this)
         }
         return `${expr} AS "${name}"`
-      } else if(valueFormatter) {
+      } else if (valueFormatter) {
         return `${valueFormatter(prop, field, this)} AS "${name}"`
       }
       return field.name // 普通字段
@@ -330,10 +340,11 @@ class BuildSql {
         let sItemWhereClause = ''
         groupData[key].map((sItem, sIndex) => {
           const whereClaus = this.generateWhereClause(sItem)
-          const logical = isStart ? '' : sItem.logical
+          let logical = isStart ? '' : sItem.logical
           isStart = false
           if (logical) {
             if (sIndex == 0) {
+              logical = sItem.partLogical || logical
               itemWhereClause += ` ${logical} `
             } else {
               sItemWhereClause += ` ${logical} `
@@ -358,7 +369,7 @@ class BuildSql {
    * @param {Function} callback - 回调函数
    */
   generateSql() {
-    const { table, selectModifier } = this
+    const { table, selectModifier, orderItems } = this
     let joins = this.joins // 所有 JOIN 语句
     // 处理查询字段
     const selectFields = this.formatFields().join(', ')
@@ -371,7 +382,8 @@ class BuildSql {
       selectFields,
       joinSql,
       whereSql,
-      selectModifier
+      selectModifier,
+      orderItems
     })
     console.log('生成的 SQL:', sql) // 调试用
     return sql

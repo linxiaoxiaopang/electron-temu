@@ -303,6 +303,8 @@ class GetTemuProductData {
       labelCustomizedPreviewItems = [],
       processData: productProcessData
     } = productResult
+    const subPurchaseOrderInfoVOS = productResult?.json?.subPurchaseOrderInfoVOS || []
+    const lastSubPurchaseOrderInfoVO = last(subPurchaseOrderInfoVOS)
     const row = {
       uId,
       processList,
@@ -313,7 +315,7 @@ class GetTemuProductData {
       orderType: this.orderType,
       purchaseTime: null,
       createTime: null,
-      subPurchaseOrderSn: null,
+      subPurchaseOrderSn: lastSubPurchaseOrderInfoVO?.subPurchaseOrderSn || null,
       virtualSubPurchaseOrderSn: null,
       personalProductSkuId,
       currentProcess: '',
@@ -332,10 +334,9 @@ class GetTemuProductData {
 
   async formatProcessData(newPageItems, productData) {
     return newPageItems.map(item => {
-      const { purchaseTime, subPurchaseOrderSn } = item.subOrder
+      const { purchaseTime } = item.subOrder
       const row = this.formatProcessItem(item, productData)
       row.purchaseTime = purchaseTime
-      row.subPurchaseOrderSn = subPurchaseOrderSn
       return row
     })
   }
@@ -367,6 +368,10 @@ class GetTemuProductData {
 class GetTemuProductDataForImage extends GetTemuProductData {
   constructor(option) {
     super(option)
+  }
+
+  get labelCreateTimeFrom() {
+    return this.req?.body?.labelCreateTimeFrom
   }
 
   get orderType() {
@@ -404,6 +409,7 @@ class GetTemuProductDataForImage extends GetTemuProductData {
 
   handlePageItems(data) {
     const tmpArr = []
+    const { labelCreateTimeFrom } = this
     data.map(item => {
       const tmpItem = item
       tmpItem.subOrder = null
@@ -425,13 +431,16 @@ class GetTemuProductDataForImage extends GetTemuProductData {
       tmpItem.labelCreateTime = labelCreateTime
       tmpArr.push(tmpItem)
     })
-    return tmpArr
+    return tmpArr.filter(item => {
+      if (!labelCreateTimeFrom) return item
+      return item.labelCreateTime >= labelCreateTimeFrom
+    })
   }
 
   async formatProcessData(newPageItems, productData) {
     return newPageItems.map(item => {
       const row = this.formatProcessItem(item, productData)
-      row.createTime = item.createTime
+      row.labelCreateTime = item.labelCreateTime
       return row
     })
   }

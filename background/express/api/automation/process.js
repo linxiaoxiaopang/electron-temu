@@ -72,6 +72,7 @@ async function list(req, res, next) {
           },
           {
             label: '备货单创建开始时间',
+            part: 'time',
             prop: 'purchaseTime[op:>=]',
             queryProp: 'purchaseStartTime',
             value(prop, query) {
@@ -82,8 +83,33 @@ async function list(req, res, next) {
           },
           {
             label: '备货单创建开始时间',
+            part: 'time',
             prop: 'purchaseTime[op:<=]',
             queryProp: 'purchaseEndTime',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return +new Date(item)
+            }
+          },
+          {
+            label: '条码创建开始时间',
+            part: 'time',
+            logical: 'OR',
+            partLogical: 'AND',
+            prop: 'labelCreateTime[op:>=]',
+            queryProp: 'labelCreateStartTime',
+            value(prop, query) {
+              const item = query[prop]
+              if (!item) return
+              return +new Date(item)
+            }
+          },
+          {
+            label: '条码创建开始时间',
+            part: 'time',
+            prop: 'labelCreateTime[op:<=]',
+            queryProp: 'labelCreateEndTime',
             value(prop, query) {
               const item = query[prop]
               if (!item) return
@@ -257,6 +283,9 @@ async function progressForImage(req, res, next) {
 
 async function del(req, res, next) {
   res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:delete', {
+    where: {}
+  })
+  res.customResult = await customIpcRenderer.invoke('db:temu:personalProduct:delete', {
     where: {}
   })
   next()
