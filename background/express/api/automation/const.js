@@ -6,11 +6,11 @@
 
 const automationOrderTypeDic = [
   {
-    label: '普通订单',
+    label: '备货单处理',
     value: automationOrderTypeList.normal
   },
   {
-    label: '图片订单',
+    label: '图片预处理',
     value: automationOrderTypeList.image
   },
   // {
