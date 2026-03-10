@@ -57,12 +57,20 @@ module.exports = sequelize.define(
       comment: '上次刷新Web页面的时间（毫秒级时间戳，1970-01-01 UTC起算）'
     },
 
-    // 订单创建开始时间
+    // 条码创建开始时间
     labelCreateTimeFrom: {
       type: DataTypes.BIGINT, // 毫秒级时间戳（整数）
       allowNull: true,
       defaultValue: null,
-      comment: '订单创建开始时间'
+      comment: '条码创建开始时间'
+    },
+
+    // 条码创建结束时间
+    labelCreateTimeTo: {
+      type: DataTypes.BIGINT, // 毫秒级时间戳（整数）
+      allowNull: true,
+      defaultValue: null,
+      comment: '条码创建结束时间'
     },
 
     // 备货单创建开始时间

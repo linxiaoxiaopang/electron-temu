@@ -52,6 +52,20 @@ module.exports = sequelize.define(
       allowNull: true,
       defaultValue: [], // 默认空数组，避免null/undefined
       comment: '自定义预览项数组'
+    },
+    // 新增：错误信息字段（核心）
+    errorMsg: {
+      type: DataTypes.TEXT, // 用TEXT存储，适配超长错误信息（如堆栈、详细日志）
+      allowNull: true,
+      defaultValue: '',
+      comment: '流程执行错误信息：存储失败原因、异常堆栈、错误详情等',
+      // 可选：长度限制（避免无意义的超长文本）
+      validate: {
+        len: {
+          args: [0, 4096], // 最大4096字符，可根据业务调整
+          msg: '错误信息长度不能超过4096个字符'
+        }
+      }
     }
   },
   {

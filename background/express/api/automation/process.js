@@ -217,6 +217,7 @@ async function sync(req, res, next) {
   let validateIsSync = false
   do {
     validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
+    if (validateIsSync) validateIsSync = await customIpcRenderer.invoke('db:temu:personalProduct:validateIsSync')
     if (!validateIsSync) await waitTimeByNum(1000)
   } while (!validateIsSync)
 
@@ -229,11 +230,15 @@ async function sync(req, res, next) {
 }
 
 async function syncForImage(req, res, next) {
-  if (!req.body.labelCreateTimeFrom) req.body.labelCreateTimeFrom = dayjs().subtract(3, 'days')
-  req.body.labelCreateTimeFrom = +new Date(req.body.labelCreateTimeFrom)
+  if (!req.body.labelCreateStartTime) req.body.labelCreateStartTime = dayjs().subtract(3, 'days')
+  if (!req.body.labelCreateEndTime) req.body.labelCreateEndTime = dayjs()
+  if (!req.body.labelCreateTimeFrom) req.body.labelCreateTimeFrom = +new Date(req.body.labelCreateStartTime)
+  if (!req.body.labelCreateTimeTo) req.body.labelCreateTimeTo = +new Date(req.body.labelCreateEndTime)
+
   let validateIsSync = false
   do {
     validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
+    if (validateIsSync) validateIsSync = await customIpcRenderer.invoke('db:temu:personalProduct:validateIsSync')
     if (!validateIsSync) await waitTimeByNum(1000)
   } while (!validateIsSync)
 

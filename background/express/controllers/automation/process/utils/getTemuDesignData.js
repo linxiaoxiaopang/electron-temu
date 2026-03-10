@@ -10,7 +10,9 @@ const { deepCamelCaseKeys } = require('~utils/convert')
 const automationProcessInitSheet = require('~model/temu/automation/automationProcess/init')
 const personalProductInitSheet = require('~model/temu/automation/personalProduct/init')
 const { automationOrderTypeList } = require('~express/api/automation/const')
-const PROCESS_LIST = ['product:all:下载Temu效果图', 'product:all:下载Temu原图', 'product:all:temu更换系统数据']
+
+const CHANGE_SYSTEM_PRODUCT_DATA = 'product:all:temu更换系统数据'
+const PROCESS_LIST = ['product:all:下载Temu效果图', 'product:all:下载Temu原图', CHANGE_SYSTEM_PRODUCT_DATA]
 
 class TemuProductProcessor {
   constructor(
@@ -186,13 +188,14 @@ class TemuProductProcessor {
         }
       }
       return {
-        mallId: this.mallId,
+        errorMsg,
         temuImageUrlDisplay,
         ossImageUrlDisplay,
         labelCustomizedPreviewItems,
         processData,
         personalProductSkuId,
-        json: product
+        json: product,
+        mallId: this.mallId
       }
     })
     return await Promise.all(pArr)
@@ -293,7 +296,7 @@ class GetTemuProductData {
   }
 
   formatProcessItem(item, productData) {
-    const processList = PROCESS_LIST
+    const processList = [...PROCESS_LIST]
     const { uId, personalProductSkuId } = item
     const productResult = productData.find(sItem => sItem.personalProductSkuId == personalProductSkuId)
     if (!productResult) throw `没有找到商品数据: ${personalProductSkuId}`
@@ -301,7 +304,8 @@ class GetTemuProductData {
       temuImageUrlDisplay = '',
       ossImageUrlDisplay = '',
       labelCustomizedPreviewItems = [],
-      processData: productProcessData
+      processData: productProcessData,
+      errorMsg
     } = productResult
     const subPurchaseOrderInfoVOS = productResult?.json?.subPurchaseOrderInfoVOS || []
     const lastSubPurchaseOrderInfoVO = last(subPurchaseOrderInfoVOS)
@@ -321,8 +325,11 @@ class GetTemuProductData {
       currentProcess: '',
       temuData: item,
       systemExchangeData: null,
-      processData: {}
+      processData: {},
+      completeFlag: 0,
+      errorMsg
     }
+    if (errorMsg) row.completeFlag = 2
     processList.map(key => {
       const sItem = productProcessData[key]
       if (!sItem) return
@@ -374,6 +381,10 @@ class GetTemuProductDataForImage extends GetTemuProductData {
     return this.req?.body?.labelCreateTimeFrom
   }
 
+  get labelCreateTimeTo() {
+    return this.req?.body?.labelCreateTimeTo
+  }
+
   get orderType() {
     return automationOrderTypeList.image
   }
@@ -388,12 +399,12 @@ class GetTemuProductDataForImage extends GetTemuProductData {
 
   getDays(date) {
     const targetDate = dayjs(date)
-    const now = dayjs()
-    return Math.ceil(now.diff(targetDate, 'day'))
+    const timeTo = dayjs(this.labelCreateTimeTo || undefined)
+    return Math.floor(timeTo.diff(targetDate, 'day')) + 1
   }
 
   async getTotal() {
-    return this.getDays(this.req.body.labelCreateTimeFrom)
+    return this.getDays(this.labelCreateTimeFrom)
   }
 
   async getTemuData() {
@@ -409,7 +420,7 @@ class GetTemuProductDataForImage extends GetTemuProductData {
 
   handlePageItems(data) {
     const tmpArr = []
-    const { labelCreateTimeFrom } = this
+    const { labelCreateTimeFrom, labelCreateTimeTo } = this
     data.map(item => {
       const tmpItem = item
       tmpItem.subOrder = null
@@ -433,14 +444,33 @@ class GetTemuProductDataForImage extends GetTemuProductData {
     })
     return tmpArr.filter(item => {
       if (!labelCreateTimeFrom) return item
-      return item.labelCreateTime >= labelCreateTimeFrom
+      if (!labelCreateTimeTo) return item.labelCreateTime >= labelCreateTimeFrom
+      return item.labelCreateTime >= labelCreateTimeFrom && item.labelCreateTime <= labelCreateTimeTo
     })
+  }
+
+  ignoreOnlyTextItem(row) {
+    const { processList, labelCustomizedPreviewItems, currentProcess } = row
+    const onlyText = labelCustomizedPreviewItems.every(item => item.previewType == 4)
+    if (onlyText && labelCustomizedPreviewItems.length) {
+      const fIndex = processList.findIndex(item => item == CHANGE_SYSTEM_PRODUCT_DATA)
+      if (fIndex >= 0) {
+        processList.splice(fIndex, 1)
+        row.processList = processList
+      }
+      if (currentProcess == CHANGE_SYSTEM_PRODUCT_DATA) {
+        row.currentProcess = ''
+        row.completeFlag = 1
+      }
+    }
+    return row
   }
 
   async formatProcessData(newPageItems, productData) {
     return newPageItems.map(item => {
-      const row = this.formatProcessItem(item, productData)
+      let row = this.formatProcessItem(item, productData)
       row.labelCreateTime = item.labelCreateTime
+      row = this.ignoreOnlyTextItem(row)
       return row
     })
   }
