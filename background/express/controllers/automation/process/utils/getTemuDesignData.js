@@ -148,8 +148,25 @@ class TemuProductProcessor {
     return response?.data || []
   }
 
+  async updateExistingData(dbExistingData, productData) {
+    const updateData = []
+    dbExistingData.map(item => {
+      const { id, personalProductSkuId: dbPersonalProductSkuId, json: dbProductData } = item
+      const fItem = productData.find(item => item.personalProductSkuId == dbPersonalProductSkuId)
+      if (!fItem?.subPurchaseOrderInfoVOS?.length) return
+      if (dbProductData?.subPurchaseOrderInfoVOS?.length) return
+      updateData.push({
+        id,
+        json: fItem
+      })
+    })
+    if (!updateData.length) return []
+    return await throwPromiseError(personalProductInitSheet.server.batchUpdate(updateData))
+  }
+
   async formatProductData(productData) {
     const existingSkuIdsData = await this.getDbPersonalProductData(productData)
+    await this.updateExistingData(existingSkuIdsData, productData)
     const existingSkuIdSet = new Set(existingSkuIdsData.map(item => item.personalProductSkuId))
     let newProductData = productData.filter(item => !existingSkuIdSet.has(item.personalProductSkuId))
     const pArr = newProductData.map(async product => {
@@ -204,7 +221,7 @@ class TemuProductProcessor {
   async action(data) {
     const productData = await this.getProductDataByChunk(data)
     const newProductData = await this.formatProductData(productData)
-    if (newProductData.length) await personalProductInitSheet.server.add(newProductData)
+    if (newProductData.length) await throwPromiseError(personalProductInitSheet.server.add(newProductData))
     return await this.getDbPersonalProductData(productData)
   }
 }
@@ -341,9 +358,10 @@ class GetTemuProductData {
 
   async formatProcessData(newPageItems, productData) {
     return newPageItems.map(item => {
-      const { purchaseTime } = item.subOrder
+      const { purchaseTime, subPurchaseOrderSn } = item.subOrder
       const row = this.formatProcessItem(item, productData)
       row.purchaseTime = purchaseTime
+      row.subPurchaseOrderSn = subPurchaseOrderSn
       return row
     })
   }
