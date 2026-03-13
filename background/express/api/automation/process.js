@@ -57,7 +57,7 @@ async function list(req, res, next) {
             queryProp: 'subPurchaseOrderSn'
           },
           {
-            label: '备货单',
+            label: '虚拟备货单',
             prop: 'virtualSubPurchaseOrderSn[op:in]',
             queryProp: 'virtualSubPurchaseOrderSn'
           },

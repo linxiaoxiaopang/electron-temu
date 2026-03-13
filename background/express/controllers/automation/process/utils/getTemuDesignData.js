@@ -412,7 +412,7 @@ class GetTemuProductDataForImage extends GetTemuProductData {
   }
 
   createVirtualSubPurchaseOrderSn(item) {
-    return `temu-image-virtual_${item?.labelCodeVO?.personalProductSkuId}`
+    return `temu-image_${item?.labelCodeVO?.personalProductSkuId}`
   }
 
   getDays(date) {
@@ -510,6 +510,10 @@ class GetTemuProductDataForVirtualOrder extends GetTemuProductDataForImage {
   }
 
   createUId(item) {
+    return `temu-virtual-order_${item?.labelCodeVO?.personalProductSkuId}`
+  }
+
+  createVirtualSubPurchaseOrderSn(item) {
     return `temu-virtual-order_${item?.labelCodeVO?.personalProductSkuId}`
   }
 
