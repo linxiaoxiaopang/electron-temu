@@ -58,6 +58,11 @@ async function list(req, res, next) {
           },
           {
             label: '备货单',
+            prop: 'virtualSubPurchaseOrderSn[op:in]',
+            queryProp: 'virtualSubPurchaseOrderSn'
+          },
+          {
+            label: '备货单',
             prop: 'subPurchaseOrderSn[op:not]',
             queryProp: 'hasSubPurchaseOrderSn',
             value(prop, query) {

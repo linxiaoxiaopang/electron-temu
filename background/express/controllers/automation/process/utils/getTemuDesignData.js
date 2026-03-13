@@ -487,7 +487,9 @@ class GetTemuProductDataForImage extends GetTemuProductData {
   async formatProcessData(newPageItems, productData) {
     return newPageItems.map(item => {
       let row = this.formatProcessItem(item, productData)
-      row.labelCreateTime = item.labelCreateTime
+      const { labelCreateTime, virtualSubPurchaseOrderSn } = item
+      row.labelCreateTime = labelCreateTime
+      row.virtualSubPurchaseOrderSn = virtualSubPurchaseOrderSn
       row = this.ignoreOnlyTextItem(row)
       return row
     })
@@ -517,6 +519,7 @@ class GetTemuProductDataForVirtualOrder extends GetTemuProductDataForImage {
       const { labelCreateTime, virtualSubPurchaseOrderSn } = item
       row.labelCreateTime = labelCreateTime
       row.subPurchaseOrderSn = virtualSubPurchaseOrderSn
+      row.virtualSubPurchaseOrderSn = virtualSubPurchaseOrderSn
       return row
     })
   }
