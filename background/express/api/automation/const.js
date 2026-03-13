@@ -13,10 +13,10 @@ const automationOrderTypeDic = [
     label: '图片预处理',
     value: automationOrderTypeList.image
   },
-  // {
-  //   label: '虚拟订单',
-  //   value: automationOrderTypeList.virtual
-  // }
+  {
+    label: '虚拟订单处理',
+    value: automationOrderTypeList.virtual
+  }
 ]
 
 module.exports  = {

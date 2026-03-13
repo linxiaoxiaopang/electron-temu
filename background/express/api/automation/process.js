@@ -2,7 +2,8 @@ const { customIpcRenderer } = require('~utils/event')
 const {
   LoopGetTemuProductData,
   GetTemuProductData,
-  LoopGetTemuProductDataForImage
+  LoopGetTemuProductDataForImage,
+  LoopGetTemuProductDataForVirtualOrder
 } = require('~express/controllers/automation/process')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { allRequestCache } = require('~express/utils/loopUtils')
@@ -250,6 +251,27 @@ async function syncForImage(req, res, next) {
   next()
 }
 
+async function syncForVirtualOrder(req, res, next) {
+  if (!req.body.labelCreateStartTime) req.body.labelCreateStartTime = dayjs().subtract(3, 'days')
+  if (!req.body.labelCreateEndTime) req.body.labelCreateEndTime = dayjs()
+  if (!req.body.labelCreateTimeFrom) req.body.labelCreateTimeFrom = +new Date(req.body.labelCreateStartTime)
+  if (!req.body.labelCreateTimeTo) req.body.labelCreateTimeTo = +new Date(req.body.labelCreateEndTime)
+
+  let validateIsSync = false
+  do {
+    validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
+    if (validateIsSync) validateIsSync = await customIpcRenderer.invoke('db:temu:personalProduct:validateIsSync')
+    if (!validateIsSync) await waitTimeByNum(1000)
+  } while (!validateIsSync)
+
+  const instance = new LoopGetTemuProductDataForVirtualOrder({
+    req,
+    res
+  })
+  res.customResult = await instance.action()
+  next()
+}
+
 async function progress(req, res, next) {
   const { mallId } = req.body
   if (!mallId) throw '请选择店铺'
@@ -272,6 +294,24 @@ async function progressForImage(req, res, next) {
   const { mallId } = req.body
   if (!mallId) throw '请选择店铺'
   const cacheKey = `automationProcessSyncForImage_${mallId}`
+  const cacheData = allRequestCache[cacheKey]
+  const keys = Object.keys(cacheData?.allSummary || {})
+  let resItem = null
+  for (let key of keys) {
+    const item = cacheData.allSummary[key]
+    if (!resItem) resItem = item
+    if (resItem.dateStamp <= item.dateStamp) {
+      resItem = item
+    }
+  }
+  res.customResult = [false, resItem]
+  next()
+}
+
+async function progressForVirtualOrder(req, res, next) {
+  const { mallId } = req.body
+  if (!mallId) throw '请选择店铺'
+  const cacheKey = `automationProcessSyncForVirtualOrder_${mallId}`
   const cacheData = allRequestCache[cacheKey]
   const keys = Object.keys(cacheData?.allSummary || {})
   let resItem = null
@@ -373,9 +413,11 @@ module.exports = {
   update,
   sync,
   syncForImage,
+  syncForVirtualOrder,
   nodes,
   orderTypeList,
   progress,
   progressForImage,
+  progressForVirtualOrder,
   compare
 }

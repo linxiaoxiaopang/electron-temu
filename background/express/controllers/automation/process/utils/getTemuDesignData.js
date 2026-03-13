@@ -498,6 +498,30 @@ class GetTemuProductDataForImage extends GetTemuProductData {
   }
 }
 
+class GetTemuProductDataForVirtualOrder extends GetTemuProductDataForImage {
+  constructor(option) {
+    super(option)
+  }
+
+  get orderType() {
+    return automationOrderTypeList.virtual
+  }
+
+  createUId(item) {
+    return `temu-virtual-order_${item?.labelCodeVO?.personalProductSkuId}`
+  }
+
+  async formatProcessData(newPageItems, productData) {
+    return newPageItems.map(item => {
+      let row = this.formatProcessItem(item, productData)
+      const { labelCreateTime, virtualSubPurchaseOrderSn } = item
+      row.labelCreateTime = labelCreateTime
+      row.subPurchaseOrderSn = virtualSubPurchaseOrderSn
+      return row
+    })
+  }
+}
+
 class baseLoopGetTemuProductData {
   constructor(
     {
@@ -620,10 +644,25 @@ class LoopGetTemuProductDataForImage extends LoopGetTemuProductData {
   }
 }
 
+class LoopGetTemuProductDataForVirtualOrder extends LoopGetTemuProductDataForImage {
+  constructor(option) {
+    super(option)
+    const { req, res } = option
+    this.loopRequestInstance = new LoopRequest({
+      req,
+      res,
+      cacheKey: `automationProcessSyncForVirtualOrder_${this.body.mallId}`
+    })
+    this.getTemuProductDataInstance = new GetTemuProductDataForVirtualOrder(option)
+  }
+}
+
 
 module.exports = {
   LoopGetTemuProductData,
   LoopGetTemuProductDataForImage,
+  LoopGetTemuProductDataForVirtualOrder,
   GetTemuProductData,
-  GetTemuProductDataForImage
+  GetTemuProductDataForImage,
+  GetTemuProductDataForVirtualOrder
 }

@@ -1,8 +1,17 @@
-const { LoopGetTemuProductData, GetTemuProductData, GetTemuProductDataForImage, LoopGetTemuProductDataForImage } = require('./utils/getTemuDesignData')
+const {
+  LoopGetTemuProductData,
+  GetTemuProductData,
+  GetTemuProductDataForImage,
+  LoopGetTemuProductDataForImage,
+  GetTemuProductDataForVirtualOrder,
+  LoopGetTemuProductDataForVirtualOrder
+} = require('./utils/getTemuDesignData')
 
 module.exports = {
   LoopGetTemuProductData,
   GetTemuProductData,
   GetTemuProductDataForImage,
-  LoopGetTemuProductDataForImage
+  LoopGetTemuProductDataForImage,
+  GetTemuProductDataForVirtualOrder,
+  LoopGetTemuProductDataForVirtualOrder
 }

@@ -50,6 +50,19 @@ class BatchSyncAutomationProcess {
     return response?.data
   }
 
+  async syncProcessForVirtualOrder(mallId) {
+    const relativeUrl = `/temu-agentseller/api/automation/process/syncForVirtualOrder`
+    const { labelCreateTimeFrom, labelCreateTimeTo } = this.timerRecord
+    const response = await throwPromiseError(localRequest(relativeUrl, {
+      data: {
+        mallId,
+        labelCreateTimeFrom,
+        labelCreateTimeTo
+      }
+    }))
+    return response?.data
+  }
+
   async updateConfig(obj) {
     try {
       const [err, res] = await customIpcRenderer.invoke('db:temu:automationConfig:update', 1, obj)
@@ -67,6 +80,8 @@ class BatchSyncAutomationProcess {
       if (isFind) await this.syncProcessByMall(mallId)
       isFind = selectedOrderTypeList.find(orderType => orderType == automationOrderTypeList.image)
       if (isFind) await this.syncProcessForImageByMall(mallId)
+      isFind = selectedOrderTypeList.find(orderType => orderType == automationOrderTypeList.virtual)
+      if (isFind) await this.syncProcessForVirtualOrder(mallId)
       return true
     })
     return await Promise.all(pArr)
