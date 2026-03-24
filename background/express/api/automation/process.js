@@ -3,16 +3,16 @@ const {
   LoopGetTemuProductData,
   GetTemuProductData,
   LoopGetTemuProductDataForImage,
-  LoopGetTemuProductDataForVirtualOrder
+  LoopGetTemuProductDataForVirtualOrder,
+  LoopGetTemuProductDataForY2
 } = require('~express/controllers/automation/process')
 const { BuildSql, likeMatch } = require('~express/utils/sqlUtils')
 const { allRequestCache } = require('~express/utils/loopUtils')
-const { waitTimeByNum } = require('~utils/sleep')
 const { throwPromiseError } = require('~utils/promise')
 const dayjs = require('dayjs')
 const { map, isUndefined } = require('lodash')
 const { localRequest } = require('~express/utils/apiUtils')
-const { automationOrderTypeDic } = require('~express/api/automation/const')
+const { automationOrderTypeDic, allProcessNodesList } = require('~express/api/automation/const')
 
 async function list(req, res, next) {
   const { body: { page } } = req
@@ -164,33 +164,17 @@ async function list(req, res, next) {
   next()
 }
 
-const allProcessList = [
-  'product:all:下载Temu效果图',
-  'product:all:下载Temu原图',
-  'product:all:temu更换系统数据',
-  'product:all:导入微定制订单',
-  'label:picture:模板图像处理',
-  'label:picture:切图',
-  'label:picture:裁切透明像素',
-  'label:picture:抠图',
-  'label:picture:轮廓',
-  'label:picture:高清放大',
-  'label:picture:卡通',
-  'label:picture:手动定制模板替换',
-  'label:picture:定制模板替换',
-  'product:all:上传原图',
-  'product:all:创建产品',
-  'product:all:上传文字校验',
-  'product:all:上传预览图'
-]
-
 async function orderTypeList(req, res, next) {
   res.customResult = [false, automationOrderTypeDic]
   next()
 }
 
 async function nodes(req, res, next) {
-  res.customResult = [false, allProcessList]
+  if (!req.body?.orderType) {
+    res.customResult = [false, allProcessNodesList.default]
+  } else {
+    res.customResult = [false, allProcessNodesList[req.body.orderType] || []]
+  }
   next()
 }
 
@@ -215,18 +199,17 @@ async function update(req, res, next) {
   next()
 }
 
+async function waitSync() {
+  await customIpcRenderer.invoke('db:temu:automationProcess:waitValidateIsSync')
+  await customIpcRenderer.invoke('db:temu:personalProduct:waitValidateIsSync')
+}
+
 async function sync(req, res, next) {
   if (req.body?.purchaseStartTime && req.body?.purchaseEndTime) {
     req.body.purchaseTimeFrom = +new Date(req.body.purchaseStartTime)
     req.body.purchaseTimeTo = +new Date(req.body.purchaseEndTime)
   }
-  let validateIsSync = false
-  do {
-    validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
-    if (validateIsSync) validateIsSync = await customIpcRenderer.invoke('db:temu:personalProduct:validateIsSync')
-    if (!validateIsSync) await waitTimeByNum(1000)
-  } while (!validateIsSync)
-
+  await waitSync()
   const instance = new LoopGetTemuProductData({
     req,
     res
@@ -241,12 +224,7 @@ async function syncForImage(req, res, next) {
   if (!req.body.labelCreateTimeFrom) req.body.labelCreateTimeFrom = +new Date(req.body.labelCreateStartTime)
   if (!req.body.labelCreateTimeTo) req.body.labelCreateTimeTo = +new Date(req.body.labelCreateEndTime)
 
-  let validateIsSync = false
-  do {
-    validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
-    if (validateIsSync) validateIsSync = await customIpcRenderer.invoke('db:temu:personalProduct:validateIsSync')
-    if (!validateIsSync) await waitTimeByNum(1000)
-  } while (!validateIsSync)
+  await waitSync()
 
   const instance = new LoopGetTemuProductDataForImage({
     req,
@@ -262,14 +240,27 @@ async function syncForVirtualOrder(req, res, next) {
   if (!req.body.labelCreateTimeFrom) req.body.labelCreateTimeFrom = +new Date(req.body.labelCreateStartTime)
   if (!req.body.labelCreateTimeTo) req.body.labelCreateTimeTo = +new Date(req.body.labelCreateEndTime)
 
-  let validateIsSync = false
-  do {
-    validateIsSync = await customIpcRenderer.invoke('db:temu:automationProcess:validateIsSync')
-    if (validateIsSync) validateIsSync = await customIpcRenderer.invoke('db:temu:personalProduct:validateIsSync')
-    if (!validateIsSync) await waitTimeByNum(1000)
-  } while (!validateIsSync)
+  await waitSync()
 
   const instance = new LoopGetTemuProductDataForVirtualOrder({
+    req,
+    res
+  })
+  res.customResult = await instance.action()
+  next()
+}
+
+async function syncForY2(req, res, next) {
+  if(!req.body?.purchaseStartTime) req.body.purchaseStartTime = dayjs().subtract(3, 'days').format('YYYY-MM-DD HH:mm:ss')
+  if(!req.body?.purchaseEndTime) req.body.purchaseEndTime = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  req.body.parentOrderTimeStart =  dayjs(req.body.purchaseStartTime).unix()
+  req.body.parentOrderTimeEnd = dayjs(req.body.purchaseEndTime).unix()
+  delete req.body?.purchaseEndTime
+  delete req.body?.purchaseStartTime
+
+  await waitSync()
+
+  const instance = new LoopGetTemuProductDataForY2({
     req,
     res
   })
@@ -419,6 +410,7 @@ module.exports = {
   sync,
   syncForImage,
   syncForVirtualOrder,
+  syncForY2,
   nodes,
   orderTypeList,
   progress,

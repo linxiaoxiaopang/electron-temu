@@ -50,6 +50,7 @@ function createProxyToGetTemuData(req) {
     if (page) {
       finalPage.page = page.pageIndex
       finalPage.pageNum = page.pageIndex
+      finalPage.pageNumber = page.pageIndex
       finalPage.pageNo = page.pageIndex
       finalPage.pageSize = page.pageSize
     }

@@ -4,7 +4,8 @@ const {
   GetTemuProductDataForImage,
   LoopGetTemuProductDataForImage,
   GetTemuProductDataForVirtualOrder,
-  LoopGetTemuProductDataForVirtualOrder
+  LoopGetTemuProductDataForVirtualOrder,
+  LoopGetTemuProductDataForY2
 } = require('./utils/getTemuDesignData')
 
 module.exports = {
@@ -13,5 +14,6 @@ module.exports = {
   GetTemuProductDataForImage,
   LoopGetTemuProductDataForImage,
   GetTemuProductDataForVirtualOrder,
-  LoopGetTemuProductDataForVirtualOrder
+  LoopGetTemuProductDataForVirtualOrder,
+  LoopGetTemuProductDataForY2
 }

@@ -3,8 +3,11 @@ const axios = require('axios')
 const { ossOption } = require('./const')
 const client = new OSS(ossOption)
 
-async function uploadToOssUseUrl(url) {
-  const responseStream  = await analysisFileByAxios(url, { passFileReader: true })
+async function uploadToOssUseUrl(url, headers = {}) {
+  const responseStream  = await analysisFileByAxios(url, {
+    passFileReader: true,
+    headers
+  })
   const fileName = getFillFileName(url)
   const randomFileName = getRandom() + fileName
   const options = {}

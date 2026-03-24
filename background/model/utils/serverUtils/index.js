@@ -7,6 +7,7 @@ const pageFormatter = require('./middleWare/pageFormatter')
 const resFormatter = require('./middleWare/resFormatter')
 const errFormatter = require('./middleWare/errFormatter')
 const { isArray, merge } = require('lodash')
+const { waitTimeByNum } = require('~utils/sleep')
 
 
 class CreateServer {
@@ -26,7 +27,7 @@ class CreateServer {
         const { res } = ctx
         if (!isArray(os)) os = [os]
         let data = await this.model.bulkCreate(os)
-        if(isArray(data) && !returnData) data = data.length
+        if (isArray(data) && !returnData) data = data.length
         res.data = data
         next()
       })
@@ -196,6 +197,15 @@ class CreateServer {
 
   validateIsSync() {
     return this.isSync
+  }
+
+  async waitValidateIsSync() {
+    let validateIsSync = false
+    do {
+      validateIsSync = this.validateIsSync()
+      if (!validateIsSync) await waitTimeByNum(1000)
+    } while (!validateIsSync)
+    return validateIsSync
   }
 
   getAllMethods() {

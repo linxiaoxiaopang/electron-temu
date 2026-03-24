@@ -12,6 +12,7 @@ const user = {
 
 
 exports.kuangjingmaihuo = 'kuangjingmaihuo'
+exports.agentsellerUs = 'agentsellerUs'
 
 exports.MALL_SOLE = {
   semiSole: 1,
@@ -65,6 +66,7 @@ exports.getMallIds = function (origin) {
 
 exports.targetList = {
   [exports.kuangjingmaihuo]: 'https://seller.kuajingmaihuo.com',
+  [exports.agentsellerUs]: 'https://agentseller-us.temu.com',
   default: 'https://agentseller.temu.com'
 }
 

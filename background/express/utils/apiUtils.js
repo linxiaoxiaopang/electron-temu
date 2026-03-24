@@ -21,10 +21,11 @@ async function proxyRequest(
   {
     req,
     query,
-    relativeUrl
+    relativeUrl,
+    target = 'default'
   }
 ) {
-  const wholeUrl = `${getTemuTarget()}${relativeUrl}`
+  const wholeUrl = `${getTemuTarget(target)}${relativeUrl}`
   const getData = createProxyToGetTemuData(req)
   return await getData(wholeUrl, { data: query })
 }
