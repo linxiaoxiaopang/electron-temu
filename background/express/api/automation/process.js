@@ -251,9 +251,13 @@ async function syncForVirtualOrder(req, res, next) {
 }
 
 async function syncForY2(req, res, next) {
-  if(!req.body?.purchaseStartTime) req.body.purchaseStartTime = dayjs().subtract(3, 'days').format('YYYY-MM-DD HH:mm:ss')
-  if(!req.body?.purchaseEndTime) req.body.purchaseEndTime = dayjs().format('YYYY-MM-DD HH:mm:ss')
-  req.body.parentOrderTimeStart =  dayjs(req.body.purchaseStartTime).unix()
+  if (req.body?.purchaseTimeFrom) req.body.purchaseStartTime = req.body.purchaseTimeFrom
+  if (req.body?.purchaseTimeTo) req.body.purchaseEndTime = req.body.purchaseTimeTo
+  if (!req.body?.purchaseStartTime) req.body.purchaseStartTime = dayjs().subtract(3, 'days').format('YYYY-MM-DD HH:mm:ss')
+  if (!req.body?.purchaseEndTime) req.body.purchaseEndTime = dayjs().format('YYYY-MM-DD HH:mm:ss')
+  delete req.body?.purchaseTimeFrom
+  delete req.body?.purchaseTimeTo
+  req.body.parentOrderTimeStart = dayjs(req.body.purchaseStartTime).unix()
   req.body.parentOrderTimeEnd = dayjs(req.body.purchaseEndTime).unix()
   delete req.body?.purchaseEndTime
   delete req.body?.purchaseStartTime

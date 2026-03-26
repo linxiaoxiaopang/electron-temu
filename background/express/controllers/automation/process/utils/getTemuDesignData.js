@@ -623,6 +623,9 @@ class GetY2TemuProductData extends GetTemuProductData {
       sortType: 1,
       timeZone: 'UTC+8'
     }
+    if (this.subPurchaseOrderSn) {
+      finalQuery.parentOrderSnList = this.subPurchaseOrderSn
+    }
     const response = await throwPromiseError(proxyRequest({
       req,
       relativeUrl,
@@ -668,6 +671,7 @@ class GetY2TemuProductData extends GetTemuProductData {
     const fIndex = rawProcessList.findIndex(item => item == CHANGE_SYSTEM_PRODUCT_DATA)
     rawProcessList.splice(fIndex, 0, allProcessNodesMap['order:all:存储报关信息'], allProcessNodesMap['order:all:申请Y2入仓单'], allProcessNodesMap['order:all:存储Y2入仓单'])
     row.processList = rawProcessList
+    row.currentProcess = allProcessNodesMap['order:all:存储Y2入仓单']
     return row
   }
 

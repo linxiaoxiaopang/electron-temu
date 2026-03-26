@@ -75,7 +75,8 @@ class FormatY2Product {
     const labelCustomizedPreviewItems = customizedPreviewItems.filter(item => item.previewType != 1)
     labelCustomizedPreviewItems.map(item => {
       item.imageUrlDisplay = item.imageUrl
-      delete item.imageUrl
+      item.regionId = item.customizedAreaId
+      delete item.customizedAreaId
     })
     delete fPreviewItem.imageUrl
     return customizedInfo
