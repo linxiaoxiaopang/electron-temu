@@ -326,6 +326,24 @@ async function progressForVirtualOrder(req, res, next) {
   next()
 }
 
+async function progressForY2(req, res, next) {
+  const { mallId } = req.body
+  if (!mallId) throw '请选择店铺'
+  const cacheKey = `automationProcessSyncForY2_${mallId}`
+  const cacheData = allRequestCache[cacheKey]
+  const keys = Object.keys(cacheData?.allSummary || {})
+  let resItem = null
+  for (let key of keys) {
+    const item = cacheData.allSummary[key]
+    if (!resItem) resItem = item
+    if (resItem.dateStamp <= item.dateStamp) {
+      resItem = item
+    }
+  }
+  res.customResult = [false, resItem]
+  next()
+}
+
 async function del(req, res, next) {
   res.customResult = await customIpcRenderer.invoke('db:temu:automationProcess:delete', {
     where: {}
@@ -420,5 +438,6 @@ module.exports = {
   progress,
   progressForImage,
   progressForVirtualOrder,
+  progressForY2,
   compare
 }

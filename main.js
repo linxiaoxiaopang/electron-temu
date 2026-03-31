@@ -16,6 +16,7 @@ app.commandLine.appendSwitch('disable-content-security-policy')
 app.commandLine.appendSwitch('disable-web-security')
 app.commandLine.appendSwitch('ignore-certificate-errors') // 忽略证书错误
 app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors') // 关闭跨域限制
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0' // 解决 TLS 连接断开问题
 if (require('electron-squirrel-startup')) {
   app.quit() // 若为安装/更新相关启动，则自动退出
 }

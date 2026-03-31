@@ -1,4 +1,4 @@
-const { getWholeUrl, agentsellerUs, getHeaders } = require('~store/user')
+const { getWholeUrl, agentsellerUs, getHeaders, targetList } = require('~store/user')
 const { uploadToOssUseUrl } = require('~utils/oss')
 const { throwPromiseError } = require('~utils/promise')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
@@ -597,6 +597,7 @@ class GetY2TemuProductData extends GetTemuProductData {
   constructor(option) {
     const { req } = option
     super(option)
+    req.customOrigin = targetList[agentsellerUs]
     this.productProcessor = new TemuY2ProductProcessor({
       req
     })
@@ -669,9 +670,9 @@ class GetY2TemuProductData extends GetTemuProductData {
     const row = super.formatProcessItem(item, productData)
     const rawProcessList = [...row.processList]
     const fIndex = rawProcessList.findIndex(item => item == CHANGE_SYSTEM_PRODUCT_DATA)
-    rawProcessList.splice(fIndex, 0, allProcessNodesMap['order:all:存储报关信息'], allProcessNodesMap['order:all:申请Y2入仓单'], allProcessNodesMap['order:all:存储Y2入仓单'])
+    rawProcessList.splice(fIndex, 0, allProcessNodesMap['order:all:存储报关信息'], allProcessNodesMap['order:all:写入y2外部订单'], allProcessNodesMap['order:all:上传y2入仓单'])
     row.processList = rawProcessList
-    row.currentProcess = allProcessNodesMap['order:all:存储Y2入仓单']
+    row.currentProcess = allProcessNodesMap['order:all:写入y2外部订单']
     return row
   }
 
