@@ -1,9 +1,10 @@
 const { emitter } = require('../../utils/event')
-const { getMallIds } = require('~store/user')
+const { getMallIds, targetList, agentseller, agentsellerUs } = require('~store/user')
 const { customIpcRenderer } = require('~utils/event')
 const { localRequest } = require('~express/utils/apiUtils')
 const { throwPromiseError } = require('~utils/promise')
 const { automationOrderTypeList } = require('~express/api/automation/const')
+const { uniq } = require('lodash')
 
 let runUid = 0
 
@@ -119,7 +120,7 @@ class BatchSyncAutomationProcess {
 
 emitter.on('automationConfig:timer:update', async (timerRecord) => {
   const { mallIds } = timerRecord
-  const collectMallIds = getMallIds()
+  let collectMallIds = uniq([...getMallIds(targetList[agentsellerUs]), ...getMallIds(targetList[agentseller])])
   const filterMallIds = collectMallIds.filter(item => mallIds.find(mallId => mallId == item))
   const instance = new BatchSyncAutomationProcess({
     timerRecord,

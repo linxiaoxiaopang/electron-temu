@@ -29,6 +29,10 @@ class FormatY2Product {
     return this.order.skcId
   }
 
+  get productSkuId() {
+    return this.order.skuId
+  }
+
   get productId() {
     return this.order.goodsId
   }
@@ -87,6 +91,7 @@ class FormatY2Product {
       subOrder,
       productName,
       productSkcId,
+      productSkuId,
       productId,
       personalProductSkuId,
       displayImage,
@@ -100,6 +105,7 @@ class FormatY2Product {
       subOrder,
       productName,
       productSkcId,
+      productSkuId,
       productId,
       personalProductSkuId,
       displayImage,

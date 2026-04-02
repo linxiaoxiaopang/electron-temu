@@ -660,21 +660,22 @@ class GetY2TemuProductData extends GetTemuProductData {
         tmpItem.uId = this.createUId(tmpItem)
         tmpItem.personalProductSkuId = sItem.orderSn
         tmpItem.productSkuId = sItem.skuId
+        tmpItem.extCode = last(sItem.extCodeList)
         tmpArr.push(tmpItem)
       })
     })
     return tmpArr
   }
 
-  formatProcessItem(item, productData) {
-    const row = super.formatProcessItem(item, productData)
-    const rawProcessList = [...row.processList]
-    const fIndex = rawProcessList.findIndex(item => item == CHANGE_SYSTEM_PRODUCT_DATA)
-    rawProcessList.splice(fIndex, 0, allProcessNodesMap['order:all:存储报关信息'], allProcessNodesMap['order:all:写入y2外部订单'], allProcessNodesMap['order:all:上传y2入仓单'])
-    row.processList = rawProcessList
-    row.currentProcess = allProcessNodesMap['order:all:写入y2外部订单']
-    return row
-  }
+  // formatProcessItem(item, productData) {
+  //   const row = super.formatProcessItem(item, productData)
+  //   const rawProcessList = [...row.processList]
+  //   const fIndex = rawProcessList.findIndex(item => item == CHANGE_SYSTEM_PRODUCT_DATA)
+  //   rawProcessList.splice(fIndex, 0, allProcessNodesMap['order:all:存储报关信息'], allProcessNodesMap['order:all:写入y2外部订单'], allProcessNodesMap['order:all:写入y2入仓单'])
+  //   row.processList = rawProcessList
+  //   row.currentProcess = allProcessNodesMap['order:all:写入y2外部订单']
+  //   return row
+  // }
 
   async formatProcessData(newPageItems, productData) {
     return newPageItems.map(item => {

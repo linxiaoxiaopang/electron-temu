@@ -13,6 +13,7 @@ const user = {
 
 exports.kuangjingmaihuo = 'kuangjingmaihuo'
 exports.agentsellerUs = 'agentsellerUs'
+exports.agentseller = 'agentseller'
 
 exports.MALL_SOLE = {
   semiSole: 1,
@@ -46,6 +47,16 @@ exports.getHeaders = function (mallId, origin) {
   return mall.headers
 }
 
+exports.getFlatMallList = function () {
+  const tmpArr = []
+  Object.values(user.mallList).map(item => {
+    Object.values(item.list).map(item => {
+      tmpArr.push(item)
+    })
+  })
+  return tmpArr
+}
+
 exports.getMallIds = function (origin) {
   const { mallList } = user
   const tmpData = []
@@ -61,12 +72,14 @@ exports.getMallIds = function (origin) {
       tmpData[index].push(sItem.mallId)
     })
   })
-  return uniq(intersection.apply(null, tmpData))
+  // return uniq(intersection.apply(null, tmpData))
+  return uniq(tmpData)
 }
 
 exports.targetList = {
   [exports.kuangjingmaihuo]: 'https://seller.kuajingmaihuo.com',
   [exports.agentsellerUs]: 'https://agentseller-us.temu.com',
+  [exports.agentseller]: 'https://agentseller.temu.com',
   default: 'https://agentseller.temu.com'
 }
 
@@ -129,16 +142,27 @@ async function updateUserInfo(headers) {
   if (!lastPromiseList[key]) lastPromiseList[key] = {}
   const item = lastPromiseList[key]
   const p = item.lastPromise = getUserInfo(headers)
-  const data = await p
+  let data = await p
   if (item.lastPromise !== p) return
   if (!user.mallList[key]) user.mallList[key] = {}
   const sameOriginMall = user.mallList[key]
   if (!sameOriginMall.list) {
     sameOriginMall.list = {}
   }
-  if (!data) return
+  if (!data) {
+    const pArr = Object.keys(sameOriginMall.list).map(key => {
+      const item = sameOriginMall.list[key]
+      return getUserInfo(item.headers).then(res => {
+        if (res) return
+        delete sameOriginMall.list[key]
+      })
+    })
+    await Promise.all(pArr)
+    return
+  }
   const sameOriginMallList = sameOriginMall.list
-  const mallList = data?.mallList || flatMap(data.companyList, item => item.malInfoList)
+  data = handleMallData(data, { origin })
+  const mallList = data?.mallList
   mallList?.map(item => {
     const { mallId } = item
     const cloneHeader = cloneDeep(headers)
@@ -150,4 +174,14 @@ async function updateUserInfo(headers) {
       userInfo: data
     }
   })
+}
+
+
+function handleMallData(data, option) {
+  const { origin } = option
+  data.mallList = data?.mallList || flatMap(data.companyList, item => item.malInfoList)
+  data.mallList.map(item => {
+    item.mallName = `${item.mallName}(${origin})`
+  })
+  return data
 }
