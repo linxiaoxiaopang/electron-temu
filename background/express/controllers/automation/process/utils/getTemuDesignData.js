@@ -659,7 +659,7 @@ class GetY2TemuProductData extends GetTemuProductData {
         tmpItem.subOrder = subOrder
         tmpItem.uId = this.createUId(tmpItem)
         tmpItem.personalProductSkuId = sItem.orderSn
-        tmpItem.productSkuId = sItem.skuId
+        tmpItem.productSkuId = last(tmpItem.productSkuIdList)
         tmpItem.extCode = last(sItem.extCodeList)
         tmpArr.push(tmpItem)
       })

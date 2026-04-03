@@ -169,7 +169,6 @@ async function updateUserInfo(headers) {
     cloneHeader.mallid = mallId
     sameOriginMallList[mallId] = {
       mallId,
-      origin,
       headers: cloneHeader,
       userInfo: data
     }
@@ -179,6 +178,7 @@ async function updateUserInfo(headers) {
 
 function handleMallData(data, option) {
   const { origin } = option
+  data.origin = origin
   data.mallList = data?.mallList || flatMap(data.companyList, item => item.malInfoList)
   data.mallList.map(item => {
     item.mallName = `${item.mallName}(${origin})`

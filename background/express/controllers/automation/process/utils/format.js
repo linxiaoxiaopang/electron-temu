@@ -30,7 +30,7 @@ class FormatY2Product {
   }
 
   get productSkuId() {
-    return this.order.skuId
+    return last(this.order.productSkuIdList)
   }
 
   get productId() {
