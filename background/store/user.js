@@ -1,5 +1,5 @@
 const URL = require('url')
-const { uniq, cloneDeep, flatMap, intersection } = require('lodash')
+const { uniq, cloneDeep, flatMap, intersection, flatten } = require('lodash')
 const { getUserInfo } = require('~express/controllers/user')
 const { emitter } = require('~utils/event')
 const { default: getPort } = require('get-port')
@@ -33,7 +33,7 @@ exports.getMall = function (mallId, origin) {
   const { mallList } = user
   for (let key in mallList) {
     if (origin && origin != key) continue
-    if (!origin && !/agentseller/i.test(key)) continue
+    if (!origin && key !== 'https://agentseller.temu.com') continue
     const item = mallList[key]
     if (!item.list[mallId]) continue
     return item.list[mallId]
@@ -73,7 +73,7 @@ exports.getMallIds = function (origin) {
     })
   })
   // return uniq(intersection.apply(null, tmpData))
-  return uniq(tmpData)
+  return uniq(flatten(tmpData))
 }
 
 exports.targetList = {
