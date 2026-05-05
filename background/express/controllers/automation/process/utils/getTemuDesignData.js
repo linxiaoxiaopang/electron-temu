@@ -616,6 +616,7 @@ class GetY2TemuProductData extends GetTemuProductData {
     const relativeUrl = '/kirogi/bg/mms/recentOrderList'
     const finalQuery = {
       mallId,
+      containCustomType: 1,
       fulfillmentMode: 0,
       needBuySignService: 0,
       parentAfterSalesTag: 0,
