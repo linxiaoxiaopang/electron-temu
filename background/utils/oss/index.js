@@ -4,15 +4,19 @@ const { ossOption } = require('./const')
 const client = new OSS(ossOption)
 
 async function uploadToOssUseUrl(url, headers = {}) {
-  const responseStream  = await analysisFileByAxios(url, {
-    passFileReader: true,
-    headers
-  })
-  const fileName = getFillFileName(url)
-  const randomFileName = getRandom() + fileName
-  const options = {}
-  const result = await client.put(randomFileName, responseStream, options)
-  return result
+  try {
+    const responseStream = await analysisFileByAxios(url, {
+      passFileReader: true,
+      headers
+    })
+    const fileName = getFillFileName(url)
+    const randomFileName = getRandom() + fileName
+    const options = {}
+    const result = await client.put(randomFileName, responseStream, options)
+    return result
+  } catch (err) {
+    throw JSON.stringify(err)
+  }
 }
 
 

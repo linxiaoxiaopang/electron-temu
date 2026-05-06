@@ -36,6 +36,10 @@ class BaseTemuProductProcessor {
     return res?.url
   }
 
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms))
+  }
+
   async getProductData(data) {
     const { req, mallId } = this
     const relativeUrl = '/bg-luna-agent-seller/product/customizeSku/pageQuery'
@@ -239,13 +243,29 @@ class TemuY2ProductProcessor extends BaseTemuProductProcessor {
     super(option)
   }
 
-  async uploadToOss(url) {
+  async uploadToOss(url, retryTimes = 10) {
     if (!url) return ''
     const urlInstance = new URL(url)
     const headers = await getHeaders(this.mallId, urlInstance.origin)
-    const res = await uploadToOssUseUrl(url, headers)
-    if (!res?.url) throw '上传图片到oss失败'
-    return res?.url
+
+    let lastErr
+
+    for (let i = 1; i <= retryTimes; i++) {
+      try {
+        const res = await uploadToOssUseUrl(url, headers)
+        if (!res?.url) throw new Error('上传图片到oss失败')
+        return res.url
+      } catch (err) {
+        lastErr = err
+        console.warn(`[uploadToOss] 第 ${i} 次失败`, err)
+
+        if (i < retryTimes) {
+          await this.sleep(1500 * i)
+        }
+      }
+    }
+
+    throw lastErr
   }
 
   async getProductData(data) {
