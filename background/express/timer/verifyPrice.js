@@ -1,7 +1,7 @@
 const { emitter } = require('../../utils/event')
 const { updateCreatePricingStrategy } = require('../controllers/verifyPrice/updatePricingStrategy')
 const { getMallIds, getMall, MALL_SOLE } = require('~store/user')
-const { chunk, groupBy, isNil, map, merge } = require('lodash')
+const { chunk, groupBy, isNil, map, merge, uniq } = require('lodash')
 const { customIpcRenderer } = require('~/utils/event')
 const { GetSearchForSupplierByManagedType } = require('~express/controllers/verifyPrice/searchForChainSupplier/utils/getFullSearchForChainSupplierData')
 const { traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
@@ -324,9 +324,10 @@ class BatchUpdateCreatePricingStrategyTimer {
 }
 
 emitter.on('pricingConfig:timer:update', async (timerRecord) => {
+  const mallIds = uniq(getMallIds())
   const instance = new BatchUpdateCreatePricingStrategyTimer({
     timerRecord,
-    mallIds: getMallIds()
+    mallIds
   })
   await instance.action()
 })

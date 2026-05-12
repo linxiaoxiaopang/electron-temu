@@ -124,20 +124,28 @@ class UpdateSemiPricingStrategy {
 
   async updateLatestPricingStrategy(response) {
     const successStrategyList = getSuccessStrategyList.call(this, response)
-    const res = await this.getLatestPricingStrategy()
-    const temArr = [...res]
+    const res = await this.getLatestPricingStrategy(successStrategyList)
+    const temArr = []
     const temArr1 = []
     successStrategyList.map(item => {
       const fItem = res.find(sItem => sItem.skuId == item.skuId)
       if (fItem) {
-        item.registerCount = fItem.registerCount + 1
+        temArr.push({
+          ...fItem,
+          ...item,
+          registerCount: fItem.registerCount + 1
+        })
         return
       }
       item.registerCount = 1
       temArr1.push(item)
     })
-    await throwPromiseError(customIpcRenderer.invoke('db:temu:latestPricingStrategy:add', temArr))
-    await throwPromiseError(customIpcRenderer.invoke('db:temu:latestPricingStrategy:add', temArr1))
+    if (temArr.length) {
+      await throwPromiseError(customIpcRenderer.invoke('db:temu:latestPricingStrategy:batchUpdate', temArr))
+    }
+    if (temArr1.length) {
+      await throwPromiseError(customIpcRenderer.invoke('db:temu:latestPricingStrategy:add', temArr1))
+    }
 
     function getSuccessStrategyList(response) {
       const needUpdateResult = []
