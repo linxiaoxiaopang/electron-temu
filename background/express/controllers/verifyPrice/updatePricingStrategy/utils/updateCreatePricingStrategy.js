@@ -167,7 +167,11 @@ class UpdateSemiPricingStrategy {
 
   async action() {
     try {
-      this.strategyList = this.strategyListCalculateCost(this.body?.strategyList || [])
+      const strategyList = this.body?.strategyList || []
+      strategyList.map(item => {
+        if(!item.alreadyPricingNumber) item.alreadyPricingNumber = 0
+      })
+      this.strategyList = this.strategyListCalculateCost(strategyList)
       await this.collectPricingStrategyHistory()
       await this.deletePricingStrategy()
       await this.collectPricingStrategy()
