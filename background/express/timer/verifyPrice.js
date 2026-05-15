@@ -1,10 +1,11 @@
 const { emitter } = require('../../utils/event')
 const { updateCreatePricingStrategy } = require('../controllers/verifyPrice/updatePricingStrategy')
-const { getMallIds, getMall, MALL_SOLE } = require('~store/user')
+const { getMallIds, getMall, MALL_SOLE, targetList, agentseller } = require('~store/user')
 const { chunk, groupBy, isNil, map, merge, uniq } = require('lodash')
 const { customIpcRenderer } = require('~/utils/event')
 const { GetSearchForSupplierByManagedType } = require('~express/controllers/verifyPrice/searchForChainSupplier/utils/getFullSearchForChainSupplierData')
 const { traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
+const { throwPromiseError } = require('~utils/promise')
 
 class UpdateCreatePricingStrategyTimer {
   constructor(
@@ -196,7 +197,8 @@ class UpdateCreatePricingStrategyTimer {
   async updateDataByResponse(updateData) {
     if (!updateData.length) return
     const [err, res] = await customIpcRenderer.invoke('db:temu:pricingStrategy:batchUpdate', updateData.map(item => {
-      const { alreadyPricingNumber, id } = item
+      let { alreadyPricingNumber, id } = item
+      if(!alreadyPricingNumber) alreadyPricingNumber = 1
       return {
         id,
         alreadyPricingNumber: alreadyPricingNumber + 1
@@ -242,9 +244,31 @@ class UpdateCreatePricingStrategyTimer {
     }
   }
 
+  async getLatestPricingStrategy(strategyList) {
+    return await throwPromiseError(customIpcRenderer.invoke('db:temu:latestPricingStrategy:find', {
+      where: {
+        skuId: {
+          ['op:in']: map(strategyList, 'skuId')
+        }
+      }
+    }))
+  }
+
+  async formatStrategyList() {
+    const latestPricingStrategy = await this.getLatestPricingStrategy(this.strategyList)
+    this.strategyList.map((item) => {
+      const fItem = latestPricingStrategy.find(sItem => sItem.skuId == item.skuId)
+      if (fItem && !item.alreadyPricingNumber) {
+        item.alreadyPricingNumber = 1
+      }
+    })
+    return this.strategyList
+  }
+
   async prepare() {
     this.validMallId()
     this.strategyList = await this.getData()
+    await this.formatStrategyList(this.strategyList)
     if (!this.strategyList.length) return
     await this.maskPassSearchForSemiSupplier()
     this.maskDeletePassRejectPriority()
@@ -324,7 +348,7 @@ class BatchUpdateCreatePricingStrategyTimer {
 }
 
 emitter.on('pricingConfig:timer:update', async (timerRecord) => {
-  const mallIds = uniq(getMallIds())
+  const mallIds = uniq([...getMallIds(targetList[agentseller])])
   const instance = new BatchUpdateCreatePricingStrategyTimer({
     timerRecord,
     mallIds

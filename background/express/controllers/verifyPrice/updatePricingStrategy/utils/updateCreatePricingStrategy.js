@@ -2,7 +2,7 @@ const { ipcRendererInvokeAdd } = require('~express/utils/dbDataUtils')
 const { createProxyToGetTemuData } = require('~express/middleware/proxyMiddleware')
 const { GetSearchForSupplierByManagedType } = require('~express/controllers/verifyPrice/searchForChainSupplier/utils/getFullSearchForChainSupplierData')
 const { customIpcRenderer } = require('~utils/event')
-const { map, groupBy, cloneDeep, chunk } = require('lodash')
+const { map, groupBy, cloneDeep, chunk, isUndefined } = require('lodash')
 const { getWholeUrl } = require('~store/user')
 const { throwPromiseError } = require('~utils/promise')
 const { traverseActivity } = require('~express/controllers/batchReportingActivities/batchReportingActivities')
@@ -131,8 +131,8 @@ class UpdateSemiPricingStrategy {
       const fItem = res.find(sItem => sItem.skuId == item.skuId)
       if (fItem) {
         temArr.push({
-          ...fItem,
-          ...item,
+          id: fItem.id,
+          isClose: isUndefined(item.isClose) ? fItem.isClose : item.isClose,
           registerCount: fItem.registerCount + 1
         })
         return
@@ -169,7 +169,7 @@ class UpdateSemiPricingStrategy {
     try {
       const strategyList = this.body?.strategyList || []
       strategyList.map(item => {
-        if(!item.alreadyPricingNumber) item.alreadyPricingNumber = 0
+        if (!item.alreadyPricingNumber) item.alreadyPricingNumber = 0
       })
       this.strategyList = this.strategyListCalculateCost(strategyList)
       await this.collectPricingStrategyHistory()
@@ -178,7 +178,11 @@ class UpdateSemiPricingStrategy {
       this.updateBody(this.getParams())
       let response = await this.summit()
       response = await this.handleResponse(response)
-      await this.updateLatestPricingStrategy(response)
+      try {
+        await this.updateLatestPricingStrategy(response)
+      } catch (err) {
+        console.log(err)
+      }
       return [false, response?.data]
     } catch (err) {
       return [true, err]

@@ -211,7 +211,10 @@ class CreateServer {
   getAllMethods() {
     const names = Object.getOwnPropertyNames(CreateServer.prototype).filter(item => item !== 'constructor').filter(name => typeof CreateServer.prototype[name] === 'function')
     return names.reduce((acc, name) => {
-      acc[name] = this[name].bind(this)
+      acc[name] = async (...args) => {
+        await this.waitValidateIsSync()
+        return this[name].call(this, ...args)
+      }
       return acc
     }, {})
   }
