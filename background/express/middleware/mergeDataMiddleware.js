@@ -5,7 +5,7 @@ module.exports = function (req, res, next) {
   if (!req?.body?.mallId) return next()
   const mall = getMall(req?.body?.mallId)
   if (!mall) return next()
-  const managedType = mall?.userInfo?.mallList?.[0]?.managedType
+  const managedType = mall?.userInfo?.mallList?.find(m => m.mallId === req.body.mallId)?.managedType
   merge(req.customData, {
     managedType
   })
