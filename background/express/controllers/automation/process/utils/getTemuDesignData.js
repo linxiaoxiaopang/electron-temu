@@ -446,7 +446,8 @@ class BaseGetTemuProductData {
   }
 
   getTemuDataPageItems(response) {
-    return response?.subOrderForSupplierList || []
+    const subOrderForSupplierList = response?.subOrderForSupplierList || []
+    return subOrderForSupplierList.filter(item => item.status == 1)
   }
 
   async action() {
