@@ -511,12 +511,10 @@ class GetTemuProductDataForImage extends GetTemuProductData {
   }
 
   async getTemuData() {
-    const { req, mallId } = this
+    const { req } = this
     const relativeUrl = '/visage-agent-seller/labelcode/personalSku/pageQuery'
     const wholeUrl = getWholeUrl(relativeUrl)
-    const finalQuery = {
-      mallId
-    }
+    const finalQuery = {}
     const response = await throwPromiseError(createProxyToGetTemuData(req)(wholeUrl, { data: finalQuery }))
     return response.data
   }
