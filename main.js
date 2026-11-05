@@ -7,6 +7,7 @@ require('~/express/timer/automationProcess')
 const { watchUserInfo, watchLogin } = require('~/utils/watch')
 const { URL } = require('node:url')
 const { customIpc } = require('~/utils/event')
+const registerImageGroupIpc = require('~/ipc/imageGroup')
 const { getPathToRoot } = require('~/utils/path')
 const { ViewMenu, ViewTray } = require('~/utils/view')
 const { app, BrowserWindow, Tray, Menu, ipcMain, session, MenuItem } = require('electron')
@@ -35,6 +36,10 @@ customIpc.handle('proxyRequest', async (config = {}) => {
   } catch (error) {
     return { error: error.message }
   }
+})
+
+registerImageGroupIpc({
+  getWindow: () => mainWindow
 })
 
 app.whenReady().then(async () => {

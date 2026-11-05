@@ -10,6 +10,10 @@ export const routes = [
   {
     path: '/express',
     component: () => import('@/views/express')
+  },
+  {
+    path: '/image-group',
+    component: () => import('@/views/imageGroup')
   }
 ]
 

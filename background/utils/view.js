@@ -21,6 +21,19 @@ class ViewMenu {
     mainWindow.loadFile(path.resolve(app.getAppPath(), url))
   }
 
+  // 跳转到渲染进程的 hash 路由（如 image-group）
+  loadRoute(hash) {
+    const mainWindow = this.mainWindow
+    if (!mainWindow || mainWindow.isDestroyed()) return
+    mainWindow.show()
+    if (indexPath.startsWith('http')) {
+      return mainWindow.loadURL(`${indexPath.replace(/\/$/, '')}#/${hash}`)
+    }
+    return mainWindow.loadFile(path.resolve(app.getAppPath(), indexPath), {
+      hash: `/${hash}`
+    })
+  }
+
   append(options) {
     const menuItem = new MenuItem(options)
     this.menu.append(menuItem)
@@ -40,6 +53,15 @@ class ViewMenu {
       label: 'temu工具',
       click: () => {
         this.loadUrl('https://toolbox.zdcustom.com/#/')
+      }
+    })
+  }
+
+  appendImageGroup() {
+    this.append({
+      label: '图片整理',
+      click: () => {
+        this.loadRoute('image-group')
       }
     })
   }
@@ -101,6 +123,7 @@ class ViewMenu {
   action() {
     this.appendHome()
     this.appendTemuToolbox()
+    this.appendImageGroup()
     this.appendTemuPlatform()
     this.appendOperation()
     this.appendWindow()
