@@ -2,9 +2,9 @@ export default {
   data() {
     return {
       sourceDir: '',
-      mode: 'copy',
       keyword: '',
       imageLimit: 3,
+      startIndex: 2,
       scanning: false,
       running: false,
       cancelRequested: false,
@@ -16,7 +16,6 @@ export default {
       progress: null,
       result: null,
       error: '',
-      showConfirm: false,
       showAllGroups: false
     }
   },
@@ -35,7 +34,7 @@ export default {
         {
           key: 'source',
           label: '源图片文件夹',
-          desc: '递归扫描多层子目录，按名称归入同级 -copy / -move 文件夹，忽略 -1、-2 等序号',
+          desc: '递归扫描多层子目录，按名称归入同级 -copy 文件夹，忽略 -1、-2 等序号',
           value: this.sourceDir,
           placeholder: '尚未选择源文件夹'
         }
@@ -52,9 +51,8 @@ export default {
         const suffix = this.preview.outputExists ? '（已存在，将复用）' : '（将自动创建）'
         return `输出到 ${this.preview.outputDir}${suffix}`
       }
-      const modeSuffix = this.mode === 'move' ? '-move' : '-copy'
-      if (!this.sourceFolderName) return `输出到与源文件夹同级的「源文件夹名${modeSuffix}」`
-      return `输出到同级文件夹 ${this.sourceFolderName}${modeSuffix}`
+      if (!this.sourceFolderName) return '输出到与源文件夹同级的「源文件夹名-copy」'
+      return `输出到同级文件夹 ${this.sourceFolderName}-copy`
     },
 
     statusKey() {
@@ -108,9 +106,6 @@ export default {
   },
 
   watch: {
-    mode() {
-      this.resetPreview()
-    },
     keyword() {
       this.resetPreview()
     }
@@ -247,7 +242,6 @@ export default {
       try {
         const response = await this.request('imageGroup:scan', {
           sourceDir: this.sourceDir,
-          mode: this.mode,
           keyword: this.keyword
         })
         this.preview = response
@@ -268,28 +262,23 @@ export default {
 
     start() {
       if (!this.preview || this.busy || !this.plannedCount) return
-      if (this.mode === 'move') {
-        this.showConfirm = true
-        return
-      }
       this.runTask()
     },
 
     async runTask() {
-      this.showConfirm = false
       if (this.running) return
       this.running = true
       this.cancelRequested = false
       this.error = ''
       this.result = null
-      this.progress = { current: 0, total: this.plannedCount, groupName: '', phase: this.mode }
+      this.progress = { current: 0, total: this.plannedCount, groupName: '', phase: 'copy' }
 
       try {
         const payload = {
           sourceDir: this.sourceDir,
-          mode: this.mode,
           keyword: this.keyword,
-          imageLimit: this.imageLimit
+          imageLimit: this.imageLimit,
+          startIndex: this.startIndex
         }
         if (this.review.active) payload.plan = this.buildPlan()
         const response = await this.request('imageGroup:start', payload)
@@ -298,7 +287,7 @@ export default {
           current: response.total,
           total: response.total,
           groupName: '',
-          phase: this.mode
+          phase: 'copy'
         }
       } catch (error) {
         this.error = error.message
@@ -316,6 +305,16 @@ export default {
         return
       }
       this.imageLimit = Math.min(limit, 50)
+    },
+
+    // 归档起始序号：1-99，非法输入回落到默认值 2
+    updateStartIndex(value) {
+      const index = Math.floor(Number(value))
+      if (!Number.isFinite(index) || index < 1) {
+        this.startIndex = 2
+        return
+      }
+      this.startIndex = Math.min(index, 99)
     },
 
     async cancel() {

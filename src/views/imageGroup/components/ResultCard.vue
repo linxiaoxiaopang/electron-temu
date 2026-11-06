@@ -3,7 +3,7 @@
     <div class="igp-card-head">
       <div>
         <h2>整理结果</h2>
-        <p>{{ result.cancelled ? '任务已取消，已写入的文件不会回滚' : '同级目录下已生成分组文件夹，图片按 组名-1、组名-2 命名' }}</p>
+        <p>{{ result.cancelled ? '任务已取消，已写入的文件不会回滚' : '同级目录下已生成分组文件夹，图片按 组名-' + (result.startIndex || 2) + ' 起依次命名' }}</p>
       </div>
       <span class="igp-step">05</span>
     </div>
@@ -28,7 +28,7 @@
     </div>
 
     <p class="igp-tip" v-if="result.excluded">
-      已删减 {{ result.excluded }} 张图片，未复制/移动，源文件保持原位
+      已删减 {{ result.excluded }} 张图片，未复制，源文件保持原位
     </p>
 
     <p class="igp-done" v-if="!result.failed && !result.cancelled">
@@ -40,6 +40,10 @@
     <p class="igp-tip" v-if="result.excelPath">已生成表格：{{ result.excelPath }}</p>
 
     <p class="igp-tip" v-if="result.excelError">表格生成失败：{{ result.excelError }}</p>
+
+    <p class="igp-tip" v-if="result.imagesPending">
+      其中 {{ result.imagesPending }} 张图片来自 {{ result.imagesFolders }} 个 images 文件夹，已复制归档，源文件夹未改动
+    </p>
 
     <p class="igp-tip" v-if="result.organizedSkipped">
       已跳过 {{ result.organizedSkipped }} 张位于同名文件夹内的图片

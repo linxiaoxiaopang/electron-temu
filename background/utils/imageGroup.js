@@ -9,8 +9,7 @@ const IMAGE_EXTENSIONS = [
 ]
 
 const MODE = {
-  COPY: 'copy',
-  MOVE: 'move'
+  COPY: 'copy'
 }
 
 // 预览阶段最多返回的分组数量，避免超大目录产生过大的 IPC 数据
@@ -19,6 +18,16 @@ const PREVIEW_GROUP_LIMIT = 200
 const PREVIEW_FILE_LIMIT = 30
 // 失败明细最多返回的条数
 const FAILURE_LIMIT = 500
+// 归档命名的起始序号，默认从 -2 开始（-1 留给手动补的首图）
+const DEFAULT_START_INDEX = 2
+const MAX_START_INDEX = 99
+
+// 起始序号：1-99 的整数，非法输入回落到默认值
+function normalizeStartIndex(value) {
+  const index = Math.floor(Number(value))
+  if (!Number.isFinite(index) || index < 1) return DEFAULT_START_INDEX
+  return Math.min(index, MAX_START_INDEX)
+}
 
 function isImageFile(fileName) {
   return IMAGE_EXTENSIONS.includes(path.extname(fileName).toLowerCase())
@@ -48,12 +57,11 @@ async function resolveSourceDirectory(sourceDir) {
   return ensureDirectory(sourceDir, '源文件夹')
 }
 
-// 输出根目录与源文件夹同级：复制 → <源名>-copy，移动 → <源名>-move
-function resolveOutputDirectory(source, mode) {
+// 输出根目录与源文件夹同级：<源名>-copy，源文件夹本身只读
+function resolveOutputDirectory(source) {
   const baseName = path.basename(source)
   if (!baseName) throw new Error('源文件夹不能是磁盘根目录，请选择具体文件夹')
-  const suffix = mode === MODE.MOVE ? '-move' : '-copy'
-  return path.join(path.dirname(source), `${baseName}${suffix}`)
+  return path.join(path.dirname(source), `${baseName}-copy`)
 }
 
 // 预览只判断输出目录状态，执行时才创建；被同名文件占用时给出明确错误
@@ -119,19 +127,65 @@ function stripKeyword(baseName, keyword) {
   return baseName.replace(pattern, '').trim() || baseName
 }
 
-// 文件夹名：先删关键词，再去掉结尾的 -1、-2 等序号
+// 文件夹名：先删关键词，再去掉结尾的 -1、-2、_1、_01 等序号
 function resolveFolderName(baseName, keyword) {
   const cleaned = stripKeyword(baseName, keyword)
-  const stripped = cleaned.replace(/-\d+$/, '').trim()
+  const stripped = cleaned.replace(/[-_]\d+$/, '').trim()
   return stripped || cleaned
 }
 
+const IMAGES_FOLDER_NAME = 'images'
+
+/**
+ * 找到图片最近的 images 祖先目录（不含源目录本身）
+ * 例如 源/商品A/images/1.jpg → { imagesDir: 源/商品A/images, targetDir: 源/商品A }
+ */
+function resolveImagesTarget(filePath, sourceDir) {
+  const root = normalizeForCompare(sourceDir)
+  let dir = path.dirname(path.resolve(filePath))
+
+  while (normalizeForCompare(dir) !== root) {
+    const parent = path.dirname(dir)
+    if (parent === dir) return null
+    if (path.basename(dir).toLowerCase() === IMAGES_FOLDER_NAME) {
+      return { imagesDir: dir, targetDir: parent }
+    }
+    dir = parent
+  }
+
+  return null
+}
+
+/** 统计 images 文件夹里的图片，仅用于提示，源文件夹保持只读 */
+function inspectImagesFolders(files, sourceDir) {
+  const folders = new Set()
+  let pending = 0
+
+  files.forEach(filePath => {
+    const target = resolveImagesTarget(filePath, sourceDir)
+    if (!target) return
+    folders.add(normalizeForCompare(target.imagesDir))
+    pending += 1
+  })
+
+  return { imagesFolders: folders.size, imagesPending: pending }
+}
+
+/** images 文件夹里的图片归入它的上一级文件夹（上架文件夹），其余按文件名分组 */
+function resolveGroupBaseName(filePath, keyword, sourceDir) {
+  if (sourceDir) {
+    const target = resolveImagesTarget(filePath, sourceDir)
+    if (target) return resolveFolderName(path.basename(target.targetDir), keyword)
+  }
+  return resolveFolderName(path.parse(filePath).name, keyword)
+}
+
 /** 按文件夹名分组，分组键忽略大小写；组内按 -1、-2 自然排序；图片本身不改名 */
-function groupImages(files, keyword = '') {
+function groupImages(files, keyword = '', sourceDir = '') {
   const groups = new Map()
 
   files.forEach(filePath => {
-    const baseName = resolveFolderName(path.parse(filePath).name, keyword)
+    const baseName = resolveGroupBaseName(filePath, keyword, sourceDir)
     if (!baseName) return
     const key = baseName.toLowerCase()
     if (!groups.has(key)) {
@@ -164,13 +218,13 @@ function toPreviewFile(filePath) {
 }
 
 async function previewImageGroups(options = {}) {
-  const { sourceDir, mode = MODE.COPY, keyword = '', includeFiles = true } = options
-  if (mode !== MODE.COPY && mode !== MODE.MOVE) throw new Error(`不支持的处理模式：${mode}`)
+  const { sourceDir, keyword = '', includeFiles = true } = options
   const source = await resolveSourceDirectory(sourceDir)
-  const outputDir = resolveOutputDirectory(source, mode)
+  const outputDir = resolveOutputDirectory(source)
   const outputExists = await prepareOutputDirectory(outputDir, false)
   const { files, organizedSkipped } = await collectImages(source)
-  const groups = groupImages(files, keyword)
+  const groups = groupImages(files, keyword, source)
+  const imagesInfo = inspectImagesFolders(files, source)
 
   const visibleGroups = groups.slice(0, PREVIEW_GROUP_LIMIT)
   const groupsTruncated = groups.length > PREVIEW_GROUP_LIMIT
@@ -182,6 +236,8 @@ async function previewImageGroups(options = {}) {
     folderCount: groups.length,
     plannedFiles: files.length,
     organizedSkipped,
+    imagesFolders: imagesInfo.imagesFolders,
+    imagesPending: imagesInfo.imagesPending,
     outputDir,
     outputExists,
     groups: visibleGroups.map(group => {
@@ -238,7 +294,7 @@ function normalizePlan(plan, sourceDir) {
 
 /** 按审核计划生成归档组；未出现在计划中的分组按原顺序完整保留 */
 function resolveArchiveGroups({ plan, files, keyword, source }) {
-  const allGroups = groupImages(files, keyword)
+  const allGroups = groupImages(files, keyword, source)
   if (!Array.isArray(plan)) return { groups: allGroups, excluded: 0 }
 
   const byName = new Map(allGroups.map(group => [group.name.toLowerCase(), group]))
@@ -292,38 +348,24 @@ async function resolveTargetPath(targetDir, fileName, usedNames) {
   return path.join(targetDir, candidate)
 }
 
-async function moveFile(sourcePath, targetPath) {
-  try {
-    await fs.promises.rename(sourcePath, targetPath)
-  } catch (error) {
-    // 跨磁盘移动时 rename 会抛 EXDEV，回退为复制后删除
-    if (error.code !== 'EXDEV') throw error
-    await fs.promises.copyFile(sourcePath, targetPath)
-    await fs.promises.unlink(sourcePath)
-  }
-}
-
-async function transferFile(sourcePath, targetPath, mode) {
-  if (mode === MODE.MOVE) return moveFile(sourcePath, targetPath)
-  await fs.promises.copyFile(sourcePath, targetPath)
-}
-
-/** 执行分组归档 */
+/** 执行分组归档：只复制，源文件夹保持只读 */
 async function runImageGroups(options = {}) {
   const {
     sourceDir,
-    mode = MODE.COPY,
     keyword = '',
     imageLimit = DEFAULT_IMAGE_LIMIT,
+    startIndex = DEFAULT_START_INDEX,
     plan,
     onProgress,
     isCancelled
   } = options
-  if (mode !== MODE.COPY && mode !== MODE.MOVE) throw new Error(`不支持的处理模式：${mode}`)
+  const startNumber = normalizeStartIndex(startIndex)
 
   const source = await resolveSourceDirectory(sourceDir)
-  const outputDir = resolveOutputDirectory(source, mode)
-  const { files, organizedSkipped } = await collectImages(source)
+  const outputDir = resolveOutputDirectory(source)
+  const collected = await collectImages(source)
+  const files = collected.files
+  const imagesInfo = inspectImagesFolders(files, source)
   // 每张图片都会归入对应文件夹，单张图片同样建文件夹
   const { groups, excluded } = resolveArchiveGroups({ plan, files, keyword, source })
 
@@ -341,7 +383,7 @@ async function runImageGroups(options = {}) {
 
   const report = groupName => {
     if (typeof onProgress !== 'function') return
-    onProgress({ current: processed, total, groupName, phase: mode })
+    onProgress({ current: processed, total, groupName, phase: MODE.COPY })
   }
 
   for (const group of groups) {
@@ -376,10 +418,10 @@ async function runImageGroups(options = {}) {
       }
 
       try {
-        // 审核后的顺序即最终命名顺序：组名-1、组名-2……
-        const fileName = `${group.name}-${fileIndex + 1}${path.extname(filePath)}`
+        // 审核后的顺序即最终命名顺序：组名-起始序号、组名-起始序号+1……
+        const fileName = `${group.name}-${startNumber + fileIndex}${path.extname(filePath)}`
         const targetPath = await resolveTargetPath(targetDir, fileName, usedNames)
-        await transferFile(filePath, targetPath, mode)
+        await fs.promises.copyFile(filePath, targetPath)
         success += 1
         groupSucceeded = true
       } catch (error) {
@@ -414,8 +456,11 @@ async function runImageGroups(options = {}) {
     success,
     failed: failures.length,
     excluded,
+    startIndex: startNumber,
+    imagesFolders: imagesInfo.imagesFolders,
+    imagesPending: imagesInfo.imagesPending,
     skipped: Math.max(total - processed, 0),
-    organizedSkipped,
+    organizedSkipped: collected.organizedSkipped,
     outputDir,
     excelPath,
     excelError,
@@ -429,6 +474,9 @@ module.exports = {
   IMAGE_EXTENSIONS,
   MODE,
   isImageFile,
+  normalizeStartIndex,
+  DEFAULT_START_INDEX,
+  MAX_START_INDEX,
   collectImages,
   groupImages,
   previewImageGroups,

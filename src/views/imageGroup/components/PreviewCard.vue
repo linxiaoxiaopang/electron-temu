@@ -32,7 +32,11 @@
     </p>
 
     <p class="igp-tip" v-if="preview.groups.length">
-      扫描后审核第一组：拖拽或箭头调整顺序、删减不需要的图片，该顺序与删减会套用到所有分组；归档时统一命名为 组名-1、组名-2…，并生成「图片与标题.xlsx」（每个文件夹插入前 {{ imageLimit }} 张）
+      扫描后审核第一组：拖拽或箭头调整顺序、删减不需要的图片，该顺序与删减会套用到所有分组；归档时统一命名为 组名-{{ startIndex }}、组名-{{ startIndex + 1 }}…，并生成「图片与标题.xlsx」（每个文件夹插入前 {{ imageLimit }} 张）
+    </p>
+
+    <p class="igp-tip" v-if="preview.imagesPending">
+      检测到 {{ preview.imagesFolders }} 个 images 文件夹：其中 {{ preview.imagesPending }} 张图片会一并复制并按 组名-{{ startIndex }} 起命名，源文件夹不改动
     </p>
 
     <p class="igp-tip" v-if="preview.outputExists">
@@ -86,6 +90,10 @@ export default {
     imageLimit: {
       type: Number,
       default: 3
+    },
+    startIndex: {
+      type: Number,
+      default: 2
     }
   },
 

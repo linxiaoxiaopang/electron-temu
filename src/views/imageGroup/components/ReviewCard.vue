@@ -3,7 +3,7 @@
     <div class="igp-card-head">
       <div>
         <h2>审核第一组</h2>
-        <p>拖拽或使用箭头调整顺序，序号即最终命名（组名-1、组名-2…）</p>
+        <p>拖拽或使用箭头调整顺序，序号即最终命名（组名-{{ startIndex }}、组名-{{ startIndex + 1 }}…）</p>
       </div>
       <span class="igp-step">04</span>
     </div>
@@ -52,7 +52,7 @@
             @error="markBroken(file)"
           />
           <span class="igp-review-broken" v-else>{{ file.ext.replace('.', '').toUpperCase() || 'IMG' }}</span>
-          <span class="igp-review-order">{{ i + 1 }}</span>
+          <span class="igp-review-order">{{ startIndex + i }}</span>
           <span class="igp-review-grip" aria-hidden="true">⠿</span>
         </div>
 
@@ -120,6 +120,10 @@ export default {
     fileLimit: {
       type: Number,
       default: 30
+    },
+    startIndex: {
+      type: Number,
+      default: 2
     },
     truncated: {
       type: Boolean,

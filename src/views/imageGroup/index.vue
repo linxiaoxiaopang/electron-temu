@@ -6,7 +6,7 @@
           <span class="igp-logo">图</span>
           <div>
             <h1>图片按名称分组</h1>
-            <p>递归扫描并按名称分组，审核第一组的顺序与删减后套用到所有分组，统一命名为 组名-1、组名-2</p>
+            <p>递归扫描并按名称分组，审核第一组的顺序与删减后套用到所有分组，统一命名为 组名-{{ startIndex }}、组名-{{ startIndex + 1 }}…</p>
           </div>
         </div>
         <span class="igp-badge" :class="'is-' + statusKey">{{ statusText }}</span>
@@ -22,13 +22,13 @@
       />
 
       <ModeCard
-        :mode="mode"
         :keyword="keyword"
         :image-limit="imageLimit"
+        :start-index="startIndex"
         :busy="busy"
-        @change-mode="mode = $event"
         @change-keyword="keyword = $event"
         @change-image-limit="updateImageLimit"
+        @change-start-index="updateStartIndex"
       />
 
       <PreviewCard
@@ -38,6 +38,7 @@
         :show-all-groups="showAllGroups"
         :keyword="keyword"
         :image-limit="imageLimit"
+        :start-index="startIndex"
         @toggle-all="showAllGroups = !showAllGroups"
       />
 
@@ -46,6 +47,7 @@
         :group="currentReviewGroup"
         :group-count="reviewTotal"
         :file-limit="(preview && preview.fileLimit) || 30"
+        :start-index="startIndex"
         :truncated="Boolean(currentReviewGroup.truncated)"
         :busy="busy"
         @move="moveFile"
@@ -116,18 +118,6 @@
       </div>
     </main>
 
-    <div class="igp-modal-mask" v-if="showConfirm">
-      <div class="igp-modal">
-        <h3>确认使用移动模式？</h3>
-        <p>移动会把原图片移入同级 -move 文件夹，操作不可撤销。被删减的图片会留在原位置不移动，建议先用复制模式验证分组结果。</p>
-        <div class="igp-modal-actions">
-          <button type="button" class="igp-btn igp-btn-ghost" @click="showConfirm = false">
-            再想想
-          </button>
-          <button type="button" class="igp-btn igp-btn-primary" @click="runTask">确认移动</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
