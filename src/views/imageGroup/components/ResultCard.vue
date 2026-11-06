@@ -3,9 +3,9 @@
     <div class="igp-card-head">
       <div>
         <h2>整理结果</h2>
-        <p>{{ result.cancelled ? '任务已取消，已写入的文件不会回滚' : '同级目录下已生成同名分组文件夹' }}</p>
+        <p>{{ result.cancelled ? '任务已取消，已写入的文件不会回滚' : '同级目录下已生成分组文件夹，图片按 组名-1、组名-2 命名' }}</p>
       </div>
-      <span class="igp-step">04</span>
+      <span class="igp-step">05</span>
     </div>
 
     <div class="igp-metrics">
@@ -21,7 +21,15 @@
         <span>失败文件</span>
         <strong>{{ result.failed }}</strong>
       </div>
+      <div class="igp-metric is-muted" v-if="result.excluded">
+        <span>已删减</span>
+        <strong>{{ result.excluded }}</strong>
+      </div>
     </div>
+
+    <p class="igp-tip" v-if="result.excluded">
+      已删减 {{ result.excluded }} 张图片，未复制/移动，源文件保持原位
+    </p>
 
     <p class="igp-done" v-if="!result.failed && !result.cancelled">
       全部完成，文件已归档到同级文件夹。

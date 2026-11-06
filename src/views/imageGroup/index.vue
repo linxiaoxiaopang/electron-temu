@@ -6,7 +6,7 @@
           <span class="igp-logo">图</span>
           <div>
             <h1>图片按名称分组</h1>
-            <p>递归扫描源文件夹，按名称生成文件夹，忽略 -1、-2 等序号，图片名称保持不变</p>
+            <p>递归扫描并按名称分组，审核第一组的顺序与删减后套用到所有分组，统一命名为 组名-1、组名-2</p>
           </div>
         </div>
         <span class="igp-badge" :class="'is-' + statusKey">{{ statusText }}</span>
@@ -41,6 +41,19 @@
         @toggle-all="showAllGroups = !showAllGroups"
       />
 
+      <ReviewCard
+        v-if="review.active && currentReviewGroup && !running && !result"
+        :group="currentReviewGroup"
+        :group-count="reviewTotal"
+        :file-limit="(preview && preview.fileLimit) || 30"
+        :truncated="Boolean(currentReviewGroup.truncated)"
+        :busy="busy"
+        @move="moveFile"
+        @shift="shiftFile"
+        @toggle-remove="toggleRemove"
+        @reset="resetGroup"
+      />
+
       <ProgressCard
         v-if="progress"
         :progress="progress"
@@ -70,6 +83,14 @@
           >
             重新扫描
           </button>
+          <button
+            type="button"
+            class="igp-btn igp-btn-ghost"
+            v-if="review.active && !running && !result"
+            @click="skipReview"
+          >
+            跳过审核
+          </button>
           <button type="button" class="igp-btn igp-btn-primary" v-if="running" @click="cancel">
             {{ cancelRequested ? '正在取消…' : '取消整理' }}
           </button>
@@ -98,7 +119,7 @@
     <div class="igp-modal-mask" v-if="showConfirm">
       <div class="igp-modal">
         <h3>确认使用移动模式？</h3>
-        <p>移动会把原图片移入同级 -move 文件夹，操作不可撤销。建议先用复制模式验证分组结果。</p>
+        <p>移动会把原图片移入同级 -move 文件夹，操作不可撤销。被删减的图片会留在原位置不移动，建议先用复制模式验证分组结果。</p>
         <div class="igp-modal-actions">
           <button type="button" class="igp-btn igp-btn-ghost" @click="showConfirm = false">
             再想想
@@ -114,6 +135,7 @@
 import DirectoryCard from './components/DirectoryCard.vue'
 import ModeCard from './components/ModeCard.vue'
 import PreviewCard from './components/PreviewCard.vue'
+import ReviewCard from './components/ReviewCard.vue'
 import ProgressCard from './components/ProgressCard.vue'
 import ResultCard from './components/ResultCard.vue'
 import groupTask from './mixins/groupTask'
@@ -125,6 +147,7 @@ export default {
     DirectoryCard,
     ModeCard,
     PreviewCard,
+    ReviewCard,
     ProgressCard,
     ResultCard
   },

@@ -9,6 +9,10 @@ export default {
       running: false,
       cancelRequested: false,
       preview: null,
+      review: {
+        active: false,
+        groups: []
+      },
       progress: null,
       result: null,
       error: '',
@@ -72,7 +76,21 @@ export default {
       return textMap[this.statusKey]
     },
 
+    // 审核只展示第一组，其顺序与删减作为模板套用到所有分组
+    currentReviewGroup() {
+      return this.review.groups[0] || null
+    },
+
+    reviewTotal() {
+      return this.review.groups.length
+    },
+
+    reviewKeptCount() {
+      return this.review.groups.reduce((sum, group) => sum + this.applyTemplate(group).length, 0)
+    },
+
     plannedCount() {
+      if (this.review.active) return this.reviewKeptCount
       return this.preview ? this.preview.plannedFiles : 0
     },
 
@@ -125,6 +143,88 @@ export default {
       return response
     },
 
+    // 审核数据来自扫描结果：组内按 -1、-2 自然排序，默认为全部保留
+    enterReview(preview) {
+      const groups = (preview.groups || [])
+        .filter(group => Array.isArray(group.files) && group.files.length)
+        .map(group => {
+          const files = group.files.map(file => ({ ...file, removed: false }))
+          return {
+            name: group.name,
+            count: group.count,
+            truncated: group.files.length < group.count,
+            files,
+            defaults: files.map(file => ({ ...file }))
+          }
+        })
+
+      this.review = { active: groups.length > 0, groups }
+    },
+
+    skipReview() {
+      this.review.active = false
+    },
+
+    moveFile({ from, to }) {
+      const group = this.currentReviewGroup
+      if (!group || from === to) return
+      if (from < 0 || to < 0 || from >= group.files.length || to >= group.files.length) return
+      const [item] = group.files.splice(from, 1)
+      group.files.splice(to, 0, item)
+    },
+
+    shiftFile({ index, delta }) {
+      this.moveFile({ from: index, to: index + delta })
+    },
+
+    toggleRemove(index) {
+      const group = this.currentReviewGroup
+      if (!group) return
+      const file = group.files[index]
+      if (!file) return
+      file.removed = !file.removed
+    },
+
+    resetGroup() {
+      const group = this.currentReviewGroup
+      if (!group) return
+      group.files = group.defaults.map(file => ({ ...file }))
+    },
+
+    // 把第一组的顺序与删减套用到某个分组：按相同位置重排，多出的图片保留在末尾
+    applyTemplate(group) {
+      const template = this.review.groups[0]
+      if (!template || group === template) {
+        return group.files.filter(file => !file.removed)
+      }
+
+      const position = new Map(template.defaults.map((file, index) => [file.path, index]))
+      const order = template.files.map(file => position.get(file.path))
+      const removed = new Set(
+        template.files.filter(file => file.removed).map(file => position.get(file.path))
+      )
+
+      const result = []
+      order.forEach(index => {
+        if (removed.has(index) || index >= group.files.length) return
+        result.push(group.files[index])
+      })
+      for (let index = template.defaults.length; index < group.files.length; index += 1) {
+        result.push(group.files[index])
+      }
+      return result
+    },
+
+    // 提交给主进程的审核计划：顺序即最终命名顺序，removed 的图片不参与归档
+    buildPlan() {
+      return this.review.groups.map(group => ({
+        name: group.name,
+        count: group.count,
+        truncated: group.truncated,
+        files: this.applyTemplate(group).map(file => file.path)
+      }))
+    },
+
     async selectDirectory() {
       if (this.busy) return
       this.error = ''
@@ -151,6 +251,7 @@ export default {
           keyword: this.keyword
         })
         this.preview = response
+        this.enterReview(response)
         if (!response.total) {
           const skipped = response.organizedSkipped || 0
           this.error = skipped
@@ -184,12 +285,14 @@ export default {
       this.progress = { current: 0, total: this.plannedCount, groupName: '', phase: this.mode }
 
       try {
-        const response = await this.request('imageGroup:start', {
+        const payload = {
           sourceDir: this.sourceDir,
           mode: this.mode,
           keyword: this.keyword,
           imageLimit: this.imageLimit
-        })
+        }
+        if (this.review.active) payload.plan = this.buildPlan()
+        const response = await this.request('imageGroup:start', payload)
         this.result = response
         this.progress = {
           current: response.total,
@@ -242,6 +345,7 @@ export default {
       if (this.running) return
       this.preview = null
       this.showAllGroups = false
+      this.review = { active: false, groups: [] }
       this.clearResult()
     }
   }

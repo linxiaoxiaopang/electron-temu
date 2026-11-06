@@ -32,7 +32,7 @@
     </p>
 
     <p class="igp-tip" v-if="preview.groups.length">
-      归档完成后会在输出目录生成「图片与标题.xlsx」，包含图片名称、AI描述词（留空）和图片三列，每个文件夹插入前 {{ imageLimit }} 张图片
+      扫描后审核第一组：拖拽或箭头调整顺序、删减不需要的图片，该顺序与删减会套用到所有分组；归档时统一命名为 组名-1、组名-2…，并生成「图片与标题.xlsx」（每个文件夹插入前 {{ imageLimit }} 张）
     </p>
 
     <p class="igp-tip" v-if="preview.outputExists">

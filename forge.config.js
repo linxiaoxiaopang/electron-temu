@@ -16,8 +16,7 @@ module.exports = {
     // },
     extraResource: [
       'dbData',
-      'extension',
-      'static'
+      'extension'
     ],
     // 4. 图标设置（不同平台格式不同）
     icon: path.resolve(__dirname, 'public/favicon.ico'),

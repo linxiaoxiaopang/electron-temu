@@ -1,5 +1,6 @@
 const fs = require('fs')
 const path = require('path')
+const { pathToFileURL } = require('url')
 const { writeGroupWorkbook, DEFAULT_IMAGE_LIMIT } = require('./imageGroupExcel')
 
 const IMAGE_EXTENSIONS = [
@@ -12,13 +13,20 @@ const MODE = {
   MOVE: 'move'
 }
 
-// 预览阶段最多返回的重复组数量，避免超大目录产生过大的 IPC 数据
+// 预览阶段最多返回的分组数量，避免超大目录产生过大的 IPC 数据
 const PREVIEW_GROUP_LIMIT = 200
+// 预览阶段每组最多返回的图片条数，超出部分不参与审核排序
+const PREVIEW_FILE_LIMIT = 30
 // 失败明细最多返回的条数
 const FAILURE_LIMIT = 500
 
 function isImageFile(fileName) {
   return IMAGE_EXTENSIONS.includes(path.extname(fileName).toLowerCase())
+}
+
+// -1、-2、-10 按数字大小排序，而不是按字符排序
+function naturalCompare(a, b) {
+  return a.localeCompare(b, 'zh-CN', { numeric: true })
 }
 
 function normalizeForCompare(targetPath) {
@@ -118,7 +126,7 @@ function resolveFolderName(baseName, keyword) {
   return stripped || cleaned
 }
 
-/** 按文件夹名分组，分组键忽略大小写；图片本身不改名 */
+/** 按文件夹名分组，分组键忽略大小写；组内按 -1、-2 自然排序；图片本身不改名 */
 function groupImages(files, keyword = '') {
   const groups = new Map()
 
@@ -132,17 +140,42 @@ function groupImages(files, keyword = '') {
     groups.get(key).files.push(filePath)
   })
 
-  return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+  const list = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'))
+  list.forEach(group => group.files.sort((a, b) => naturalCompare(path.basename(a), path.basename(b))))
+  return list
+}
+
+// 审核阶段需要渲染层直接展示原图，这里生成 file:// 地址
+function toPreviewFile(filePath) {
+  let size = 0
+  try {
+    size = fs.statSync(filePath).size
+  } catch (error) {
+    size = 0
+  }
+
+  return {
+    name: path.basename(filePath),
+    path: filePath,
+    fileUrl: pathToFileURL(filePath).href,
+    ext: path.extname(filePath).toLowerCase(),
+    size
+  }
 }
 
 async function previewImageGroups(options = {}) {
-  const { sourceDir, mode = MODE.COPY, keyword = '' } = options
+  const { sourceDir, mode = MODE.COPY, keyword = '', includeFiles = true } = options
   if (mode !== MODE.COPY && mode !== MODE.MOVE) throw new Error(`不支持的处理模式：${mode}`)
   const source = await resolveSourceDirectory(sourceDir)
   const outputDir = resolveOutputDirectory(source, mode)
   const outputExists = await prepareOutputDirectory(outputDir, false)
   const { files, organizedSkipped } = await collectImages(source)
   const groups = groupImages(files, keyword)
+
+  const visibleGroups = groups.slice(0, PREVIEW_GROUP_LIMIT)
+  const groupsTruncated = groups.length > PREVIEW_GROUP_LIMIT
+  const filesTruncated = includeFiles
+    && visibleGroups.some(group => group.files.length > PREVIEW_FILE_LIMIT)
 
   return {
     total: files.length,
@@ -151,12 +184,97 @@ async function previewImageGroups(options = {}) {
     organizedSkipped,
     outputDir,
     outputExists,
-    groups: groups.slice(0, PREVIEW_GROUP_LIMIT).map(group => ({
-      name: group.name,
-      count: group.files.length
-    })),
-    groupsTruncated: groups.length > PREVIEW_GROUP_LIMIT
+    groups: visibleGroups.map(group => {
+      const item = { name: group.name, count: group.files.length }
+      if (includeFiles) {
+        item.files = group.files.slice(0, PREVIEW_FILE_LIMIT).map(toPreviewFile)
+      }
+      return item
+    }),
+    groupsTruncated,
+    filesTruncated,
+    fileLimit: PREVIEW_FILE_LIMIT
   }
+}
+
+/** 审核计划校验：组名不允许越级，文件必须位于源目录内且为图片 */
+function normalizePlan(plan, sourceDir) {
+  if (!Array.isArray(plan)) throw new Error('审核计划格式不正确')
+  const root = path.resolve(sourceDir)
+  const rootPrefix = root.endsWith(path.sep) ? root : root + path.sep
+  const result = []
+  const index = new Map()
+
+  plan.forEach(item => {
+    if (!item || typeof item !== 'object') return
+    const name = path.basename(String(item.name || '').trim())
+    if (!name || name === '.' || name === '..') return
+
+    const key = name.toLowerCase()
+    if (!index.has(key)) {
+      const entry = { name, files: [], originalCount: 0, truncated: Boolean(item.truncated) }
+      index.set(key, entry)
+      result.push(entry)
+    }
+
+    const entry = index.get(key)
+    const seen = new Set(entry.files.map(file => file.toLowerCase()))
+    const list = Array.isArray(item.files) ? item.files : []
+    list.forEach(value => {
+      const filePath = path.resolve(String(value || ''))
+      if (!filePath.startsWith(rootPrefix)) return
+      if (!isImageFile(filePath)) return
+      if (seen.has(filePath.toLowerCase())) return
+      seen.add(filePath.toLowerCase())
+      entry.files.push(filePath)
+    })
+
+    const count = Number(item.count)
+    if (Number.isFinite(count) && count > entry.originalCount) entry.originalCount = count
+  })
+
+  return result
+}
+
+/** 按审核计划生成归档组；未出现在计划中的分组按原顺序完整保留 */
+function resolveArchiveGroups({ plan, files, keyword, source }) {
+  const allGroups = groupImages(files, keyword)
+  if (!Array.isArray(plan)) return { groups: allGroups, excluded: 0 }
+
+  const byName = new Map(allGroups.map(group => [group.name.toLowerCase(), group]))
+  const planned = normalizePlan(plan, source)
+  const used = new Set()
+  const groups = []
+  let excluded = 0
+
+  planned.forEach(item => {
+    const key = item.name.toLowerCase()
+    used.add(key)
+    const origin = byName.get(key)
+    const name = origin ? origin.name : item.name
+    const list = item.files.slice()
+
+    if (origin) {
+      if (item.truncated) {
+        // 组内超过预览上限时，未展示的图片按原顺序追加
+        const picked = new Set(list.map(file => file.toLowerCase()))
+        origin.files.forEach(file => {
+          if (!picked.has(file.toLowerCase())) list.push(file)
+        })
+      } else {
+        excluded += Math.max(origin.files.length - list.length, 0)
+      }
+    }
+
+    if (list.length) groups.push({ name, files: list })
+  })
+
+  allGroups.forEach(group => {
+    if (used.has(group.name.toLowerCase())) return
+    groups.push({ name: group.name, files: group.files })
+  })
+
+  return { groups, excluded }
 }
 
 /** 组内目标文件名冲突时追加序号，不覆盖已有文件 */
@@ -197,6 +315,7 @@ async function runImageGroups(options = {}) {
     mode = MODE.COPY,
     keyword = '',
     imageLimit = DEFAULT_IMAGE_LIMIT,
+    plan,
     onProgress,
     isCancelled
   } = options
@@ -206,7 +325,7 @@ async function runImageGroups(options = {}) {
   const outputDir = resolveOutputDirectory(source, mode)
   const { files, organizedSkipped } = await collectImages(source)
   // 每张图片都会归入对应文件夹，单张图片同样建文件夹
-  const groups = groupImages(files, keyword)
+  const { groups, excluded } = resolveArchiveGroups({ plan, files, keyword, source })
 
   const total = groups.reduce((sum, group) => sum + group.files.length, 0)
   const failures = []
@@ -249,14 +368,17 @@ async function runImageGroups(options = {}) {
     const usedNames = new Set()
     let groupSucceeded = false
 
-    for (const filePath of group.files) {
+    for (let fileIndex = 0; fileIndex < group.files.length; fileIndex += 1) {
+      const filePath = group.files[fileIndex]
       if (typeof isCancelled === 'function' && isCancelled()) {
         cancelled = true
         break
       }
 
       try {
-        const targetPath = await resolveTargetPath(targetDir, path.basename(filePath), usedNames)
+        // 审核后的顺序即最终命名顺序：组名-1、组名-2……
+        const fileName = `${group.name}-${fileIndex + 1}${path.extname(filePath)}`
+        const targetPath = await resolveTargetPath(targetDir, fileName, usedNames)
         await transferFile(filePath, targetPath, mode)
         success += 1
         groupSucceeded = true
@@ -291,6 +413,7 @@ async function runImageGroups(options = {}) {
     groups: archivedGroups,
     success,
     failed: failures.length,
+    excluded,
     skipped: Math.max(total - processed, 0),
     organizedSkipped,
     outputDir,
