@@ -21,28 +21,30 @@ function normalizeImageLimit(value) {
   return Math.min(limit, MAX_IMAGE_LIMIT)
 }
 
-// 主进程可用 nativeImage 压缩缩略图；测试环境下回退为原图
+// exceljs 只接受 jpeg/png/gif，其余格式用 nativeImage 无损转 PNG
+const RAW_EXTENSIONS = { jpg: 'jpeg', jpeg: 'jpeg', png: 'png', gif: 'gif' }
+
+/**
+ * 表格内嵌高清原图：不做缩放压缩，单元格里仍按 THUMB 显示，双击/放大即为原始清晰度
+ */
 function createImagePayload(filePath) {
+  const ext = path.extname(filePath).slice(1).toLowerCase()
+  if (RAW_EXTENSIONS[ext]) {
+    return { buffer: fs.readFileSync(filePath), extension: RAW_EXTENSIONS[ext] }
+  }
+
+  // webp、bmp、tiff 等格式 exceljs 不支持，转成 PNG（保持原分辨率）
   try {
     const { nativeImage } = require('electron')
     if (nativeImage) {
       const image = nativeImage.createFromPath(filePath)
-      if (!image.isEmpty()) {
-        const size = image.getSize()
-        const resize = size.width >= size.height
-          ? { width: THUMB }
-          : { height: THUMB }
-        return { buffer: image.resize(resize).toJPEG(88), extension: 'jpeg' }
-      }
+      if (!image.isEmpty()) return { buffer: image.toPNG(), extension: 'png' }
     }
   } catch (error) {
-    // 忽略，使用原始文件
+    // 忽略，回退为原始文件
   }
 
-  return {
-    buffer: fs.readFileSync(filePath),
-    extension: path.extname(filePath).slice(1).toLowerCase() || 'jpeg'
-  }
+  return { buffer: fs.readFileSync(filePath), extension: 'jpeg' }
 }
 
 function listGroupImages(dir) {

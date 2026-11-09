@@ -13,10 +13,16 @@ async function uploadToOssUseUrl(url, headers = {}) {
     const randomFileName = getRandom() + fileName
     const options = {}
     const result = await client.put(randomFileName, responseStream, options)
-    return result
+    return normalizeOssUrl(result)
   } catch (err) {
     throw JSON.stringify(err)
   }
+}
+
+// 兜底：对外返回的地址统一使用 https
+function normalizeOssUrl(result) {
+  if (!result || typeof result.url !== 'string') return result
+  return { ...result, url: result.url.replace(/^http:\/\//i, 'https://') }
 }
 
 
